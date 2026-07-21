@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
-import { apiClient } from '../../api/client';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
 
   const handleSubmit = async (values: { username: string; password: string }) => {
     setLoading(true);
     try {
-      const response = await apiClient.login(values);
-      localStorage.setItem('token', response.token);
+      await login(values.username, values.password);
       message.success('Вход выполнен успешно');
-      navigate('/');
+      navigate(from, { replace: true });
     } catch (error) {
       message.error('Неверный логин или пароль');
       console.error(error);

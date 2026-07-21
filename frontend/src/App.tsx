@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, theme } from 'antd';
 import ruRU from 'antd/locale/ru_RU';
 import { AuthProvider } from './hooks/useAuth';
+import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import FundDetails from './pages/FundDetails';
@@ -29,8 +30,21 @@ const App: React.FC = () => {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route element={<Layout />}>
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              }
+            />
+            <Route
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
               <Route path="/" element={<Dashboard />} />
               <Route path="/funds/:id" element={<FundDetails />} />
               <Route path="/settings" element={<Settings />} />
