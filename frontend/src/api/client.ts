@@ -1,5 +1,6 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
-import { LoginRequest, LoginResponse, Fund, FundFinancials, FundDocument, LLMAnalysis, LLMSettings } from '../types';
+import axios, { AxiosError } from 'axios';
+import type { AxiosInstance } from 'axios';
+import type { LoginRequest, LoginResponse, Fund, FundFinancials, FundDocument, LLMAnalysis, LLMSettings } from '../types';
 
 class ApiClient {
   private client: AxiosInstance;

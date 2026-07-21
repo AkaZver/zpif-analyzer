@@ -1,14 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Space, Tag, message, Spin } from 'antd';
+import { Table, Button, Space, Tag, message, Spin, Select, Checkbox, Typography, Card } from 'antd';
 import { DownloadOutlined, UploadOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/client';
-import { Fund } from '../../types';
+import type { Fund, FundFinancials } from '../../types';
+import type { ColumnsType } from 'antd/es/table';
+
+interface FundWithFinancials extends Fund {
+  latest_financials?: FundFinancials | null;
+}
 
 const Dashboard: React.FC = () => {
-  const [funds, setFunds] = useState<Fund[]>([]);
+  const [funds, setFunds] = useState<FundWithFinancials[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [filterSegment, setFilterSegment] = useState<string | undefined>();
+  const [filterCompany, setFilterCompany] = useState<string | undefined>();
+  const [filterQualified, setFilterQualified] = useState<boolean | undefined>();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -18,11 +26,23 @@ const Dashboard: React.FC = () => {
   const loadFunds = async () => {
     setLoading(true);
     try {
-      const data = await apiClient.getFunds();
-      setFunds(data);
+      const fundsData = await apiClient.getFunds();
+      const fundsWithFinancials: FundWithFinancials[] = await Promise.all(
+        fundsData.map(async (fund) => {
+          try {
+            const financials = await apiClient.getFinancials(fund.id);
+            return {
+              ...fund,
+              latest_financials: financials.length > 0 ? financials[0] : null,
+            };
+          } catch {
+            return { ...fund, latest_financials: null };
+          }
+        })
+      );
+      setFunds(fundsWithFinancials);
     } catch (error) {
       message.error('Не удалось загрузить фонды');
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -33,10 +53,9 @@ const Dashboard: React.FC = () => {
     try {
       await apiClient.discoverAll();
       message.success('Автопоиск документов запущен');
-      await loadFunds();
+      setTimeout(() => loadFunds(), 2000);
     } catch (error) {
       message.error('Ошибка при обновлении');
-      console.error(error);
     } finally {
       setRefreshing(false);
     }
@@ -49,14 +68,11 @@ const Dashboard: React.FC = () => {
       const a = document.createElement('a');
       a.href = url;
       a.download = 'zpif-analyzer-export.xlsx';
-      document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
       message.success('Экспорт завершён');
-    } catch (error) {
+    } catch {
       message.error('Ошибка при экспорте');
-      console.error(error);
     }
   };
 
@@ -67,96 +83,168 @@ const Dashboard: React.FC = () => {
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
-
       try {
         const result = await apiClient.importExcel(file);
         message.success(`Импортировано: ${result.imported} записей`);
         await loadFunds();
-      } catch (error) {
+      } catch {
         message.error('Ошибка при импорте');
-        console.error(error);
       }
     };
     input.click();
   };
 
-  const columns = [
+  const segments = [...new Set(funds.map((f) => f.real_estate_segment).filter(Boolean))];
+  const companies = [...new Set(funds.map((f) => f.management_company).filter(Boolean))];
+
+  const filteredFunds = funds.filter((fund) => {
+    if (filterSegment && fund.real_estate_segment !== filterSegment) return false;
+    if (filterCompany && fund.management_company !== filterCompany) return false;
+    if (filterQualified !== undefined && fund.qualified_required !== filterQualified) return false;
+    return true;
+  });
+
+  const renderPctCell = (value: number) => {
+    const color = value >= 0 ? '#52c41a' : '#ff4d4f';
+    return <span style={{ color }}>{value?.toFixed(1)}%</span>;
+  };
+
+  const renderDiscountCell = (value: number) => {
+    const color = value <= 0 ? '#52c41a' : '#ff4d4f';
+    return <span style={{ color }}>{value?.toFixed(1)}%</span>;
+  };
+
+  const columns: ColumnsType<FundWithFinancials> = [
     {
       title: 'Название',
       dataIndex: 'name',
       key: 'name',
-      sorter: (a: Fund, b: Fund) => a.name.localeCompare(b.name),
+      sorter: (a, b) => a.name.localeCompare(b.name),
+      fixed: 'left',
+      width: 180,
     },
-    {
-      title: 'ISIN',
-      dataIndex: 'isin',
-      key: 'isin',
-    },
+    { title: 'ISIN', dataIndex: 'isin', key: 'isin', width: 140 },
     {
       title: 'Тикер',
       dataIndex: 'ticker',
       key: 'ticker',
-      render: (ticker: string) => ticker || '—',
+      width: 80,
+      render: (v: string) => v || '—',
     },
-    {
-      title: 'УК',
-      dataIndex: 'management_company',
-      key: 'management_company',
-    },
+    { title: 'УК', dataIndex: 'management_company', key: 'management_company', width: 150 },
     {
       title: 'Сегмент',
       dataIndex: 'real_estate_segment',
       key: 'real_estate_segment',
-      render: (segment: string) => segment || '—',
+      width: 100,
+      render: (v: string) => v || '—',
     },
     {
-      title: 'Квал.',
+      title: 'Цена пая',
+      key: 'unit_price',
+      width: 100,
+      render: (_, r) => r.latest_financials?.unit_price_rub?.toFixed(0) || '—',
+      sorter: (a, b) => (a.latest_financials?.unit_price_rub || 0) - (b.latest_financials?.unit_price_rub || 0),
+    },
+    {
+      title: 'РСП',
+      key: 'nav',
+      width: 100,
+      render: (_, r) => r.latest_financials?.nav_per_unit_rub?.toFixed(0) || '—',
+    },
+    {
+      title: 'Дисконт',
+      key: 'discount',
+      width: 90,
+      render: (_, r) => r.latest_financials ? renderDiscountCell(r.latest_financials.discount_to_nav_pct) : '—',
+      sorter: (a, b) => (a.latest_financials?.discount_to_nav_pct || 0) - (b.latest_financials?.discount_to_nav_pct || 0),
+    },
+    {
+      title: 'Cap Rate',
+      key: 'cap_rate',
+      width: 90,
+      render: (_, r) => r.latest_financials?.cap_rate_pct ? `${r.latest_financials.cap_rate_pct.toFixed(1)}%` : '—',
+    },
+    {
+      title: 'P/NAV',
+      key: 'p_nav',
+      width: 80,
+      render: (_, r) => r.latest_financials?.p_nav?.toFixed(2) || '—',
+    },
+    {
+      title: 'Доходность выплат',
+      key: 'payout_yield',
+      width: 130,
+      render: (_, r) => r.latest_financials ? renderPctCell(r.latest_financials.payout_yield_pct) : '—',
+      sorter: (a, b) => (a.latest_financials?.payout_yield_pct || 0) - (b.latest_financials?.payout_yield_pct || 0),
+    },
+    {
+      title: 'Полная доходность',
+      key: 'total_return',
+      width: 140,
+      render: (_, r) => r.latest_financials ? renderPctCell(r.latest_financials.total_return_pct) : '—',
+      sorter: (a, b) => (a.latest_financials?.total_return_pct || 0) - (b.latest_financials?.total_return_pct || 0),
+    },
+    {
+      title: 'Долг/СЧА',
+      key: 'debt',
+      width: 90,
+      render: (_, r) => r.latest_financials?.debt_to_nav_ratio?.toFixed(2) || '—',
+    },
+    {
+      title: 'Квал',
       dataIndex: 'qualified_required',
-      key: 'qualified_required',
-      render: (required: boolean) => (
-        <Tag color={required ? 'red' : 'green'}>
-          {required ? 'Да' : 'Нет'}
-        </Tag>
-      ),
-    },
-    {
-      title: 'ММ',
-      dataIndex: 'has_market_maker',
-      key: 'has_market_maker',
-      render: (hasMM: boolean) => (
-        <Tag color={hasMM ? 'green' : 'default'}>
-          {hasMM ? 'Да' : 'Нет'}
-        </Tag>
-      ),
+      key: 'qualified',
+      width: 60,
+      render: (v: boolean) => <Tag color={v ? 'red' : 'green'}>{v ? 'Да' : 'Нет'}</Tag>,
     },
   ];
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-text-primary">Сравнение ЗПИФ</h1>
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <Typography.Title level={3} className="text-text-primary m-0">
+          Сравнение ЗПИФ
+        </Typography.Title>
         <Space>
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={handleRefresh}
-            loading={refreshing}
-          >
-            Обновить данные
+          <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={refreshing}>
+            Обновить
           </Button>
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={handleExport}
-          >
-            Экспорт в Excel
+          <Button icon={<DownloadOutlined />} onClick={handleExport}>
+            Экспорт
           </Button>
-          <Button
-            icon={<UploadOutlined />}
-            onClick={handleImport}
-          >
-            Импорт из Excel
+          <Button icon={<UploadOutlined />} onClick={handleImport}>
+            Импорт
           </Button>
         </Space>
       </div>
+
+      <Card className="mb-4 bg-[#0f3460] border-0">
+        <Space wrap>
+          <Select
+            placeholder="Сегмент"
+            allowClear
+            style={{ width: 160 }}
+            value={filterSegment}
+            onChange={setFilterSegment}
+            options={segments.map((s) => ({ value: s, label: s }))}
+          />
+          <Select
+            placeholder="УК"
+            allowClear
+            style={{ width: 200 }}
+            value={filterCompany}
+            onChange={setFilterCompany}
+            options={companies.map((c) => ({ value: c, label: c }))}
+          />
+          <Checkbox
+            checked={filterQualified === true}
+            onChange={(e) => setFilterQualified(e.target.checked ? true : undefined)}
+          >
+            Только для квалов
+          </Checkbox>
+        </Space>
+      </Card>
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
@@ -165,14 +253,15 @@ const Dashboard: React.FC = () => {
       ) : (
         <Table
           columns={columns}
-          dataSource={funds}
+          dataSource={filteredFunds}
           rowKey="id"
           pagination={false}
+          scroll={{ x: 1600 }}
           onRow={(record) => ({
             onClick: () => navigate(`/funds/${record.id}`),
             style: { cursor: 'pointer' },
           })}
-          className="bg-surface-card rounded-lg"
+          className="bg-[#0f3460] rounded-lg"
         />
       )}
     </div>
