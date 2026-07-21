@@ -13,6 +13,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/xuri/excelize/v2"
 	"github.com/zpif-analyzer/backend/internal/config"
 	"github.com/zpif-analyzer/backend/internal/repositories"
 	"github.com/zpif-analyzer/backend/internal/services"
@@ -327,7 +328,7 @@ func TestLLMHandler_TestWebSearch(t *testing.T) {
 }
 
 func TestExcelHandler_ExportExcel(t *testing.T) {
-	db, _, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
@@ -336,8 +337,13 @@ func TestExcelHandler_ExportExcel(t *testing.T) {
 
 	fundRepo := repositories.NewFundRepository(gormDB)
 	financialsRepo := repositories.NewFinancialsRepository(gormDB)
-	excelService := services.NewExcelService(fundRepo, financialsRepo)
+	analysisRepo := repositories.NewAnalysisRepository(gormDB)
+	excelService := services.NewExcelService(fundRepo, financialsRepo, analysisRepo)
 	handler := NewExcelHandler(excelService)
+
+	// Mock empty funds list
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."deleted_at" IS NULL`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_start_date", "fund_end_date", "created_at", "updated_at", "deleted_at"}))
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
@@ -360,7 +366,7 @@ func TestExcelHandler_ImportExcel_NoFile(t *testing.T) {
 
 	fundRepo := repositories.NewFundRepository(gormDB)
 	financialsRepo := repositories.NewFinancialsRepository(gormDB)
-	excelService := services.NewExcelService(fundRepo, financialsRepo)
+	excelService := services.NewExcelService(fundRepo, financialsRepo, repositories.NewAnalysisRepository(gormDB))
 	handler := NewExcelHandler(excelService)
 
 	gin.SetMode(gin.TestMode)
@@ -439,18 +445,24 @@ func TestExcelHandler_ImportExcel_Success(t *testing.T) {
 
 	fundRepo := repositories.NewFundRepository(gormDB)
 	financialsRepo := repositories.NewFinancialsRepository(gormDB)
-	excelService := services.NewExcelService(fundRepo, financialsRepo)
+	analysisRepo := repositories.NewAnalysisRepository(gormDB)
+	excelService := services.NewExcelService(fundRepo, financialsRepo, analysisRepo)
 	handler := NewExcelHandler(excelService)
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.POST("/api/import/excel", handler.ImportExcel)
 
+	// Create a real empty Excel file
+	f := excelize.NewFile()
+	var excelBuf bytes.Buffer
+	f.Write(&excelBuf)
+
 	// Create a minimal multipart form with a file
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	part, _ := writer.CreateFormFile("file", "test.xlsx")
-	part.Write([]byte("fake xlsx content"))
+	part.Write(excelBuf.Bytes())
 	writer.Close()
 
 	req := httptest.NewRequest("POST", "/api/import/excel", body)
@@ -458,7 +470,7 @@ func TestExcelHandler_ImportExcel_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	// ImportFromExcel returns 0, nil for empty content
+	// ImportFromExcel returns 0, nil for empty Excel file
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
@@ -472,7 +484,7 @@ func TestExcelHandler_ImportExcel_ReadError(t *testing.T) {
 
 	fundRepo := repositories.NewFundRepository(gormDB)
 	financialsRepo := repositories.NewFinancialsRepository(gormDB)
-	excelService := services.NewExcelService(fundRepo, financialsRepo)
+	excelService := services.NewExcelService(fundRepo, financialsRepo, repositories.NewAnalysisRepository(gormDB))
 	handler := NewExcelHandler(excelService)
 
 	gin.SetMode(gin.TestMode)

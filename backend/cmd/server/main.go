@@ -73,7 +73,7 @@ func main() {
 	fundService := services.NewFundService(fundRepo, financialsRepo, documentRepo, analysisRepo)
 	authService := services.NewAuthService(userRepo)
 	llmService := services.NewLLMService(llmSettingsRepo)
-	excelService := services.NewExcelService(fundRepo, financialsRepo)
+	excelService := services.NewExcelService(fundRepo, financialsRepo, analysisRepo)
 
 	// Инициализация LLM-компонентов (если есть ключ)
 	documentsDir := "./documents"
