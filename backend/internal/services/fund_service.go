@@ -193,14 +193,11 @@ func (s *FundService) AnalyzeFund(ctx context.Context, fundID uint) (*models.LLM
 
 func (s *FundService) GetDiscoveryStatus(fundID uint) map[string]interface{} {
 	if s.discoverer == nil {
-		return map[string]interface{}{"status": "idle", "found": 0, "downloaded": 0, "errors": 0}
+		return map[string]interface{}{"status": "idle", "fund_id": fundID}
 	}
 	status := s.discoverer.GetStatus(fundID)
 	return map[string]interface{}{
-		"status":     status.Status,
-		"found":      status.URLsFound,
-		"downloaded": status.Downloaded,
-		"errors":     status.Errors,
-		"fund_id":    status.FundID,
+		"status":  status.Status,
+		"fund_id": status.FundID,
 	}
 }

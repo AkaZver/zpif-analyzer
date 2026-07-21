@@ -7,7 +7,6 @@ import (
 	"github.com/zpif-analyzer/backend/internal/llm"
 	"github.com/zpif-analyzer/backend/internal/models"
 	"github.com/zpif-analyzer/backend/internal/repositories"
-	"github.com/zpif-analyzer/backend/internal/websearch"
 )
 
 type LLMService struct {
@@ -45,17 +44,4 @@ func (s *LLMService) TestConnection() error {
 	client := llm.NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName)
 	ctx := context.Background()
 	return client.TestConnection(ctx)
-}
-
-func (s *LLMService) TestWebSearch(provider, apiKey string) (int, error) {
-	searchClient, err := websearch.NewClient(provider, apiKey)
-	if err != nil {
-		return 0, fmt.Errorf("invalid search config: %w", err)
-	}
-
-	results, err := searchClient.Search(context.Background(), "ZPIF Парус ОЗН")
-	if err != nil {
-		return 0, err
-	}
-	return len(results), nil
 }

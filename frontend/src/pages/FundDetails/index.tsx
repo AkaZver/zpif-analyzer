@@ -208,17 +208,17 @@ const FundDetails: React.FC = () => {
       </Typography.Title>
       <Row gutter={[16, 16]} className="mb-6">
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-[#0f3460] border-0">
+          <Card className="bg-surface-card border-0">
             <Statistic title="Цена пая" value={latest?.unit_price_rub || 0} suffix="₽" precision={0} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-[#0f3460] border-0">
+          <Card className="bg-surface-card border-0">
             <Statistic title="РСП" value={latest?.nav_per_unit_rub || 0} suffix="₽" precision={0} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-[#0f3460] border-0">
+          <Card className="bg-surface-card border-0">
             <Statistic
               title="Дисконт к РСП"
               value={latest?.discount_to_nav_pct || 0}
@@ -229,22 +229,22 @@ const FundDetails: React.FC = () => {
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-[#0f3460] border-0">
+          <Card className="bg-surface-card border-0">
             <Statistic title="Cap Rate" value={latest?.cap_rate_pct || 0} suffix="%" precision={1} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-[#0f3460] border-0">
+          <Card className="bg-surface-card border-0">
             <Statistic title="P/NAV" value={latest?.p_nav || 0} precision={2} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-[#0f3460] border-0">
+          <Card className="bg-surface-card border-0">
             <Statistic title="P/AFFO" value={latest?.p_affo || 0} precision={2} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-[#0f3460] border-0">
+          <Card className="bg-surface-card border-0">
             <Statistic
               title="Доходность выплат"
               value={latest?.payout_yield_pct || 0}
@@ -255,7 +255,7 @@ const FundDetails: React.FC = () => {
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-[#0f3460] border-0">
+          <Card className="bg-surface-card border-0">
             <Statistic
               title="Полная доходность"
               value={latest?.total_return_pct || 0}
@@ -266,22 +266,22 @@ const FundDetails: React.FC = () => {
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-[#0f3460] border-0">
+          <Card className="bg-surface-card border-0">
             <Statistic title="Долг/СЧА" value={latest?.debt_to_nav_ratio || 0} precision={2} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-[#0f3460] border-0">
+          <Card className="bg-surface-card border-0">
             <Statistic title="Комиссия УК" value={latest?.management_fee_pct || 0} suffix="%" precision={1} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-[#0f3460] border-0">
+          <Card className="bg-surface-card border-0">
             <Statistic title="Объектов" value={latest?.number_of_properties || 0} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-[#0f3460] border-0">
+          <Card className="bg-surface-card border-0">
             <Statistic title="Прогноз IRR" value={latest?.irr_forecast_pct || 0} suffix="%" precision={1} />
           </Card>
         </Col>
@@ -292,13 +292,13 @@ const FundDetails: React.FC = () => {
           <Typography.Title level={4} className="text-text-primary mb-4">
             Динамика цены и РСП
           </Typography.Title>
-          <Card className="bg-[#0f3460] border-0 mb-6">
+          <Card className="bg-surface-card border-0 mb-6">
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={priceChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2a2a4a" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#444444" />
                 <XAxis dataKey="date" stroke="#a0a0a0" />
                 <YAxis stroke="#a0a0a0" />
-                <Tooltip contentStyle={{ backgroundColor: '#16213e', border: 'none' }} />
+                <Tooltip contentStyle={{ backgroundColor: '#333333', border: 'none' }} />
                 <Legend />
                 <Line type="monotone" dataKey="Цена пая" stroke="#7c5cbf" strokeWidth={2} />
                 <Line type="monotone" dataKey="РСП" stroke="#e94560" strokeWidth={2} />
@@ -313,13 +313,13 @@ const FundDetails: React.FC = () => {
           <Typography.Title level={4} className="text-text-primary mb-4">
             История выплат
           </Typography.Title>
-          <Card className="bg-[#0f3460] border-0 mb-6">
+          <Card className="bg-surface-card border-0 mb-6">
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={payoutChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2a2a4a" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#444444" />
                 <XAxis dataKey="date" stroke="#a0a0a0" />
                 <YAxis stroke="#a0a0a0" />
-                <Tooltip contentStyle={{ backgroundColor: '#16213e', border: 'none' }} />
+                <Tooltip contentStyle={{ backgroundColor: '#333333', border: 'none' }} />
                 <Bar dataKey="Выплата" fill="#7c5cbf" />
               </BarChart>
             </ResponsiveContainer>
@@ -330,7 +330,7 @@ const FundDetails: React.FC = () => {
       <Typography.Title level={4} className="text-text-primary mb-4">
         Документы
       </Typography.Title>
-      <Card className="bg-[#0f3460] border-0 mb-6">
+      <Card className="bg-surface-card border-0 mb-6">
         <Space className="mb-4">
           <Button icon={<SearchOutlined />} onClick={handleDiscover} loading={discovering}>
             Найти в интернете
@@ -362,7 +362,7 @@ const FundDetails: React.FC = () => {
           <Typography.Title level={4} className="text-text-primary mb-4">
             LLM-анализ
           </Typography.Title>
-          <Card className="bg-[#0f3460] border-0">
+          <Card className="bg-surface-card border-0">
             <Descriptions bordered size="small" column={1}>
               <Descriptions.Item label="Модель">{analysis.model_used}</Descriptions.Item>
               <Descriptions.Item label="Дата">

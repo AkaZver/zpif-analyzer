@@ -142,11 +142,6 @@ class ApiClient {
     return response.data;
   }
 
-  async testWebSearch(): Promise<{ success: boolean; results: number }> {
-    const response = await this.client.post('/llm/test-search');
-    return response.data;
-  }
-
   // Export
   async exportExcel(): Promise<Blob> {
     const response = await this.client.get('/export/excel', { responseType: 'blob' });

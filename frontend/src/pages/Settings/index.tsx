@@ -17,7 +17,6 @@ const Settings: React.FC = () => {
   const [form] = Form.useForm();
   const [llmForm] = Form.useForm();
   const [testingLlm, setTestingLlm] = useState(false);
-  const [testingSearch, setTestingSearch] = useState(false);
   const [savingLlm, setSavingLlm] = useState(false);
 
   useEffect(() => {
@@ -111,18 +110,6 @@ const Settings: React.FC = () => {
     }
   };
 
-  const handleTestSearch = async () => {
-    setTestingSearch(true);
-    try {
-      const result = await apiClient.testWebSearch();
-      message.success(`Найдено результатов: ${result.results}`);
-    } catch {
-      message.error('Ошибка поиска');
-    } finally {
-      setTestingSearch(false);
-    }
-  };
-
   const fundColumns: ColumnsType<Fund> = [
     { title: 'Название', dataIndex: 'name', key: 'name' },
     { title: 'ISIN', dataIndex: 'isin', key: 'isin' },
@@ -169,7 +156,7 @@ const Settings: React.FC = () => {
         />
       </Card>
 
-      <Card title="Настройки LLM и поиска" className="mb-6 bg-surface-card border-0">
+      <Card title="Настройки LLM" className="mb-6 bg-surface-card border-0">
         <Form form={llmForm} layout="vertical" initialValues={llmSettings || {}}>
           <Form.Item name="api_key_encrypted" label="API Key">
             <Input.Password placeholder="sk-..." />
@@ -187,26 +174,12 @@ const Settings: React.FC = () => {
               ]}
             />
           </Form.Item>
-          <Form.Item name="websearch_provider" label="Провайдер поиска">
-            <Select
-              options={[
-                { value: 'serpapi', label: 'SerpAPI' },
-                { value: 'exa', label: 'Exa' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item name="websearch_api_key" label="API Key поиска">
-            <Input.Password placeholder="API key для поиска" />
-          </Form.Item>
           <Space>
             <Button type="primary" onClick={handleSaveLlmSettings} loading={savingLlm}>
               Сохранить
             </Button>
             <Button icon={<CloudDownloadOutlined />} onClick={handleTestLlm} loading={testingLlm}>
               Тест LLM
-            </Button>
-            <Button icon={<CloudDownloadOutlined />} onClick={handleTestSearch} loading={testingSearch}>
-              Тест поиска
             </Button>
           </Space>
         </Form>

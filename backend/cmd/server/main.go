@@ -7,14 +7,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/zpif-analyzer/backend/internal/config"
-	"github.com/zpif-analyzer/backend/internal/fetcher"
 	"github.com/zpif-analyzer/backend/internal/handlers"
 	"github.com/zpif-analyzer/backend/internal/llm"
 	"github.com/zpif-analyzer/backend/internal/middleware"
 	"github.com/zpif-analyzer/backend/internal/models"
 	"github.com/zpif-analyzer/backend/internal/repositories"
 	"github.com/zpif-analyzer/backend/internal/services"
-	"github.com/zpif-analyzer/backend/internal/websearch"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -75,18 +73,10 @@ func main() {
 	llmService := services.NewLLMService(llmSettingsRepo)
 	excelService := services.NewExcelService(fundRepo, financialsRepo, analysisRepo)
 
-	// Инициализация LLM-компонентов (если есть ключ)
-	fetcherMgr := fetcher.NewFetcher()
-
 	if cfg.OpenAIAPIKey != "" {
 		llmClient := llm.NewClient(cfg.OpenAIAPIKey, cfg.OpenAIBaseURL, cfg.OpenAIModel)
-		searchClient, err := websearch.NewClient(cfg.WebSearchProvider, cfg.WebSearchAPIKey)
-		if err != nil {
-			log.Printf("Warning: failed to init web search: %v", err)
-		} else {
-			discoverer := llm.NewDiscoverer(llmClient, searchClient, fetcherMgr, documentRepo, fundRepo)
-			fundService.SetDiscoverer(discoverer)
-		}
+		discoverer := llm.NewDiscoverer(llmClient, documentRepo, fundRepo)
+		fundService.SetDiscoverer(discoverer)
 		analyzer := llm.NewAnalyzer(llmClient, documentRepo, analysisRepo, financialsRepo, fundRepo)
 		fundService.SetAnalyzer(analyzer)
 		log.Println("LLM integration enabled")
@@ -150,7 +140,6 @@ func main() {
 	api.GET("/llm/settings", llmHandler.GetSettings)
 	api.PUT("/llm/settings", llmHandler.UpdateSettings)
 	api.POST("/llm/test", llmHandler.TestConnection)
-	api.POST("/llm/test-search", llmHandler.TestWebSearch)
 
 	// Excel export
 	api.GET("/export/excel", excelHandler.ExportExcel)

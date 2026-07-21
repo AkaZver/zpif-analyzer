@@ -114,14 +114,3 @@ func TestLLMService_TestConnection(t *testing.T) {
 	// Will fail because we can't connect to real OpenAI, but that's expected
 	assert.Error(t, err)
 }
-
-func TestLLMService_TestWebSearch(t *testing.T) {
-	service, _, cleanup := setupTestLLMService(t)
-	defer cleanup()
-
-	results, err := service.TestWebSearch("serpapi", "test-api-key")
-
-	// Will fail because we can't connect to real SerpAPI, but that's expected
-	assert.Error(t, err)
-	assert.Equal(t, 0, results)
-}

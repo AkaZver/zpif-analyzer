@@ -299,32 +299,6 @@ func TestLLMHandler_TestConnection(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
 
-func TestLLMHandler_TestWebSearch(t *testing.T) {
-	db, _, err := sqlmock.New()
-	assert.NoError(t, err)
-
-	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
-	assert.NoError(t, err)
-	defer func() { sqlDB, _ := gormDB.DB(); sqlDB.Close() }()
-
-	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
-	llmService := services.NewLLMService(settingsRepo)
-	handler := NewLLMHandler(llmService)
-
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-	router.POST("/api/llm/test-search", handler.TestWebSearch)
-
-	body := `{"provider":"serpapi","api_key":"test-api-key"}`
-	req := httptest.NewRequest("POST", "/api/llm/test-search", bytes.NewBufferString(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	// Will fail because we can't connect to real SerpAPI, but that's expected
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-}
-
 func TestExcelHandler_ExportExcel(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
