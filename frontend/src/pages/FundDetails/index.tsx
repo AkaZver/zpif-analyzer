@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Typography, Card, Row, Col, Statistic, Tag, Button, Space, Table,
-  message, Spin, Upload, Descriptions,
+  message, Spin, Upload, Descriptions, List,
 } from 'antd';
-import { ArrowLeftOutlined, SearchOutlined, UploadOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, SearchOutlined, UploadOutlined, ThunderboltOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar,
@@ -136,6 +136,12 @@ const FundDetails: React.FC = () => {
   const docColumns = [
     { title: 'Файл', dataIndex: 'file_name', key: 'file_name' },
     { title: 'Тип', dataIndex: 'document_type', key: 'document_type' },
+    {
+      title: 'Размер',
+      dataIndex: 'file_size',
+      key: 'file_size',
+      render: (size: number) => size > 0 ? `${(size / 1024).toFixed(1)} КБ` : '—',
+    },
     {
       title: 'Источник',
       dataIndex: 'source',
@@ -363,15 +369,69 @@ const FundDetails: React.FC = () => {
             LLM-анализ
           </Typography.Title>
           <Card className="bg-surface-card border-0">
-            <Descriptions bordered size="small" column={1}>
+            <Descriptions bordered size="small" column={1} className="mb-4">
               <Descriptions.Item label="Модель">{analysis.model_used}</Descriptions.Item>
               <Descriptions.Item label="Дата">
                 {new Date(analysis.created_at).toLocaleString('ru-RU')}
               </Descriptions.Item>
               <Descriptions.Item label="Резюме">{analysis.analysis_summary || '—'}</Descriptions.Item>
               <Descriptions.Item label="Оценка рисков">{analysis.risk_assessment || '—'}</Descriptions.Item>
-              <Descriptions.Item label="Плюсы и минусы">{analysis.pros_cons || '—'}</Descriptions.Item>
             </Descriptions>
+            
+            {(() => {
+              try {
+                const prosCons = JSON.parse(analysis.pros_cons || '{}');
+                const pros = prosCons.pros || [];
+                const cons = prosCons.cons || [];
+                
+                if (pros.length === 0 && cons.length === 0) return null;
+                
+                return (
+                  <Row gutter={16}>
+                    {pros.length > 0 && (
+                      <Col span={12}>
+                        <Typography.Title level={5} className="text-text-primary mb-3">
+                          Плюсы
+                        </Typography.Title>
+                        <List
+                          size="small"
+                          dataSource={pros}
+                          renderItem={(item: string) => (
+                            <List.Item className="border-b border-border-primary">
+                              <Space>
+                                <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                                <span className="text-text-primary">{item}</span>
+                              </Space>
+                            </List.Item>
+                          )}
+                        />
+                      </Col>
+                    )}
+                    {cons.length > 0 && (
+                      <Col span={pros.length > 0 ? 12 : 24}>
+                        <Typography.Title level={5} className="text-text-primary mb-3">
+                          Минусы
+                        </Typography.Title>
+                        <List
+                          size="small"
+                          dataSource={cons}
+                          renderItem={(item: string) => (
+                            <List.Item className="border-b border-border-primary">
+                              <Space>
+                                <CloseCircleOutlined style={{ color: '#ff4d4f' }} />
+                                <span className="text-text-primary">{item}</span>
+                              </Space>
+                            </List.Item>
+                          )}
+                        />
+                      </Col>
+                    )}
+                  </Row>
+                );
+              } catch {
+                return <div className="text-text-secondary">{analysis.pros_cons || '—'}</div>;
+              }
+            })()}
           </Card>
         </>
       )}

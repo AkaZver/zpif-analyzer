@@ -17,8 +17,6 @@ func TestLoad_Defaults(t *testing.T) {
 	assert.Equal(t, "zpif", cfg.DBPassword)
 	assert.Equal(t, "zpif_analyzer", cfg.DBName)
 	assert.Equal(t, "disable", cfg.DBSSLMode)
-	assert.Equal(t, "https://api.openai.com/v1", cfg.OpenAIBaseURL)
-	assert.Equal(t, "gpt-4o-mini", cfg.OpenAIModel)
 	assert.Equal(t, "change-me-in-production", cfg.JWTSecret)
 	assert.Equal(t, "8080", cfg.ServerPort)
 }
@@ -31,9 +29,6 @@ func TestLoad_FromEnv(t *testing.T) {
 	os.Setenv("DB_PASSWORD", "mypass")
 	os.Setenv("DB_NAME", "mydb")
 	os.Setenv("DB_SSL_MODE", "require")
-	os.Setenv("OPENAI_API_KEY", "test-key")
-	os.Setenv("OPENAI_BASE_URL", "https://custom.api.com")
-	os.Setenv("OPENAI_MODEL", "gpt-4")
 	os.Setenv("JWT_SECRET", "my-secret")
 	os.Setenv("SERVER_PORT", "9090")
 
@@ -45,9 +40,6 @@ func TestLoad_FromEnv(t *testing.T) {
 	assert.Equal(t, "mypass", cfg.DBPassword)
 	assert.Equal(t, "mydb", cfg.DBName)
 	assert.Equal(t, "require", cfg.DBSSLMode)
-	assert.Equal(t, "test-key", cfg.OpenAIAPIKey)
-	assert.Equal(t, "https://custom.api.com", cfg.OpenAIBaseURL)
-	assert.Equal(t, "gpt-4", cfg.OpenAIModel)
 	assert.Equal(t, "my-secret", cfg.JWTSecret)
 	assert.Equal(t, "9090", cfg.ServerPort)
 }

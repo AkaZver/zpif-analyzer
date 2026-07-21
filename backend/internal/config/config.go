@@ -13,10 +13,6 @@ type Config struct {
 	DBName     string
 	DBSSLMode  string
 
-	OpenAIAPIKey  string
-	OpenAIBaseURL string
-	OpenAIModel   string
-
 	JWTSecret string
 
 	ServerPort string
@@ -30,9 +26,6 @@ func Load() *Config {
 		DBPassword:    getEnv("DB_PASSWORD", "zpif"),
 		DBName:        getEnv("DB_NAME", "zpif_analyzer"),
 		DBSSLMode:     getEnv("DB_SSL_MODE", "disable"),
-		OpenAIAPIKey:  getEnv("OPENAI_API_KEY", ""),
-		OpenAIBaseURL: getEnv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
-		OpenAIModel:   getEnv("OPENAI_MODEL", "gpt-4o-mini"),
 		JWTSecret:     getEnv("JWT_SECRET", "change-me-in-production"),
 		ServerPort:    getEnv("SERVER_PORT", "8080"),
 	}

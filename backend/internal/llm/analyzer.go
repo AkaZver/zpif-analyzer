@@ -12,7 +12,7 @@ import (
 )
 
 type Analyzer struct {
-	llmClient       *Client
+	settingsRepo    *repositories.LLMSettingsRepository
 	documentRepo    *repositories.DocumentRepository
 	analysisRepo    *repositories.AnalysisRepository
 	financialsRepo   *repositories.FinancialsRepository
@@ -20,14 +20,14 @@ type Analyzer struct {
 }
 
 func NewAnalyzer(
-	llmClient *Client,
+	settingsRepo *repositories.LLMSettingsRepository,
 	documentRepo *repositories.DocumentRepository,
 	analysisRepo *repositories.AnalysisRepository,
 	financialsRepo *repositories.FinancialsRepository,
 	fundRepo *repositories.FundRepository,
 ) *Analyzer {
 	return &Analyzer{
-		llmClient:      llmClient,
+		settingsRepo:   settingsRepo,
 		documentRepo:   documentRepo,
 		analysisRepo:   analysisRepo,
 		financialsRepo: financialsRepo,
@@ -65,6 +65,13 @@ type MetricsExtraction struct {
 const maxDocumentTextBytes = 16000
 
 func (a *Analyzer) Analyze(ctx context.Context, fund *models.Fund, documentID uint) (*models.LLMAnalysis, error) {
+	settings, err := a.settingsRepo.Get()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get LLM settings: %w", err)
+	}
+
+	llmClient := NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName)
+
 	document, err := a.documentRepo.GetByID(documentID)
 	if err != nil {
 		return nil, fmt.Errorf("document not found: %w", err)
@@ -81,12 +88,12 @@ func (a *Analyzer) Analyze(ctx context.Context, fund *models.Fund, documentID ui
 		docText = docText[:maxDocumentTextBytes] + "..."
 	}
 
-	metrics, err := a.extractMetrics(ctx, docText)
+	metrics, err := a.extractMetrics(ctx, llmClient, docText)
 	if err != nil {
 		return nil, fmt.Errorf("metrics extraction failed: %w", err)
 	}
 
-	analysis, err := a.generateAnalysis(ctx, docText, fund)
+	analysis, err := a.generateAnalysis(ctx, llmClient, docText, fund)
 	if err != nil {
 		return nil, fmt.Errorf("analysis generation failed: %w", err)
 	}
@@ -100,7 +107,7 @@ func (a *Analyzer) Analyze(ctx context.Context, fund *models.Fund, documentID ui
 	record := &models.LLMAnalysis{
 		FundID:           fund.ID,
 		DocumentID:       document.ID,
-		ModelUsed:        a.llmClient.GetModel(),
+		ModelUsed:        llmClient.GetModel(),
 		RawResponse:      docText,
 		AnalysisSummary:  analysis.Summary,
 		RiskAssessment:   analysis.RiskAssessment,
@@ -155,8 +162,8 @@ func (a *Analyzer) readDocumentText(doc *models.FundDocument) (string, error) {
 	return "", nil
 }
 
-func (a *Analyzer) extractMetrics(ctx context.Context, docText string) (*MetricsExtraction, error) {
-	resp, err := a.llmClient.ChatSimple(ctx, ExtractMetricsPrompt, docText)
+func (a *Analyzer) extractMetrics(ctx context.Context, llmClient *Client, docText string) (*MetricsExtraction, error) {
+	resp, err := llmClient.ChatSimple(ctx, ExtractMetricsPrompt, docText)
 	if err != nil {
 		return nil, err
 	}
@@ -171,9 +178,9 @@ func (a *Analyzer) extractMetrics(ctx context.Context, docText string) (*Metrics
 	return &metrics, nil
 }
 
-func (a *Analyzer) generateAnalysis(ctx context.Context, docText string, fund *models.Fund) (*AnalysisResult, error) {
+func (a *Analyzer) generateAnalysis(ctx context.Context, llmClient *Client, docText string, fund *models.Fund) (*AnalysisResult, error) {
 	contextText := fmt.Sprintf("Фонд: %s\nISIN: %s\nУК: %s\n\nДокумент:\n%s", fund.Name, fund.ISIN, fund.ManagementCompany, docText)
-	resp, err := a.llmClient.ChatSimple(ctx, AnalyzePrompt, contextText)
+	resp, err := llmClient.ChatSimple(ctx, AnalyzePrompt, contextText)
 	if err != nil {
 		return nil, err
 	}

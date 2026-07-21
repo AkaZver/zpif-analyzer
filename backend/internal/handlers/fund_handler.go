@@ -266,6 +266,7 @@ func (h *FundHandler) UploadDocument(c *gin.Context) {
 		Source:        "manual",
 		UploadDate:    time.Now(),
 		Status:        "downloaded",
+		FileSize:      int64(len(data)),
 		ExtractedText: extractedText,
 	}
 

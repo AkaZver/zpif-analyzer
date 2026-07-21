@@ -73,16 +73,12 @@ func main() {
 	llmService := services.NewLLMService(llmSettingsRepo)
 	excelService := services.NewExcelService(fundRepo, financialsRepo, analysisRepo)
 
-	if cfg.OpenAIAPIKey != "" {
-		llmClient := llm.NewClient(cfg.OpenAIAPIKey, cfg.OpenAIBaseURL, cfg.OpenAIModel)
-		discoverer := llm.NewDiscoverer(llmClient, documentRepo, fundRepo)
-		fundService.SetDiscoverer(discoverer)
-		analyzer := llm.NewAnalyzer(llmClient, documentRepo, analysisRepo, financialsRepo, fundRepo)
-		fundService.SetAnalyzer(analyzer)
-		log.Println("LLM integration enabled")
-	} else {
-		log.Println("LLM integration disabled (no OPENAI_API_KEY)")
-	}
+	// Инициализация LLM компонентов (настройки берутся из БД при каждом вызове)
+	discoverer := llm.NewDiscoverer(llmSettingsRepo, documentRepo, fundRepo)
+	fundService.SetDiscoverer(discoverer)
+	analyzer := llm.NewAnalyzer(llmSettingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
+	fundService.SetAnalyzer(analyzer)
+	log.Println("LLM components initialized")
 
 	// Инициализация handlers
 	fundHandler := handlers.NewFundHandler(fundService)

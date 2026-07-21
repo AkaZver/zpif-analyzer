@@ -8,19 +8,18 @@ import (
 )
 
 func TestNewDiscoverer(t *testing.T) {
-	llmClient := NewClient("test-key", "", "gpt-4o-mini")
+	settingsRepo := nil
 	documentRepo := nil
 	fundRepo := nil
 
-	discoverer := NewDiscoverer(llmClient, documentRepo, fundRepo)
+	discoverer := NewDiscoverer(settingsRepo, documentRepo, fundRepo)
 
 	assert.NotNil(t, discoverer)
-	assert.Equal(t, llmClient, discoverer.llmClient)
+	assert.Equal(t, settingsRepo, discoverer.settingsRepo)
 }
 
 func TestDiscoverer_GetStatus_Idle(t *testing.T) {
-	llmClient := NewClient("test-key", "", "gpt-4o-mini")
-	discoverer := NewDiscoverer(llmClient, nil, nil)
+	discoverer := NewDiscoverer(nil, nil, nil)
 
 	status := discoverer.GetStatus(123)
 

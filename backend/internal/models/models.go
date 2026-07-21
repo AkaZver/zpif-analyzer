@@ -90,6 +90,7 @@ type FundDocument struct {
 	SourceURL      string `json:"source_url"`
 	UploadDate     time.Time `json:"upload_date"`
 	Status         string    `json:"status"`
+	FileSize       int64     `json:"file_size"`
 	ExtractedText  string    `gorm:"type:text" json:"extracted_text"`
 
 	// Связь

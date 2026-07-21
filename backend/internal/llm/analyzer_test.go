@@ -15,16 +15,16 @@ import (
 )
 
 func TestNewAnalyzer(t *testing.T) {
-	llmClient := NewClient("test-key", "", "gpt-4o-mini")
+	settingsRepo := &repositories.LLMSettingsRepository{}
 	documentRepo := &repositories.DocumentRepository{}
 	analysisRepo := &repositories.AnalysisRepository{}
 	financialsRepo := &repositories.FinancialsRepository{}
 	fundRepo := &repositories.FundRepository{}
 
-	analyzer := NewAnalyzer(llmClient, documentRepo, analysisRepo, financialsRepo, fundRepo)
+	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
 
 	assert.NotNil(t, analyzer)
-	assert.Equal(t, llmClient, analyzer.llmClient)
+	assert.Equal(t, settingsRepo, analyzer.settingsRepo)
 }
 
 func TestExtractJSONObject_ValidObject(t *testing.T) {
@@ -50,17 +50,17 @@ func TestExtractJSONObject_IncompleteObject(t *testing.T) {
 
 func TestIsPDF_ValidPDF(t *testing.T) {
 	data := []byte("%PDF-1.4 test content")
-	assert.True(t, isPDF(data))
+	assert.True(t, IsPDF(data))
 }
 
 func TestIsPDF_NotPDF(t *testing.T) {
 	data := []byte("HTML content")
-	assert.False(t, isPDF(data))
+	assert.False(t, IsPDF(data))
 }
 
 func TestIsPDF_EmptyData(t *testing.T) {
 	data := []byte("")
-	assert.False(t, isPDF(data))
+	assert.False(t, IsPDF(data))
 }
 
 func TestMin(t *testing.T) {
@@ -157,9 +157,9 @@ func TestAnalyzer_ExtractMetrics_Success(t *testing.T) {
 	defer server.Close()
 
 	llmClient := NewClient("test-key", server.URL, "gpt-4o-mini")
-	analyzer := &Analyzer{llmClient: llmClient}
+	analyzer := &Analyzer{}
 
-	metrics, err := analyzer.extractMetrics(context.Background(), "test document")
+	metrics, err := analyzer.extractMetrics(context.Background(), llmClient, "test document")
 
 	assert.NoError(t, err)
 	assert.NotNil(t, metrics)
@@ -196,9 +196,9 @@ func TestAnalyzer_ExtractMetrics_InvalidJSON(t *testing.T) {
 	defer server.Close()
 
 	llmClient := NewClient("test-key", server.URL, "gpt-4o-mini")
-	analyzer := &Analyzer{llmClient: llmClient}
+	analyzer := &Analyzer{}
 
-	metrics, err := analyzer.extractMetrics(context.Background(), "test document")
+	metrics, err := analyzer.extractMetrics(context.Background(), llmClient, "test document")
 
 	assert.NoError(t, err)
 	assert.NotNil(t, metrics)
@@ -239,7 +239,7 @@ func TestAnalyzer_GenerateAnalysis_Success(t *testing.T) {
 	defer server.Close()
 
 	llmClient := NewClient("test-key", server.URL, "gpt-4o-mini")
-	analyzer := &Analyzer{llmClient: llmClient}
+	analyzer := &Analyzer{}
 
 	fund := &models.Fund{
 		ID:                1,
@@ -248,7 +248,7 @@ func TestAnalyzer_GenerateAnalysis_Success(t *testing.T) {
 		ManagementCompany: "Test UK",
 	}
 
-	result, err := analyzer.generateAnalysis(context.Background(), "test document", fund)
+	result, err := analyzer.generateAnalysis(context.Background(), llmClient, "test document", fund)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -286,14 +286,14 @@ func TestAnalyzer_GenerateAnalysis_InvalidJSON(t *testing.T) {
 	defer server.Close()
 
 	llmClient := NewClient("test-key", server.URL, "gpt-4o-mini")
-	analyzer := &Analyzer{llmClient: llmClient}
+	analyzer := &Analyzer{}
 
 	fund := &models.Fund{
 		ID:   1,
 		Name: "Test Fund",
 	}
 
-	result, err := analyzer.generateAnalysis(context.Background(), "test document", fund)
+	result, err := analyzer.generateAnalysis(context.Background(), llmClient, "test document", fund)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)

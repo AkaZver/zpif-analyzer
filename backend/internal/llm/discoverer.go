@@ -11,18 +11,18 @@ import (
 )
 
 type Discoverer struct {
-	llmClient    *Client
+	settingsRepo *repositories.LLMSettingsRepository
 	documentRepo *repositories.DocumentRepository
 	fundRepo     *repositories.FundRepository
 }
 
 func NewDiscoverer(
-	llmClient *Client,
+	settingsRepo *repositories.LLMSettingsRepository,
 	documentRepo *repositories.DocumentRepository,
 	fundRepo *repositories.FundRepository,
 ) *Discoverer {
 	return &Discoverer{
-		llmClient:    llmClient,
+		settingsRepo: settingsRepo,
 		documentRepo: documentRepo,
 		fundRepo:     fundRepo,
 	}
@@ -52,9 +52,17 @@ func (d *Discoverer) Discover(ctx context.Context, fund *models.Fund) (*Discover
 		discoveryStorage.Store(fund.ID, status)
 	}()
 
+	settings, err := d.settingsRepo.Get()
+	if err != nil {
+		status.Status = "error"
+		return status, fmt.Errorf("failed to get LLM settings: %w", err)
+	}
+
+	llmClient := NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName)
+
 	prompt := buildDiscoveryPrompt(fund)
 
-	response, err := d.llmClient.ChatSimple(ctx, InternetSearchPrompt, prompt)
+	response, err := llmClient.ChatSimple(ctx, InternetSearchPrompt, prompt)
 	if err != nil {
 		status.Status = "error"
 		return status, fmt.Errorf("LLM search failed: %w", err)
@@ -62,12 +70,13 @@ func (d *Discoverer) Discover(ctx context.Context, fund *models.Fund) (*Discover
 
 	document := &models.FundDocument{
 		FundID:        fund.ID,
-		FileName:      fmt.Sprintf("llm-search-%s.txt", time.Now().Format("2006-01-02")),
+		FileName:      fmt.Sprintf("llm-search-%s.txt", time.Now().Format("2006-01-02-15-04-05")),
 		DocumentType:  "search",
 		ContentHash:   fmt.Sprintf("llm-%s-%d", fund.ISIN, time.Now().Unix()),
 		Source:        "auto",
 		UploadDate:    time.Now(),
 		Status:        "downloaded",
+		FileSize:      int64(len(response)),
 		ExtractedText: response,
 	}
 

@@ -39,14 +39,12 @@ npm run lint                  # Проверка кода (oxlint)
 - `internal/services/` — бизнес-логика
 - `internal/repositories/` — работа с БД (GORM)
 - `internal/models/` — GORM модели
-- `internal/llm/` — LLM интеграция (OpenAI API)
-- `internal/websearch/` — клиенты для поиска (SerpAPI, Exa)
-- `internal/fetcher/` — загрузка документов
+- `internal/llm/` — LLM интеграция (OpenAI-совместимые API)
 
 **Важно:**
 - Миграции автоматические через `db.AutoMigrate()` при старте
 - Seed данных (фонды + admin user) выполняется при первом запуске
-- LLM функциональность опциональна — работает только если `OPENAI_API_KEY` задан
+- LLM настройки (API key, URL, модель) задаются через UI и хранятся в БД (таблица `llm_settings`)
 - Все API routes защищены JWT middleware (кроме `/api/auth/login` и `/api/health`)
 
 **Тестирование:**
@@ -81,11 +79,6 @@ cp .env.example .env
 - `DB_*` — настройки PostgreSQL
 - `JWT_SECRET` — секрет для JWT токенов
 
-**Опциональные:**
-- `OPENAI_API_KEY` — включает LLM анализ и автопоиск документов
-- `OPENAI_BASE_URL` — для совместимых API (по умолчанию OpenAI)
-- `WEBSEARCH_API_KEY` — для автопоиска документов (SerpAPI или Exa)
-
 ## API
 
 **Базовый URL:** `http://localhost:8080/api`
@@ -116,8 +109,7 @@ cp .env.example .env
 
 ## Особенности
 
-1. **LLM интеграция** — если `OPENAI_API_KEY` не задан, функции анализа и автопоиска недоступны
-2. **Web Search** — поддерживает SerpAPI и Exa (настраивается через `WEBSEARCH_PROVIDER`)
-3. **Excel экспорт** — использует библиотеку excelize
-4. **Документы** — сохраняются в Docker volume `backend_documents:/app/documents`
-5. **Health checks** — все сервисы имеют health checks в docker-compose
+1. **LLM интеграция** — настройки задаются через UI (страница "Настройки"), сохраняются в БД. LLM компоненты читают настройки из БД при каждом вызове.
+2. **Excel экспорт** — использует библиотеку excelize
+3. **Документы** — сохраняются в Docker volume `backend_documents:/app/documents`
+4. **Health checks** — все сервисы имеют health checks в docker-compose
