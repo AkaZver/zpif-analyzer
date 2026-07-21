@@ -152,9 +152,8 @@ func main() {
 	api.POST("/llm/test", llmHandler.TestConnection)
 	api.POST("/llm/test-search", llmHandler.TestWebSearch)
 
-	// Excel export/import
+	// Excel export
 	api.GET("/export/excel", excelHandler.ExportExcel)
-	api.POST("/import/excel", excelHandler.ImportExcel)
 
 	// Запуск сервера
 	port := cfg.ServerPort

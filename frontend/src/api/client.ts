@@ -147,18 +147,9 @@ class ApiClient {
     return response.data;
   }
 
-  // Export/Import
+  // Export
   async exportExcel(): Promise<Blob> {
     const response = await this.client.get('/export/excel', { responseType: 'blob' });
-    return response.data;
-  }
-
-  async importExcel(file: File): Promise<{ success: boolean; imported: number }> {
-    const formData = new FormData();
-    formData.append('file', file);
-    const response = await this.client.post('/import/excel', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
     return response.data;
   }
 }

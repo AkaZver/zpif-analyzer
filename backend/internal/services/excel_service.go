@@ -3,11 +3,8 @@ package services
 import (
 	"bytes"
 	"fmt"
-	"strconv"
-	"time"
 
 	"github.com/xuri/excelize/v2"
-	"github.com/zpif-analyzer/backend/internal/models"
 	"github.com/zpif-analyzer/backend/internal/repositories"
 )
 
@@ -141,160 +138,6 @@ func (s *ExcelService) ExportToExcel() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (s *ExcelService) ImportFromExcel(data []byte) (int, error) {
-	f, err := excelize.OpenReader(bytes.NewReader(data))
-	if err != nil {
-		return 0, fmt.Errorf("failed to open excel: %w", err)
-	}
-	defer f.Close()
-
-	imported := 0
-
-	// Import funds from "Фонды" sheet
-	fundsSheet := "Фонды"
-	if idx, _ := f.GetSheetIndex(fundsSheet); idx != -1 {
-		rows, err := f.GetRows(fundsSheet)
-		if err != nil {
-			return 0, fmt.Errorf("failed to read funds sheet: %w", err)
-		}
-
-		for i, row := range rows {
-			if i == 0 {
-				continue // Skip header
-			}
-			if len(row) < 6 {
-				continue
-			}
-
-			fund := &models.Fund{
-				Name:              row[1],
-				ISIN:              row[2],
-				Ticker:            row[3],
-				ManagementCompany: row[4],
-				RealEstateSegment: row[5],
-			}
-			if len(row) > 6 {
-				fund.QualifiedRequired = stringToBool(row[6])
-			}
-			if len(row) > 7 {
-				fund.HasMarketMaker = stringToBool(row[7])
-			}
-
-			// Check if fund already exists by ISIN
-			existing, _ := s.fundRepo.GetByISIN(fund.ISIN)
-			if existing != nil {
-				fund.ID = existing.ID
-				if err := s.fundRepo.Update(fund); err != nil {
-					return imported, fmt.Errorf("failed to update fund %s: %w", fund.ISIN, err)
-				}
-			} else {
-				if err := s.fundRepo.Create(fund); err != nil {
-					return imported, fmt.Errorf("failed to create fund %s: %w", fund.ISIN, err)
-				}
-			}
-			imported++
-		}
-	}
-
-	// Import financials from "Финансы" sheet
-	financialsSheet := "Финансы"
-	if idx, _ := f.GetSheetIndex(financialsSheet); idx != -1 {
-		rows, err := f.GetRows(financialsSheet)
-		if err != nil {
-			return imported, fmt.Errorf("failed to read financials sheet: %w", err)
-		}
-
-		for i, row := range rows {
-			if i == 0 {
-				continue // Skip header
-			}
-			if len(row) < 4 {
-				continue
-			}
-
-			fundID, err := strconv.ParseUint(row[0], 10, 32)
-			if err != nil {
-				continue
-			}
-
-			snapshotDate, err := time.Parse("2006-01-02", row[2])
-			if err != nil {
-				snapshotDate = time.Now()
-			}
-
-			financials := &models.FundFinancials{
-				FundID:       uint(fundID),
-				SnapshotDate: snapshotDate,
-			}
-
-			if len(row) > 3 {
-				financials.UnitPriceRub = parseFloat(row[3])
-			}
-			if len(row) > 4 {
-				financials.NavPerUnitRub = parseFloat(row[4])
-			}
-			if len(row) > 5 {
-				financials.DiscountToNavPct = parseFloat(row[5])
-			}
-			if len(row) > 6 {
-				financials.CapRatePct = parseFloat(row[6])
-			}
-			if len(row) > 7 {
-				financials.PNav = parseFloat(row[7])
-			}
-			if len(row) > 8 {
-				financials.PAFFO = parseFloat(row[8])
-			}
-			if len(row) > 9 {
-				financials.NoiYieldPct = parseFloat(row[9])
-			}
-			if len(row) > 10 {
-				financials.AnnualPayoutRub = parseFloat(row[10])
-			}
-			if len(row) > 11 {
-				financials.PayoutYieldPct = parseFloat(row[11])
-			}
-			if len(row) > 12 {
-				financials.TotalReturnPct = parseFloat(row[12])
-			}
-			if len(row) > 13 {
-				financials.DebtToNavRatio = parseFloat(row[13])
-			}
-			if len(row) > 14 {
-				financials.ManagementFeePct = parseFloat(row[14])
-			}
-			if len(row) > 15 {
-				financials.TradingVolumeMlnRub = parseFloat(row[15])
-			}
-			if len(row) > 16 {
-				financials.NumberOfProperties = parseInt(row[16])
-			}
-			if len(row) > 17 {
-				financials.IRRForecastPct = parseFloat(row[17])
-			}
-
-			if err := s.financialsRepo.Create(financials); err != nil {
-				return imported, fmt.Errorf("failed to create financials for fund %d: %w", fundID, err)
-			}
-			imported++
-		}
-	}
-
-	return imported, nil
-}
-
-func (s *ExcelService) GetAllFundsData() ([]models.Fund, error) {
-	return s.fundRepo.GetAll()
-}
-
-func (s *ExcelService) ImportFund(fund *models.Fund) error {
-	return s.fundRepo.Create(fund)
-}
-
-func (s *ExcelService) ImportFinancials(financials *models.FundFinancials) error {
-	return s.financialsRepo.Create(financials)
-}
-
 func cellName(col, row int) string {
 	name, _ := excelize.CoordinatesToCellName(col, row)
 	return name
@@ -305,18 +148,4 @@ func boolToString(b bool) string {
 		return "Да"
 	}
 	return "Нет"
-}
-
-func stringToBool(s string) bool {
-	return s == "Да" || s == "да" || s == "Yes" || s == "yes" || s == "true" || s == "1"
-}
-
-func parseFloat(s string) float64 {
-	val, _ := strconv.ParseFloat(s, 64)
-	return val
-}
-
-func parseInt(s string) int {
-	val, _ := strconv.Atoi(s)
-	return val
 }

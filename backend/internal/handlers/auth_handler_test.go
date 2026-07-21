@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -13,7 +12,6 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"github.com/xuri/excelize/v2"
 	"github.com/zpif-analyzer/backend/internal/config"
 	"github.com/zpif-analyzer/backend/internal/repositories"
 	"github.com/zpif-analyzer/backend/internal/services"
@@ -356,30 +354,6 @@ func TestExcelHandler_ExportExcel(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-func TestExcelHandler_ImportExcel_NoFile(t *testing.T) {
-	db, _, err := sqlmock.New()
-	assert.NoError(t, err)
-
-	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
-	assert.NoError(t, err)
-	defer func() { sqlDB, _ := gormDB.DB(); sqlDB.Close() }()
-
-	fundRepo := repositories.NewFundRepository(gormDB)
-	financialsRepo := repositories.NewFinancialsRepository(gormDB)
-	excelService := services.NewExcelService(fundRepo, financialsRepo, repositories.NewAnalysisRepository(gormDB))
-	handler := NewExcelHandler(excelService)
-
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-	router.POST("/api/import/excel", handler.ImportExcel)
-
-	req := httptest.NewRequest("POST", "/api/import/excel", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-
 func TestLLMHandler_UpdateSettings(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
@@ -429,71 +403,6 @@ func TestLLMHandler_UpdateSettings_InvalidJSON(t *testing.T) {
 	router.PUT("/api/llm/settings", handler.UpdateSettings)
 
 	req := httptest.NewRequest("PUT", "/api/llm/settings", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestExcelHandler_ImportExcel_Success(t *testing.T) {
-	db, _, err := sqlmock.New()
-	assert.NoError(t, err)
-
-	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
-	assert.NoError(t, err)
-	defer func() { sqlDB, _ := gormDB.DB(); sqlDB.Close() }()
-
-	fundRepo := repositories.NewFundRepository(gormDB)
-	financialsRepo := repositories.NewFinancialsRepository(gormDB)
-	analysisRepo := repositories.NewAnalysisRepository(gormDB)
-	excelService := services.NewExcelService(fundRepo, financialsRepo, analysisRepo)
-	handler := NewExcelHandler(excelService)
-
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-	router.POST("/api/import/excel", handler.ImportExcel)
-
-	// Create a real empty Excel file
-	f := excelize.NewFile()
-	var excelBuf bytes.Buffer
-	f.Write(&excelBuf)
-
-	// Create a minimal multipart form with a file
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, _ := writer.CreateFormFile("file", "test.xlsx")
-	part.Write(excelBuf.Bytes())
-	writer.Close()
-
-	req := httptest.NewRequest("POST", "/api/import/excel", body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	// ImportFromExcel returns 0, nil for empty Excel file
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestExcelHandler_ImportExcel_ReadError(t *testing.T) {
-	db, _, err := sqlmock.New()
-	assert.NoError(t, err)
-
-	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
-	assert.NoError(t, err)
-	defer func() { sqlDB, _ := gormDB.DB(); sqlDB.Close() }()
-
-	fundRepo := repositories.NewFundRepository(gormDB)
-	financialsRepo := repositories.NewFinancialsRepository(gormDB)
-	excelService := services.NewExcelService(fundRepo, financialsRepo, repositories.NewAnalysisRepository(gormDB))
-	handler := NewExcelHandler(excelService)
-
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-	router.POST("/api/import/excel", handler.ImportExcel)
-
-	// Send empty multipart form (no file)
-	req := httptest.NewRequest("POST", "/api/import/excel", bytes.NewBufferString(""))
-	req.Header.Set("Content-Type", "multipart/form-data; boundary=xxx")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 

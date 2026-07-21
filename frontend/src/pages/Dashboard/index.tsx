@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Space, Tag, message, Spin, Select, Checkbox, Typography, Card } from 'antd';
-import { DownloadOutlined, UploadOutlined, ReloadOutlined } from '@ant-design/icons';
+import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import type { Fund, FundFinancials } from '../../types';
@@ -74,24 +74,6 @@ const Dashboard: React.FC = () => {
     } catch {
       message.error('Ошибка при экспорте');
     }
-  };
-
-  const handleImport = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.xlsx,.xls';
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      try {
-        const result = await apiClient.importExcel(file);
-        message.success(`Импортировано: ${result.imported} записей`);
-        await loadFunds();
-      } catch {
-        message.error('Ошибка при импорте');
-      }
-    };
-    input.click();
   };
 
   const segments = [...new Set(funds.map((f) => f.real_estate_segment).filter(Boolean))];
@@ -212,9 +194,6 @@ const Dashboard: React.FC = () => {
           </Button>
           <Button icon={<DownloadOutlined />} onClick={handleExport}>
             Экспорт
-          </Button>
-          <Button icon={<UploadOutlined />} onClick={handleImport}>
-            Импорт
           </Button>
         </Space>
       </div>

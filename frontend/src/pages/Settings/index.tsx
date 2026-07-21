@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
   Typography, Card, Table, Button, Space, Modal, Form, Input, Select,
-  Switch, message, Upload, Popconfirm, Tag,
+  Switch, message, Popconfirm, Tag,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined, CloudDownloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, CloudDownloadOutlined } from '@ant-design/icons';
 import { apiClient } from '../../api/client';
 import type { Fund, LLMSettings } from '../../types';
 import type { ColumnsType } from 'antd/es/table';
-
-const { Dragger } = Upload;
 
 const Settings: React.FC = () => {
   const [funds, setFunds] = useState<Fund[]>([]);
@@ -125,32 +123,6 @@ const Settings: React.FC = () => {
     }
   };
 
-  const handleExport = async () => {
-    try {
-      const blob = await apiClient.exportExcel();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'zpif-analyzer-export.xlsx';
-      a.click();
-      window.URL.revokeObjectURL(url);
-      message.success('Экспорт завершён');
-    } catch {
-      message.error('Ошибка при экспорте');
-    }
-  };
-
-  const handleImport = async (file: File) => {
-    try {
-      const result = await apiClient.importExcel(file);
-      message.success(`Импортировано: ${result.imported} записей`);
-      await loadFunds();
-    } catch {
-      message.error('Ошибка при импорте');
-    }
-    return false;
-  };
-
   const fundColumns: ColumnsType<Fund> = [
     { title: 'Название', dataIndex: 'name', key: 'name' },
     { title: 'ISIN', dataIndex: 'isin', key: 'isin' },
@@ -238,25 +210,6 @@ const Settings: React.FC = () => {
             </Button>
           </Space>
         </Form>
-      </Card>
-
-      <Card title="Данные" className="bg-surface-card border-0">
-        <Space direction="vertical" size="middle" className="w-full">
-          <Button type="primary" icon={<UploadOutlined />} onClick={handleExport}>
-            Экспорт всех данных в Excel
-          </Button>
-          <Dragger
-            accept=".xlsx,.xls"
-            showUploadList={false}
-            beforeUpload={(file) => {
-              handleImport(file);
-              return false;
-            }}
-          >
-            <p className="text-text-primary">Перетащите Excel файл сюда или нажмите для выбора</p>
-            <p className="text-text-secondary">Поддерживаются форматы .xlsx и .xls</p>
-          </Dragger>
-        </Space>
       </Card>
 
       <Modal
