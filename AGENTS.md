@@ -91,6 +91,7 @@ cp .env.example .env
 - `/funds` — CRUD фондов
 - `/funds/:id/financials` — финансовые метрики
 - `/funds/:id/documents` — документы фонда
+- `/funds/:id/documents/:docId/download` — скачать документ
 - `/funds/:id/discover` — автопоиск документов
 - `/funds/:id/analyze` — LLM анализ
 - `/llm/settings` — настройки LLM
@@ -111,5 +112,5 @@ cp .env.example .env
 
 1. **LLM интеграция** — настройки задаются через UI (страница "Настройки"), сохраняются в БД. LLM компоненты читают настройки из БД при каждом вызове.
 2. **Excel экспорт** — использует библиотеку excelize
-3. **Документы** — сохраняются в Docker volume `backend_documents:/app/documents`
+3. **Документы** — хранятся в БД в поле `ExtractedText` (текстовое содержимое)
 4. **Health checks** — все сервисы имеют health checks в docker-compose

@@ -143,6 +143,10 @@ func (s *FundService) DeleteDocument(documentID uint) error {
 	return s.documentRepo.Delete(documentID)
 }
 
+func (s *FundService) GetDocumentByID(documentID uint) (*models.FundDocument, error) {
+	return s.documentRepo.GetByID(documentID)
+}
+
 func (s *FundService) GetLatestAnalysis(fundID uint) (*models.LLMAnalysis, error) {
 	return s.analysisRepo.GetLatestByFundID(fundID)
 }

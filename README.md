@@ -6,10 +6,10 @@
 
 - **Сравнение фондов**: Таблица с ключевыми метриками (цена пая, NAV, дисконт, Cap Rate, P/NAV, доходность)
 - **Детальная информация**: Графики динамики цены и выплат, документы фонда
-- **Автопоиск документов**: Автоматический поиск и загрузка документов фондов через web search
+- **Поиск информации**: Поиск информации о фондах через LLM
 - **LLM-анализ**: Анализ документов с извлечением метрик и оценкой рисков
-- **Экспорт/Импорт**: Excel экспорт и импорт данных фондов
-- **Настройки**: Управление фондами, настройка LLM и web search
+- **Экспорт**: Excel экспорт данных фондов
+- **Настройки**: Управление фондами, настройка LLM
 
 ## Технологии
 
@@ -20,7 +20,6 @@
 - PostgreSQL 16
 - JWT аутентификация
 - OpenAI API (LLM)
-- SerpAPI/Exa (web search)
 - excelize (Excel)
 
 ### Frontend
@@ -39,7 +38,7 @@
 
 ### Требования
 - Docker и Docker Compose
-- (Опционально) API ключи для OpenAI и SerpAPI/Exa
+- API ключ для LLM (задаётся через UI после запуска)
 
 ### Запуск
 
@@ -80,11 +79,6 @@ docker-compose up -d
 | `DB_SSL_MODE` | SSL режим БД | `disable` |
 | `JWT_SECRET` | Секрет для JWT | `change-me-in-production` |
 | `SERVER_PORT` | Порт backend | `8080` |
-| `OPENAI_API_KEY` | API ключ OpenAI | (пусто) |
-| `OPENAI_BASE_URL` | URL OpenAI API | `https://api.openai.com/v1` |
-| `OPENAI_MODEL` | Модель LLM | `gpt-4o-mini` |
-| `WEBSEARCH_PROVIDER` | Провайдер поиска | `serpapi` |
-| `WEBSEARCH_API_KEY` | API ключ поиска | (пусто) |
 
 ## API Endpoints
 
@@ -107,7 +101,8 @@ docker-compose up -d
 - `GET /api/funds/:id/documents` - Список документов
 - `POST /api/funds/:id/documents` - Загрузить документ
 - `DELETE /api/funds/:id/documents/:docId` - Удалить документ
-- `POST /api/funds/:id/discover` - Автопоиск документов
+- `GET /api/funds/:id/documents/:docId/download` - Скачать документ
+- `POST /api/funds/:id/discover` - Поиск информации через LLM
 - `GET /api/funds/:id/discovery-status` - Статус поиска
 
 ### Анализ
@@ -118,11 +113,10 @@ docker-compose up -d
 - `GET /api/llm/settings` - Получить настройки
 - `PUT /api/llm/settings` - Обновить настройки
 - `POST /api/llm/test` - Тест подключения
-- `POST /api/llm/test-search` - Тест поиска
+- `GET /api/llm/models` - Получить список доступных моделей
 
-### Экспорт/Импорт
+### Экспорт
 - `GET /api/export/excel` - Экспорт в Excel
-- `POST /api/import/excel` - Импорт из Excel
 
 ## Разработка
 
@@ -169,8 +163,6 @@ zpif-analyzer/
 │   │   ├── services/        # Бизнес-логика
 │   │   ├── repositories/    # Работа с БД
 │   │   ├── llm/             # LLM интеграция
-│   │   ├── websearch/       # Web search клиенты
-│   │   ├── fetcher/         # Загрузка файлов
 │   │   ├── auth/            # JWT аутентификация
 │   │   └── middleware/      # CORS middleware
 │   ├── migrations/          # SQL миграции

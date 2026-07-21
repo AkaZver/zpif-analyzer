@@ -101,6 +101,13 @@ class ApiClient {
     await this.client.delete(`/funds/${fundId}/documents/${documentId}`);
   }
 
+  async downloadDocument(fundId: number, documentId: number): Promise<Blob> {
+    const response = await this.client.get(`/funds/${fundId}/documents/${documentId}/download`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
   // Discovery
   async discoverDocuments(fundId: number): Promise<void> {
     await this.client.post(`/funds/${fundId}/discover`);

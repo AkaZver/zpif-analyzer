@@ -175,6 +175,25 @@ func (h *FundHandler) DeleteDocument(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "document deleted"})
 }
 
+// DownloadDocument godoc
+func (h *FundHandler) DownloadDocument(c *gin.Context) {
+	docID, err := strconv.ParseUint(c.Param("docId"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document ID"})
+		return
+	}
+	
+	document, err := h.fundService.GetDocumentByID(uint(docID))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "document not found"})
+		return
+	}
+	
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", document.FileName))
+	c.Header("Content-Type", "text/plain; charset=utf-8")
+	c.Data(http.StatusOK, "text/plain; charset=utf-8", []byte(document.ExtractedText))
+}
+
 // GetLatestAnalysis godoc
 func (h *FundHandler) GetLatestAnalysis(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)

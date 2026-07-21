@@ -119,6 +119,7 @@ func main() {
 	api.GET("/funds/:id/documents", fundHandler.GetDocumentsByFundID)
 	api.POST("/funds/:id/documents", fundHandler.UploadDocument)
 	api.DELETE("/funds/:id/documents/:docId", fundHandler.DeleteDocument)
+	api.GET("/funds/:id/documents/:docId/download", fundHandler.DownloadDocument)
 	api.POST("/funds/:id/discover", fundHandler.DiscoverDocuments)
 	api.GET("/funds/:id/discovery-status", fundHandler.GetDiscoveryStatus)
 

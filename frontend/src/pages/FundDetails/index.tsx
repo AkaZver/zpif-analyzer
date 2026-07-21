@@ -4,7 +4,7 @@ import {
   Typography, Card, Row, Col, Statistic, Tag, Button, Space, Table,
   message, Spin, Upload, Descriptions, List,
 } from 'antd';
-import { ArrowLeftOutlined, SearchOutlined, UploadOutlined, ThunderboltOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, SearchOutlined, UploadOutlined, ThunderboltOutlined, CheckCircleOutlined, CloseCircleOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar,
@@ -104,6 +104,23 @@ const FundDetails: React.FC = () => {
     }
   };
 
+  const handleDownloadDocument = async (docId: number, fileName: string) => {
+    if (!id) return;
+    try {
+      const blob = await apiClient.downloadDocument(parseInt(id), docId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch {
+      message.error('Ошибка при скачивании');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -154,7 +171,8 @@ const FundDetails: React.FC = () => {
       key: 'status',
       render: (v: string) => {
         const colors: Record<string, string> = { pending: 'gold', downloaded: 'blue', analyzed: 'green', error: 'red' };
-        return <Tag color={colors[v] || 'default'}>{v}</Tag>;
+        const labels: Record<string, string> = { pending: 'Ожидает', downloaded: 'Скачан', analyzed: 'Проанализирован', error: 'Ошибка' };
+        return <Tag color={colors[v] || 'default'}>{labels[v] || v}</Tag>;
       },
     },
     {
@@ -166,11 +184,12 @@ const FundDetails: React.FC = () => {
     {
       title: 'Действия',
       key: 'actions',
-      width: 80,
+      width: 120,
       render: (_: unknown, record: FundDocument) => (
-        <Button type="text" danger size="small" onClick={() => handleDeleteDocument(record.id)}>
-          Удалить
-        </Button>
+        <Space>
+          <Button type="text" size="small" icon={<DownloadOutlined />} onClick={() => handleDownloadDocument(record.id, record.file_name)} />
+          <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => handleDeleteDocument(record.id)} />
+        </Space>
       ),
     },
   ];
