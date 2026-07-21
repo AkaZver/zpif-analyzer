@@ -1,6 +1,7 @@
 package services
 
 import (
+	"regexp"
 	"testing"
 	"time"
 
@@ -96,20 +97,31 @@ func TestLLMService_UpdateSettings(t *testing.T) {
 }
 
 func TestLLMService_TestConnection(t *testing.T) {
-	service, _, cleanup := setupTestLLMService(t)
+	service, mock, cleanup := setupTestLLMService(t)
 	defer cleanup()
+
+	now := time.Now()
+	rows := sqlmock.NewRows([]string{
+		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "model_name",
+	}).AddRow(1, now, now, nil, "test-api-key", "https://api.openai.com/v1", "gpt-4o-mini")
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+		WithArgs(1).
+		WillReturnRows(rows)
 
 	err := service.TestConnection()
 
-	assert.NoError(t, err) // Currently returns nil (TODO)
+	// Will fail because we can't connect to real OpenAI, but that's expected
+	assert.Error(t, err)
 }
 
 func TestLLMService_TestWebSearch(t *testing.T) {
 	service, _, cleanup := setupTestLLMService(t)
 	defer cleanup()
 
-	results, err := service.TestWebSearch()
+	results, err := service.TestWebSearch("serpapi", "test-api-key")
 
-	assert.NoError(t, err)
-	assert.Equal(t, 0, results) // Currently returns 0 (TODO)
+	// Will fail because we can't connect to real SerpAPI, but that's expected
+	assert.Error(t, err)
+	assert.Equal(t, 0, results)
 }

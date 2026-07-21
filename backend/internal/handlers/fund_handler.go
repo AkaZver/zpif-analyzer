@@ -1,8 +1,14 @@
 package handlers
 
 import (
+	"crypto/sha256"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zpif-analyzer/backend/internal/models"
@@ -10,11 +16,16 @@ import (
 )
 
 type FundHandler struct {
-	fundService *services.FundService
+	fundService   *services.FundService
+	documentsDir  string
 }
 
 func NewFundHandler(fundService *services.FundService) *FundHandler {
 	return &FundHandler{fundService: fundService}
+}
+
+func (h *FundHandler) SetDocumentsDir(dir string) {
+	h.documentsDir = dir
 }
 
 // GetAllFunds godoc
@@ -194,13 +205,84 @@ func (h *FundHandler) DiscoverDocuments(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fund ID"})
 		return
 	}
-	
+
 	if err := h.fundService.DiscoverDocumentsForFund(uint(id)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	
-	c.JSON(http.StatusOK, gin.H{"message": "document discovery started"})
+
+	c.JSON(http.StatusOK, gin.H{"message": "document discovery completed"})
+}
+
+// AnalyzeFund godoc
+func (h *FundHandler) AnalyzeFund(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fund ID"})
+		return
+	}
+
+	analysis, err := h.fundService.AnalyzeFund(c.Request.Context(), uint(id))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, analysis)
+}
+
+// UploadDocument godoc
+func (h *FundHandler) UploadDocument(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fund ID"})
+		return
+	}
+
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file is required"})
+		return
+	}
+	defer file.Close()
+
+	data, err := io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read file"})
+		return
+	}
+
+	hash := fmt.Sprintf("%x", sha256.Sum256(data))
+	if h.documentsDir == "" {
+		h.documentsDir = "./documents"
+	}
+	if err := os.MkdirAll(h.documentsDir, 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create documents dir"})
+		return
+	}
+
+	filePath := filepath.Join(h.documentsDir, hash[:16]+"_"+header.Filename)
+	if err := os.WriteFile(filePath, data, 0644); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save file"})
+		return
+	}
+
+	document := &models.FundDocument{
+		FundID:       uint(id),
+		FileName:     header.Filename,
+		FilePath:     filePath,
+		DocumentType: c.PostForm("document_type"),
+		ContentHash:  hash,
+		Source:       "manual",
+		UploadDate:   time.Now(),
+		Status:       "downloaded",
+	}
+
+	if err := h.fundService.AddDocument(document); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, document)
 }
 
 // DiscoverAllDocuments godoc
@@ -220,14 +302,7 @@ func (h *FundHandler) GetDiscoveryStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fund ID"})
 		return
 	}
-	
-	// TODO: Implement actual discovery status tracking
-	// For now, return mock status
-	c.JSON(http.StatusOK, gin.H{
-		"status":     "idle",
-		"found":      0,
-		"downloaded": 0,
-		"errors":     0,
-		"fund_id":    id,
-	})
+
+	status := h.fundService.GetDiscoveryStatus(uint(id))
+	c.JSON(http.StatusOK, status)
 }

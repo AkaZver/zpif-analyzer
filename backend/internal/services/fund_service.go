@@ -1,18 +1,31 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	"github.com/zpif-analyzer/backend/internal/llm"
 	"github.com/zpif-analyzer/backend/internal/models"
 	"github.com/zpif-analyzer/backend/internal/repositories"
 )
 
+type Discoverer interface {
+	Discover(ctx context.Context, fund *models.Fund) (*llm.DiscoveryStatus, error)
+	GetStatus(fundID uint) *llm.DiscoveryStatus
+}
+
+type Analyzer interface {
+	AnalyzeLatestDocuments(ctx context.Context, fund *models.Fund) (*models.LLMAnalysis, error)
+}
+
 type FundService struct {
-	fundRepo         *repositories.FundRepository
-	financialsRepo   *repositories.FinancialsRepository
-	documentRepo     *repositories.DocumentRepository
-	analysisRepo     *repositories.AnalysisRepository
+	fundRepo       *repositories.FundRepository
+	financialsRepo *repositories.FinancialsRepository
+	documentRepo   *repositories.DocumentRepository
+	analysisRepo   *repositories.AnalysisRepository
+	discoverer     Discoverer
+	analyzer       Analyzer
 }
 
 func NewFundService(
@@ -27,6 +40,14 @@ func NewFundService(
 		documentRepo:   documentRepo,
 		analysisRepo:   analysisRepo,
 	}
+}
+
+func (s *FundService) SetDiscoverer(d Discoverer) {
+	s.discoverer = d
+}
+
+func (s *FundService) SetAnalyzer(a Analyzer) {
+	s.analyzer = a
 }
 
 func (s *FundService) GetAllFunds() ([]models.Fund, error) {
@@ -131,13 +152,55 @@ func (s *FundService) AddAnalysis(analysis *models.LLMAnalysis) error {
 }
 
 func (s *FundService) DiscoverDocumentsForFund(fundID uint) error {
-	// TODO: Implement actual discovery logic
-	// This will be implemented in Phase 5
-	return errors.New("document discovery not implemented yet")
+	if s.discoverer == nil {
+		return errors.New("document discovery not configured")
+	}
+	fund, err := s.fundRepo.GetByID(fundID)
+	if err != nil {
+		return err
+	}
+	_, err = s.discoverer.Discover(context.Background(), fund)
+	return err
 }
 
 func (s *FundService) DiscoverDocumentsForAllFunds() error {
-	// TODO: Implement actual discovery logic
-	// This will be implemented in Phase 5
-	return errors.New("document discovery not implemented yet")
+	if s.discoverer == nil {
+		return errors.New("document discovery not configured")
+	}
+	funds, err := s.fundRepo.GetAll()
+	if err != nil {
+		return err
+	}
+	var lastErr error
+	for i := range funds {
+		if _, err := s.discoverer.Discover(context.Background(), &funds[i]); err != nil {
+			lastErr = err
+		}
+	}
+	return lastErr
+}
+
+func (s *FundService) AnalyzeFund(ctx context.Context, fundID uint) (*models.LLMAnalysis, error) {
+	if s.analyzer == nil {
+		return nil, errors.New("analyzer not configured")
+	}
+	fund, err := s.fundRepo.GetByID(fundID)
+	if err != nil {
+		return nil, err
+	}
+	return s.analyzer.AnalyzeLatestDocuments(ctx, fund)
+}
+
+func (s *FundService) GetDiscoveryStatus(fundID uint) map[string]interface{} {
+	if s.discoverer == nil {
+		return map[string]interface{}{"status": "idle", "found": 0, "downloaded": 0, "errors": 0}
+	}
+	status := s.discoverer.GetStatus(fundID)
+	return map[string]interface{}{
+		"status":     status.Status,
+		"found":      status.URLsFound,
+		"downloaded": status.Downloaded,
+		"errors":     status.Errors,
+		"fund_id":    status.FundID,
+	}
 }

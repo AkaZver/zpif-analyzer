@@ -71,7 +71,16 @@ func (h *LLMHandler) TestConnection(c *gin.Context) {
 
 // TestWebSearch godoc
 func (h *LLMHandler) TestWebSearch(c *gin.Context) {
-	results, err := h.llmService.TestWebSearch()
+	var req struct {
+		Provider string `json:"provider" binding:"required"`
+		APIKey   string `json:"api_key" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "provider and api_key are required"})
+		return
+	}
+
+	results, err := h.llmService.TestWebSearch(req.Provider, req.APIKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,

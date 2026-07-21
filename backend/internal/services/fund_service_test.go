@@ -172,7 +172,7 @@ func TestFundService_DiscoverDocumentsForFund(t *testing.T) {
 	err := service.DiscoverDocumentsForFund(1)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not implemented")
+	assert.Contains(t, err.Error(), "document discovery not configured")
 }
 
 func TestFundService_DiscoverDocumentsForAllFunds(t *testing.T) {
@@ -182,7 +182,7 @@ func TestFundService_DiscoverDocumentsForAllFunds(t *testing.T) {
 	err := service.DiscoverDocumentsForAllFunds()
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not implemented")
+	assert.Contains(t, err.Error(), "document discovery not configured")
 }
 
 func TestFundService_DeleteDocument(t *testing.T) {

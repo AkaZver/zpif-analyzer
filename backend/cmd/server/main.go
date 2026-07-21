@@ -7,11 +7,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/zpif-analyzer/backend/internal/config"
+	"github.com/zpif-analyzer/backend/internal/fetcher"
 	"github.com/zpif-analyzer/backend/internal/handlers"
+	"github.com/zpif-analyzer/backend/internal/llm"
 	"github.com/zpif-analyzer/backend/internal/middleware"
 	"github.com/zpif-analyzer/backend/internal/models"
 	"github.com/zpif-analyzer/backend/internal/repositories"
 	"github.com/zpif-analyzer/backend/internal/services"
+	"github.com/zpif-analyzer/backend/internal/websearch"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -72,8 +75,32 @@ func main() {
 	llmService := services.NewLLMService(llmSettingsRepo)
 	excelService := services.NewExcelService(fundRepo, financialsRepo)
 
+	// Инициализация LLM-компонентов (если есть ключ)
+	documentsDir := "./documents"
+	fetcherMgr := fetcher.NewFetcher(documentsDir)
+	if err := fetcherMgr.EnsureDocumentsDir(); err != nil {
+		log.Printf("Warning: failed to create documents dir: %v", err)
+	}
+
+	if cfg.OpenAIAPIKey != "" {
+		llmClient := llm.NewClient(cfg.OpenAIAPIKey, cfg.OpenAIBaseURL, cfg.OpenAIModel)
+		searchClient, err := websearch.NewClient(cfg.WebSearchProvider, cfg.WebSearchAPIKey)
+		if err != nil {
+			log.Printf("Warning: failed to init web search: %v", err)
+		} else {
+			discoverer := llm.NewDiscoverer(llmClient, searchClient, fetcherMgr, documentRepo, fundRepo)
+			fundService.SetDiscoverer(discoverer)
+		}
+		analyzer := llm.NewAnalyzer(llmClient, documentRepo, analysisRepo, financialsRepo, fundRepo)
+		fundService.SetAnalyzer(analyzer)
+		log.Println("LLM integration enabled")
+	} else {
+		log.Println("LLM integration disabled (no OPENAI_API_KEY)")
+	}
+
 	// Инициализация handlers
 	fundHandler := handlers.NewFundHandler(fundService)
+	fundHandler.SetDocumentsDir(documentsDir)
 	authHandler := handlers.NewAuthHandler(authService, cfg)
 	llmHandler := handlers.NewLLMHandler(llmService)
 	excelHandler := handlers.NewExcelHandler(excelService)
@@ -109,12 +136,14 @@ func main() {
 
 	// Fund documents
 	api.GET("/funds/:id/documents", fundHandler.GetDocumentsByFundID)
+	api.POST("/funds/:id/documents", fundHandler.UploadDocument)
 	api.DELETE("/funds/:id/documents/:docId", fundHandler.DeleteDocument)
 	api.POST("/funds/:id/discover", fundHandler.DiscoverDocuments)
 	api.GET("/funds/:id/discovery-status", fundHandler.GetDiscoveryStatus)
 
 	// Fund analysis
 	api.GET("/funds/:id/analysis", fundHandler.GetLatestAnalysis)
+	api.POST("/funds/:id/analyze", fundHandler.AnalyzeFund)
 
 	// Discover all
 	api.POST("/funds/discover-all", fundHandler.DiscoverAllDocuments)

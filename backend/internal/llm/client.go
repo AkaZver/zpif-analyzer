@@ -1,0 +1,135 @@
+package llm
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"time"
+)
+
+type Client struct {
+	apiKey  string
+	baseURL string
+	model   string
+	client  *http.Client
+}
+
+func NewClient(apiKey, baseURL, model string) *Client {
+	if baseURL == "" {
+		baseURL = "https://api.openai.com/v1"
+	}
+	if model == "" {
+		model = "gpt-4o-mini"
+	}
+	return &Client{
+		apiKey:  apiKey,
+		baseURL: strings.TrimSuffix(baseURL, "/"),
+		model:   model,
+		client:  &http.Client{Timeout: 120 * time.Second},
+	}
+}
+
+type Message struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type ChatRequest struct {
+	Model       string    `json:"model"`
+	Messages    []Message `json:"messages"`
+	Temperature float64   `json:"temperature,omitempty"`
+	MaxTokens   int       `json:"max_tokens,omitempty"`
+}
+
+type ChatResponse struct {
+	ID      string `json:"id"`
+	Choices []struct {
+		Index   int `json:"index"`
+		Message struct {
+			Role    string `json:"role"`
+			Content string `json:"content"`
+		} `json:"message"`
+		FinishReason string `json:"finish_reason"`
+	} `json:"choices"`
+	Usage struct {
+		PromptTokens     int `json:"prompt_tokens"`
+		CompletionTokens int `json:"completion_tokens"`
+		TotalTokens      int `json:"total_tokens"`
+	} `json:"usage"`
+}
+
+func (c *Client) Chat(ctx context.Context, messages []Message) (*ChatResponse, error) {
+	if c.apiKey == "" {
+		return nil, fmt.Errorf("LLM api key is empty")
+	}
+
+	reqBody := ChatRequest{
+		Model:       c.model,
+		Messages:    messages,
+		Temperature: 0.3,
+	}
+	bodyJSON, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/chat/completions", bytes.NewReader(bodyJSON))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call LLM: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("LLM error: status %d, body: %s", resp.StatusCode, string(respBody))
+	}
+
+	var chatResp ChatResponse
+	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
+		return nil, fmt.Errorf("failed to decode LLM response: %w", err)
+	}
+
+	if len(chatResp.Choices) == 0 {
+		return nil, fmt.Errorf("LLM returned no choices")
+	}
+
+	return &chatResp, nil
+}
+
+func (c *Client) ChatSimple(ctx context.Context, systemPrompt, userMessage string) (string, error) {
+	messages := []Message{
+		{Role: "system", Content: systemPrompt},
+		{Role: "user", Content: userMessage},
+	}
+	resp, err := c.Chat(ctx, messages)
+	if err != nil {
+		return "", err
+	}
+	return resp.Choices[0].Message.Content, nil
+}
+
+func (c *Client) TestConnection(ctx context.Context) error {
+	resp, err := c.ChatSimple(ctx, "You are a test assistant. Reply with 'OK'.", "Check connection")
+	if err != nil {
+		return err
+	}
+	if resp == "" {
+		return fmt.Errorf("empty response from LLM")
+	}
+	return nil
+}
+
+func (c *Client) GetModel() string {
+	return c.model
+}
