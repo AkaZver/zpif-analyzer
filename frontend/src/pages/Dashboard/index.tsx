@@ -219,7 +219,7 @@ const Dashboard: React.FC = () => {
         </Space>
       </div>
 
-      <Card className="mb-4 bg-[#0f3460] border-0">
+      <Card className="mb-4 bg-surface-card border-0">
         <Space wrap>
           <Select
             placeholder="Сегмент"
@@ -261,7 +261,7 @@ const Dashboard: React.FC = () => {
             onClick: () => navigate(`/funds/${record.id}`),
             style: { cursor: 'pointer' },
           })}
-          className="bg-[#0f3460] rounded-lg"
+          className="bg-surface-card rounded-lg"
         />
       )}
     </div>

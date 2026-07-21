@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -147,22 +146,13 @@ func (a *Analyzer) AnalyzeLatestDocuments(ctx context.Context, fund *models.Fund
 }
 
 func (a *Analyzer) readDocumentText(doc *models.FundDocument) (string, error) {
-	if doc.FilePath == "" {
-		if doc.SourceURL != "" {
-			return "URL: " + doc.SourceURL, nil
-		}
-		return "", nil
+	if doc.ExtractedText != "" {
+		return doc.ExtractedText, nil
 	}
-
-	data, err := os.ReadFile(doc.FilePath)
-	if err != nil {
-		return "", err
+	if doc.SourceURL != "" {
+		return "URL: " + doc.SourceURL, nil
 	}
-
-	if isPDF(data) {
-		return extractTextFromPDF(data)
-	}
-	return string(data), nil
+	return "", nil
 }
 
 func (a *Analyzer) extractMetrics(ctx context.Context, docText string) (*MetricsExtraction, error) {
@@ -285,14 +275,11 @@ func extractJSONObject(s string) string {
 	return s[start : end+1]
 }
 
-func isPDF(data []byte) bool {
+func IsPDF(data []byte) bool {
 	return len(data) > 4 && string(data[:4]) == "%PDF"
 }
 
-func extractTextFromPDF(data []byte) (string, error) {
-	// Simplified PDF text extraction
-	// In production use proper PDF library (e.g. pdfcpu, unipdf)
-
+func ExtractTextFromPDF(data []byte) (string, error) {
 	return "PDF content placeholder\n" + truncateString(string(data[:min(1000, len(data))]), 500), nil
 }
 

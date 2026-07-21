@@ -5,27 +5,21 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/zpif-analyzer/backend/internal/llm"
 	"github.com/zpif-analyzer/backend/internal/models"
 	"github.com/zpif-analyzer/backend/internal/services"
 )
 
 type FundHandler struct {
-	fundService   *services.FundService
-	documentsDir  string
+	fundService *services.FundService
 }
 
 func NewFundHandler(fundService *services.FundService) *FundHandler {
 	return &FundHandler{fundService: fundService}
-}
-
-func (h *FundHandler) SetDocumentsDir(dir string) {
-	h.documentsDir = dir
 }
 
 // GetAllFunds godoc
@@ -252,29 +246,27 @@ func (h *FundHandler) UploadDocument(c *gin.Context) {
 	}
 
 	hash := fmt.Sprintf("%x", sha256.Sum256(data))
-	if h.documentsDir == "" {
-		h.documentsDir = "./documents"
-	}
-	if err := os.MkdirAll(h.documentsDir, 0755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create documents dir"})
-		return
-	}
 
-	filePath := filepath.Join(h.documentsDir, hash[:16]+"_"+header.Filename)
-	if err := os.WriteFile(filePath, data, 0644); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save file"})
-		return
+	var extractedText string
+	if llm.IsPDF(data) {
+		extractedText, err = llm.ExtractTextFromPDF(data)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to extract text from PDF"})
+			return
+		}
+	} else {
+		extractedText = string(data)
 	}
 
 	document := &models.FundDocument{
-		FundID:       uint(id),
-		FileName:     header.Filename,
-		FilePath:     filePath,
-		DocumentType: c.PostForm("document_type"),
-		ContentHash:  hash,
-		Source:       "manual",
-		UploadDate:   time.Now(),
-		Status:       "downloaded",
+		FundID:        uint(id),
+		FileName:      header.Filename,
+		DocumentType:  c.PostForm("document_type"),
+		ContentHash:   hash,
+		Source:        "manual",
+		UploadDate:    time.Now(),
+		Status:        "downloaded",
+		ExtractedText: extractedText,
 	}
 
 	if err := h.fundService.AddDocument(document); err != nil {

@@ -185,7 +185,7 @@ const Settings: React.FC = () => {
 
       <Card
         title="Управление фондами"
-        className="mb-6 bg-[#0f3460] border-0"
+        className="mb-6 bg-surface-card border-0"
         extra={<Button type="primary" icon={<PlusOutlined />} onClick={handleAddFund}>Добавить фонд</Button>}
       >
         <Table
@@ -197,7 +197,7 @@ const Settings: React.FC = () => {
         />
       </Card>
 
-      <Card title="Настройки LLM и поиска" className="mb-6 bg-[#0f3460] border-0">
+      <Card title="Настройки LLM и поиска" className="mb-6 bg-surface-card border-0">
         <Form form={llmForm} layout="vertical" initialValues={llmSettings || {}}>
           <Form.Item name="api_key_encrypted" label="API Key">
             <Input.Password placeholder="sk-..." />
@@ -240,7 +240,7 @@ const Settings: React.FC = () => {
         </Form>
       </Card>
 
-      <Card title="Данные" className="bg-[#0f3460] border-0">
+      <Card title="Данные" className="bg-surface-card border-0">
         <Space direction="vertical" size="middle" className="w-full">
           <Button type="primary" icon={<UploadOutlined />} onClick={handleExport}>
             Экспорт всех данных в Excel

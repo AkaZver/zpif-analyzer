@@ -18,9 +18,9 @@ const App: React.FC = () => {
         algorithm: theme.darkAlgorithm,
         token: {
           colorPrimary: '#7c5cbf',
-          colorBgContainer: '#0f3460',
-          colorBgElevated: '#16213e',
-          colorBgLayout: '#1a1a2e',
+          colorBgContainer: '#333333',
+          colorBgElevated: '#2a2a2a',
+          colorBgLayout: '#1a1a1a',
           colorText: '#e0e0e0',
           colorTextSecondary: '#a0a0a0',
           borderRadius: 8,

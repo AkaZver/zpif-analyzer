@@ -83,13 +83,14 @@ type FundDocument struct {
 
 	FundID         uint   `gorm:"index;not null" json:"fund_id"`
 	FileName       string `json:"file_name"`
-	FilePath       string `gorm:"not null" json:"file_path"`
+	FilePath       string `json:"file_path"`
 	DocumentType   string `json:"document_type"`
 	ContentHash    string `json:"content_hash"`
-	Source         string `json:"source"` // "manual" или "auto"
+	Source         string `json:"source"`
 	SourceURL      string `json:"source_url"`
 	UploadDate     time.Time `json:"upload_date"`
-	Status         string    `json:"status"` // "pending", "downloaded", "analyzed", "error"
+	Status         string    `json:"status"`
+	ExtractedText  string    `gorm:"type:text" json:"extracted_text"`
 
 	// Связь
 	Fund Fund `gorm:"foreignKey:FundID" json:"fund"`

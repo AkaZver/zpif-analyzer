@@ -188,17 +188,22 @@ func (d *Discoverer) downloadAndStore(ctx context.Context, fund *models.Fund, ur
 		return nil
 	}
 
+	extractedText, err := ExtractTextFromPDF(resp.Content)
+	if err != nil {
+		extractedText = ""
+	}
+
 	now := time.Now()
 	document := &models.FundDocument{
-		FundID:       fund.ID,
-		FileName:     title + ".pdf",
-		FilePath:     resp.FilePath,
-		DocumentType: docType,
-		ContentHash:  resp.Hash,
-		Source:       "auto",
-		SourceURL:    url,
-		UploadDate:   now,
-		Status:       "downloaded",
+		FundID:        fund.ID,
+		FileName:      title + ".pdf",
+		DocumentType:  docType,
+		ContentHash:   resp.Hash,
+		Source:        "auto",
+		SourceURL:     url,
+		UploadDate:    now,
+		Status:        "downloaded",
+		ExtractedText: extractedText,
 	}
 	return d.documentRepo.Create(document)
 }

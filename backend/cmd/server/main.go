@@ -76,11 +76,7 @@ func main() {
 	excelService := services.NewExcelService(fundRepo, financialsRepo, analysisRepo)
 
 	// Инициализация LLM-компонентов (если есть ключ)
-	documentsDir := "./documents"
-	fetcherMgr := fetcher.NewFetcher(documentsDir)
-	if err := fetcherMgr.EnsureDocumentsDir(); err != nil {
-		log.Printf("Warning: failed to create documents dir: %v", err)
-	}
+	fetcherMgr := fetcher.NewFetcher()
 
 	if cfg.OpenAIAPIKey != "" {
 		llmClient := llm.NewClient(cfg.OpenAIAPIKey, cfg.OpenAIBaseURL, cfg.OpenAIModel)
@@ -100,7 +96,6 @@ func main() {
 
 	// Инициализация handlers
 	fundHandler := handlers.NewFundHandler(fundService)
-	fundHandler.SetDocumentsDir(documentsDir)
 	authHandler := handlers.NewAuthHandler(authService, cfg)
 	llmHandler := handlers.NewLLMHandler(llmService)
 	excelHandler := handlers.NewExcelHandler(excelService)

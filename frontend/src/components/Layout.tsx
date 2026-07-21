@@ -1,95 +1,89 @@
-import React, { useState } from 'react';
-import { Layout as AntLayout, Menu, Button, Space, Typography } from 'antd';
+import React from 'react';
+import { Layout as AntLayout, Button, Typography, Dropdown } from 'antd';
 import {
   DashboardOutlined,
   SettingOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
   LogoutOutlined,
   LoginOutlined,
+  MenuOutlined,
 } from '@ant-design/icons';
-import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import type { MenuProps } from 'antd';
 
-const { Header, Sider, Content } = AntLayout;
+const { Header, Content } = AntLayout;
 
 const Layout: React.FC = () => {
-  const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
   const { isAuthenticated, logout } = useAuth();
-
-  const menuItems = [
-    { key: '/', icon: <DashboardOutlined />, label: 'Сравнение' },
-    { key: '/settings', icon: <SettingOutlined />, label: 'Настройки' },
-  ];
-
-  const handleMenuClick = (e: { key: string }) => {
-    navigate(e.key);
-  };
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
+  const menuItems: MenuProps['items'] = [
+    {
+      key: '/',
+      icon: <DashboardOutlined />,
+      label: 'Сравнение',
+    },
+    {
+      key: '/settings',
+      icon: <SettingOutlined />,
+      label: 'Настройки',
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: 'Выйти',
+      danger: true,
+    },
+  ];
+
+  const handleMenuClick: MenuProps['onClick'] = (e) => {
+    if (e.key === 'logout') {
+      handleLogout();
+    } else {
+      navigate(e.key);
+    }
+  };
+
   return (
     <AntLayout className="min-h-screen">
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        className="bg-[#0a0a1a]"
-        width={240}
-        trigger={null}
-      >
-        <div className="flex items-center justify-center h-16 px-4">
-          <Typography.Title level={4} className="text-primary m-0">
-            {collapsed ? 'ZA' : 'ZPIF Analyzer'}
-          </Typography.Title>
-        </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={handleMenuClick}
-          className="bg-[#0a0a1a] border-r-0"
-        />
-      </Sider>
-      <AntLayout>
-        <Header className="bg-[#0f3460] px-4 flex items-center justify-between h-16">
+      <Header className="bg-[#2a2a2a] px-6 flex items-center justify-between h-16 border-b border-[#3a3a3a]">
+        <Typography.Title
+          level={4}
+          className="text-primary m-0 cursor-pointer"
+          onClick={() => navigate('/')}
+        >
+          ZPIF Analyzer
+        </Typography.Title>
+        {isAuthenticated ? (
+          <Dropdown
+            menu={{ items: menuItems, onClick: handleMenuClick }}
+            trigger={['click']}
+          >
+            <Button type="text" icon={<MenuOutlined />} className="text-text-primary" />
+          </Dropdown>
+        ) : (
           <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            className="text-text-primary text-lg"
-          />
-          <Space>
-            {isAuthenticated ? (
-              <Button
-                type="text"
-                icon={<LogoutOutlined />}
-                onClick={handleLogout}
-                className="text-text-primary"
-              >
-                Выйти
-              </Button>
-            ) : (
-              <Button
-                type="primary"
-                icon={<LoginOutlined />}
-                onClick={() => navigate('/login')}
-              >
-                Войти
-              </Button>
-            )}
-          </Space>
-        </Header>
-        <Content className="p-6 bg-[#1a1a2e] min-h-[calc(100vh-64px)] overflow-auto">
+            type="primary"
+            icon={<LoginOutlined />}
+            onClick={() => navigate('/login')}
+          >
+            Войти
+          </Button>
+        )}
+      </Header>
+      <Content className="bg-[#1a1a1a] min-h-[calc(100vh-64px)] overflow-auto">
+        <div className="max-w-[1400px] mx-auto p-6">
           <Outlet />
-        </Content>
-      </AntLayout>
+        </div>
+      </Content>
     </AntLayout>
   );
 };

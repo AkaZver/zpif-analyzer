@@ -7,18 +7,15 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
 
 type Fetcher struct {
-	client      *http.Client
-	documentsDir string
+	client *http.Client
 }
 
-func NewFetcher(documentsDir string) *Fetcher {
+func NewFetcher() *Fetcher {
 	return &Fetcher{
 		client: &http.Client{
 			Timeout: 60 * time.Second,
@@ -29,7 +26,6 @@ func NewFetcher(documentsDir string) *Fetcher {
 				return nil
 			},
 		},
-		documentsDir: documentsDir,
 	}
 }
 
@@ -38,7 +34,6 @@ type FetchResult struct {
 	StatusCode int
 	Content    []byte
 	Hash       string
-	FilePath   string
 	IsPDF      bool
 }
 
@@ -88,15 +83,6 @@ func (f *Fetcher) Fetch(ctx context.Context, targetURL string) (*FetchResult, er
 		IsPDF:      isPDF,
 	}
 
-	if isPDF && f.documentsDir != "" {
-		fileName := fmt.Sprintf("%s.pdf", hash[:16])
-		filePath := filepath.Join(f.documentsDir, fileName)
-		if err := os.WriteFile(filePath, body, 0644); err != nil {
-			return result, fmt.Errorf("failed to write PDF: %w", err)
-		}
-		result.FilePath = filePath
-	}
-
 	return result, nil
 }
 
@@ -120,11 +106,4 @@ func (f *Fetcher) FetchPDF(ctx context.Context, targetURL string) (*FetchResult,
 		return result, fmt.Errorf("expected PDF but got HTML")
 	}
 	return result, nil
-}
-
-func (f *Fetcher) EnsureDocumentsDir() error {
-	if f.documentsDir == "" {
-		return nil
-	}
-	return os.MkdirAll(f.documentsDir, 0755)
 }

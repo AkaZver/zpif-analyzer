@@ -14,9 +14,9 @@ export default {
           dark: '#5d507e',
         },
         surface: {
-          DEFAULT: '#1a1a2e',
-          light: '#16213e',
-          card: '#0f3460',
+          DEFAULT: '#1a1a1a',
+          light: '#2a2a2a',
+          card: '#333333',
         },
         accent: {
           DEFAULT: '#e94560',
