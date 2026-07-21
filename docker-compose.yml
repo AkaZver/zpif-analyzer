@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: zpif-postgres
+    environment:
+      POSTGRES_DB: zpif_analyzer
+      POSTGRES_USER: zpif
+      POSTGRES_PASSWORD: zpif
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zpif -d zpif_analyzer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - zpif-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: zpif-backend
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: zpif
+      DB_PASSWORD: zpif
+      DB_NAME: zpif_analyzer
+      DB_SSL_MODE: disable
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      WEBSEARCH_PROVIDER: ${WEBSEARCH_PROVIDER:-serpapi}
+      WEBSEARCH_API_KEY: ${WEBSEARCH_API_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - backend_documents:/app/documents
+    networks:
+      - zpif-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: zpif-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - zpif-network
+
+networks:
+  zpif-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  backend_documents:
