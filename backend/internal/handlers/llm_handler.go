@@ -24,16 +24,13 @@ func (h *LLMHandler) GetSettings(c *gin.Context) {
 		return
 	}
 	
-	// Mask API key for security
-	maskedSettings := gin.H{
-		"id":        settings.ID,
-		"base_url":  settings.BaseURL,
-		"model":     settings.ModelName,
-		"api_key":   maskAPIKey(settings.APIKeyEncrypted),
-		"updated_at": settings.UpdatedAt,
-	}
-	
-	c.JSON(http.StatusOK, maskedSettings)
+	c.JSON(http.StatusOK, gin.H{
+		"id":                settings.ID,
+		"base_url":          settings.BaseURL,
+		"model_name":        settings.ModelName,
+		"api_key_encrypted": settings.APIKeyEncrypted,
+		"updated_at":        settings.UpdatedAt,
+	})
 }
 
 // UpdateSettings godoc
@@ -69,10 +66,13 @@ func (h *LLMHandler) TestConnection(c *gin.Context) {
 	})
 }
 
-// Helper function to mask API key
-func maskAPIKey(key string) string {
-	if len(key) <= 8 {
-		return "****"
+// ListModels godoc
+func (h *LLMHandler) ListModels(c *gin.Context) {
+	models, err := h.llmService.ListModels()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
-	return key[:4] + "****" + key[len(key)-4:]
+	
+	c.JSON(http.StatusOK, models)
 }

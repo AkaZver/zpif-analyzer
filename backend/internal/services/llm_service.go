@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/zpif-analyzer/backend/internal/llm"
 	"github.com/zpif-analyzer/backend/internal/models"
@@ -29,6 +30,12 @@ func (s *LLMService) GetSettings() (*models.LLMSettings, error) {
 }
 
 func (s *LLMService) UpdateSettings(settings *models.LLMSettings) error {
+	if strings.Contains(settings.APIKeyEncrypted, "****") {
+		existing, err := s.settingsRepo.Get()
+		if err == nil {
+			settings.APIKeyEncrypted = existing.APIKeyEncrypted
+		}
+	}
 	return s.settingsRepo.Upsert(settings)
 }
 
@@ -44,4 +51,18 @@ func (s *LLMService) TestConnection() error {
 	client := llm.NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName)
 	ctx := context.Background()
 	return client.TestConnection(ctx)
+}
+
+func (s *LLMService) ListModels() ([]string, error) {
+	settings, err := s.GetSettings()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load settings: %w", err)
+	}
+	if settings.APIKeyEncrypted == "" {
+		return nil, fmt.Errorf("API key not configured")
+	}
+
+	client := llm.NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName)
+	ctx := context.Background()
+	return client.ListModels(ctx)
 }

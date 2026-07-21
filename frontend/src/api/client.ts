@@ -142,6 +142,11 @@ class ApiClient {
     return response.data;
   }
 
+  async getLLMModels(): Promise<string[]> {
+    const response = await this.client.get<string[]>('/llm/models');
+    return response.data;
+  }
+
   // Export
   async exportExcel(): Promise<Blob> {
     const response = await this.client.get('/export/excel', { responseType: 'blob' });

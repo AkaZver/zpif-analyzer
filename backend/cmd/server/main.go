@@ -140,6 +140,7 @@ func main() {
 	api.GET("/llm/settings", llmHandler.GetSettings)
 	api.PUT("/llm/settings", llmHandler.UpdateSettings)
 	api.POST("/llm/test", llmHandler.TestConnection)
+	api.GET("/llm/models", llmHandler.ListModels)
 
 	// Excel export
 	api.GET("/export/excel", excelHandler.ExportExcel)

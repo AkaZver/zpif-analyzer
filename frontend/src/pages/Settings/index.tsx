@@ -3,7 +3,7 @@ import {
   Typography, Card, Table, Button, Space, Modal, Form, Input, Select,
   Switch, message, Popconfirm, Tag,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, CloudDownloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, CloudDownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import { apiClient } from '../../api/client';
 import type { Fund, LLMSettings } from '../../types';
 import type { ColumnsType } from 'antd/es/table';
@@ -18,10 +18,13 @@ const Settings: React.FC = () => {
   const [llmForm] = Form.useForm();
   const [testingLlm, setTestingLlm] = useState(false);
   const [savingLlm, setSavingLlm] = useState(false);
+  const [models, setModels] = useState<string[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
 
   useEffect(() => {
     loadFunds();
     loadLlmSettings();
+    loadModels();
   }, []);
 
   const loadFunds = async () => {
@@ -110,6 +113,18 @@ const Settings: React.FC = () => {
     }
   };
 
+  const loadModels = async () => {
+    setLoadingModels(true);
+    try {
+      const modelsList = await apiClient.getLLMModels();
+      setModels(modelsList);
+    } catch {
+      setModels([]);
+    } finally {
+      setLoadingModels(false);
+    }
+  };
+
   const fundColumns: ColumnsType<Fund> = [
     { title: 'Название', dataIndex: 'name', key: 'name' },
     { title: 'ISIN', dataIndex: 'isin', key: 'isin' },
@@ -165,14 +180,18 @@ const Settings: React.FC = () => {
             <Input placeholder="https://api.openai.com/v1" />
           </Form.Item>
           <Form.Item name="model_name" label="Модель">
-            <Select
-              options={[
-                { value: 'gpt-4o', label: 'GPT-4o' },
-                { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
-                { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
-                { value: 'yandexgpt', label: 'YandexGPT' },
-              ]}
-            />
+            {models.length > 0 ? (
+              <Select
+                showSearch
+                placeholder="Выберите модель"
+                options={models.map((m) => ({ value: m, label: m }))}
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+              />
+            ) : (
+              <Input placeholder="gpt-4o-mini" />
+            )}
           </Form.Item>
           <Space>
             <Button type="primary" onClick={handleSaveLlmSettings} loading={savingLlm}>
@@ -180,6 +199,9 @@ const Settings: React.FC = () => {
             </Button>
             <Button icon={<CloudDownloadOutlined />} onClick={handleTestLlm} loading={testingLlm}>
               Тест LLM
+            </Button>
+            <Button icon={<ReloadOutlined />} onClick={loadModels} loading={loadingModels}>
+              Загрузить модели
             </Button>
           </Space>
         </Form>
