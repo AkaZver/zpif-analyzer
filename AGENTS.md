@@ -39,6 +39,7 @@ npm run lint                  # Проверка кода (oxlint)
 - `internal/services/` — бизнес-логика
 - `internal/repositories/` — работа с БД (GORM)
 - `internal/models/` — GORM модели
+- `internal/parsers/` — парсеры внешних источников данных (MOEX, investfunds)
 - `internal/llm/` — LLM интеграция (OpenAI-совместимые API)
 
 **Важно:**
@@ -51,6 +52,16 @@ npm run lint                  # Проверка кода (oxlint)
 - Используй `sqlmock` для моков БД
 - Тесты в файлах `*_test.go` рядом с кодом
 - Запуск: `go test ./internal/services -v`
+
+**Интеграция с внешними источниками данных:**
+- **MOEX ISS API** — загрузка истории котировок (цена пая)
+  - Поддержка нескольких board'ов (TQIF, TQBR)
+  - Fallback для цен: CLOSE → LEGALCLOSEPRICE → WAPRICE
+  - Автоматический поиск по ISIN
+- **investfunds.ru** — загрузка РСП (NAV), СЧА и истории выплат
+  - Парсинг HTML через goquery
+  - Поле `investfunds_url` в модели Fund для ручной настройки URL
+- **Интерполяция** — заполнение пропусков в данных РСП методом линейной интерполяции
 
 ### Frontend (React 19 + TypeScript + Vite)
 
@@ -94,6 +105,8 @@ cp .env.example .env
 - `/funds/:id/documents/:docId/download` — скачать документ
 - `/funds/:id/discover` — автопоиск документов
 - `/funds/:id/analyze` — LLM анализ
+- `/funds/:id/fetch-market-data` — загрузить рыночные данные (MOEX + investfunds)
+- `/funds/fetch-all-market-data` — загрузить рыночные данные для всех фондов
 - `/llm/settings` — настройки LLM
 - `/export/excel` — экспорт данных
 
@@ -114,3 +127,6 @@ cp .env.example .env
 2. **Excel экспорт** — использует библиотеку excelize
 3. **Документы** — хранятся в БД в поле `ExtractedText` (текстовое содержимое)
 4. **Health checks** — все сервисы имеют health checks в docker-compose
+5. **Рыночные данные** — автоматическая загрузка с MOEX ISS API и investfunds.ru
+6. **Обогащение через LLM** — автоматическое заполнение данных фонда при создании
+7. **Графики** — цена пая отображается только после начала торгов, вертикальная метка "Начало торгов"
