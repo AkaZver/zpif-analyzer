@@ -210,8 +210,10 @@ const FundDetails: React.FC = () => {
           {fund.name}
         </Typography.Title>
         <Space>
-          <Tag>{fund.isin}</Tag>
-          {fund.ticker && <Tag color="blue">{fund.ticker}</Tag>}
+          <Tag>
+            {fund.isin}
+            {fund.ticker && ` (${fund.ticker})`}
+          </Tag>
           {fund.qualified_required && <Tag color="red">Только для квалов</Tag>}
           {fund.has_market_maker && <Tag color="green">Маркет-мейкер</Tag>}
         </Space>

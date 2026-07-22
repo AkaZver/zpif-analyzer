@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Space, Tag, message, Spin, Select, Checkbox, Typography, Card } from 'antd';
+import { Table, Button, Space, Tag, message, Spin, Select, Checkbox, Typography, Card, Tooltip } from 'antd';
 import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/client';
@@ -105,13 +105,23 @@ const Dashboard: React.FC = () => {
       fixed: 'left',
       width: 180,
     },
-    { title: 'ISIN', dataIndex: 'isin', key: 'isin', width: 140 },
     {
-      title: 'Тикер',
-      dataIndex: 'ticker',
-      key: 'ticker',
-      width: 80,
-      render: (v: string) => v || '—',
+      title: 'ISIN',
+      dataIndex: 'isin',
+      key: 'isin',
+      width: 140,
+      render: (isin: string, record: FundWithFinancials) => {
+        if (record.ticker) {
+          return (
+            <Tooltip title={`Тикер: ${record.ticker}`}>
+              <span style={{ borderBottom: '1px dashed #1890ff', cursor: 'help' }}>
+                {isin}
+              </span>
+            </Tooltip>
+          );
+        }
+        return isin;
+      },
     },
     { title: 'УК', dataIndex: 'management_company', key: 'management_company', width: 150 },
     {
@@ -142,18 +152,6 @@ const Dashboard: React.FC = () => {
       sorter: (a, b) => (a.latest_financials?.discount_to_nav_pct || 0) - (b.latest_financials?.discount_to_nav_pct || 0),
     },
     {
-      title: 'Cap Rate',
-      key: 'cap_rate',
-      width: 90,
-      render: (_, r) => r.latest_financials?.cap_rate_pct ? `${r.latest_financials.cap_rate_pct.toFixed(1)}%` : '—',
-    },
-    {
-      title: 'P/NAV',
-      key: 'p_nav',
-      width: 80,
-      render: (_, r) => r.latest_financials?.p_nav?.toFixed(2) || '—',
-    },
-    {
       title: 'Доходность выплат',
       key: 'payout_yield',
       width: 130,
@@ -166,12 +164,6 @@ const Dashboard: React.FC = () => {
       width: 140,
       render: (_, r) => r.latest_financials ? renderPctCell(r.latest_financials.total_return_pct) : '—',
       sorter: (a, b) => (a.latest_financials?.total_return_pct || 0) - (b.latest_financials?.total_return_pct || 0),
-    },
-    {
-      title: 'Долг/СЧА',
-      key: 'debt',
-      width: 90,
-      render: (_, r) => r.latest_financials?.debt_to_nav_ratio?.toFixed(2) || '—',
     },
     {
       title: 'Квал',
@@ -235,7 +227,7 @@ const Dashboard: React.FC = () => {
           dataSource={filteredFunds}
           rowKey="id"
           pagination={false}
-          scroll={{ x: 1600 }}
+          scroll={{ x: 1200 }}
           onRow={(record) => ({
             onClick: () => navigate(`/funds/${record.id}`),
             style: { cursor: 'pointer' },
