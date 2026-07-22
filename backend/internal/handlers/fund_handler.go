@@ -318,3 +318,22 @@ func (h *FundHandler) GetDiscoveryStatus(c *gin.Context) {
 	status := h.fundService.GetDiscoveryStatus(uint(id))
 	c.JSON(http.StatusOK, status)
 }
+
+// EnrichAndCreateFund godoc
+func (h *FundHandler) EnrichAndCreateFund(c *gin.Context) {
+	var req struct {
+		Input string `json:"input" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "input is required"})
+		return
+	}
+
+	fund, err := h.fundService.EnrichAndCreateFund(c.Request.Context(), req.Input)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, fund)
+}

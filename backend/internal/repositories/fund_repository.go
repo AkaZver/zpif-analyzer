@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	"fmt"
+
 	"github.com/zpif-analyzer/backend/internal/models"
 	"gorm.io/gorm"
 )
@@ -46,5 +48,19 @@ func (r *FundRepository) Update(fund *models.Fund) error {
 }
 
 func (r *FundRepository) Delete(id uint) error {
-	return r.db.Delete(&models.Fund{}, id).Error
+	// Каскадное удаление связанных записей
+	if err := r.db.Where("fund_id = ?", id).Delete(&models.FundFinancials{}).Error; err != nil {
+		return fmt.Errorf("failed to delete financials: %w", err)
+	}
+
+	if err := r.db.Where("fund_id = ?", id).Delete(&models.FundDocument{}).Error; err != nil {
+		return fmt.Errorf("failed to delete documents: %w", err)
+	}
+
+	if err := r.db.Where("fund_id = ?", id).Delete(&models.LLMAnalysis{}).Error; err != nil {
+		return fmt.Errorf("failed to delete analyses: %w", err)
+	}
+
+	// Hard delete фонда
+	return r.db.Unscoped().Delete(&models.Fund{}, id).Error
 }

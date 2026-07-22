@@ -37,6 +37,15 @@ func (r *FinancialsRepository) GetLatestByFundID(fundID uint) (*models.FundFinan
 	return &financial, nil
 }
 
+func (r *FinancialsRepository) GetByFundIDAndDate(fundID uint, date time.Time) (*models.FundFinancials, error) {
+	var financial models.FundFinancials
+	err := r.db.Where("fund_id = ? AND DATE(snapshot_date) = DATE(?)", fundID, date).First(&financial).Error
+	if err != nil {
+		return nil, err
+	}
+	return &financial, nil
+}
+
 func (r *FinancialsRepository) Create(financial *models.FundFinancials) error {
 	return r.db.Create(financial).Error
 }

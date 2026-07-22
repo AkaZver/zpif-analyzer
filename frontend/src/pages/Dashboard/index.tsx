@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Space, Tag, message, Spin, Select, Checkbox, Typography, Card, Tooltip } from 'antd';
-import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Tag, message, Spin, Select, Checkbox, Typography, Card, Tooltip, Modal, Input } from 'antd';
+import { DownloadOutlined, ReloadOutlined, PlusOutlined, CloudDownloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import type { Fund, FundFinancials } from '../../types';
@@ -17,6 +17,10 @@ const Dashboard: React.FC = () => {
   const [filterSegment, setFilterSegment] = useState<string | undefined>();
   const [filterCompany, setFilterCompany] = useState<string | undefined>();
   const [filterQualified, setFilterQualified] = useState<boolean | undefined>();
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [addInput, setAddInput] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [fetchingMarketData, setFetchingMarketData] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -73,6 +77,45 @@ const Dashboard: React.FC = () => {
       message.success('Экспорт завершён');
     } catch {
       message.error('Ошибка при экспорте');
+    }
+  };
+
+  const handleAddFund = async () => {
+    if (!addInput.trim()) {
+      message.warning('Введите информацию о фонде');
+      return;
+    }
+    setCreating(true);
+    try {
+      await apiClient.enrichAndCreateFund(addInput);
+      message.success('Фонд создан');
+      setAddModalVisible(false);
+      setAddInput('');
+      await loadFunds();
+    } catch (error: any) {
+      message.error(error?.response?.data?.error || 'Ошибка при создании фонда');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleFetchAllMarketData = async () => {
+    setFetchingMarketData(true);
+    try {
+      const result = await apiClient.fetchAllMarketData();
+      const msg = `Создано: ${result.records_created}, Обновлено: ${result.records_updated}`;
+      if (result.moex_available && result.investfunds_available) {
+        message.success(`Данные обновлены. ${msg}`);
+      } else if (result.moex_available || result.investfunds_available) {
+        message.warning(`Частичное обновление. ${msg}`);
+      } else {
+        message.error('Не удалось получить данные из источников');
+      }
+      await loadFunds();
+    } catch (error: any) {
+      message.error(error?.response?.data?.error || 'Ошибка при загрузке данных');
+    } finally {
+      setFetchingMarketData(false);
     }
   };
 
@@ -181,6 +224,12 @@ const Dashboard: React.FC = () => {
           Сравнение ЗПИФ
         </Typography.Title>
         <Space>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddModalVisible(true)}>
+            Добавить
+          </Button>
+          <Button icon={<CloudDownloadOutlined />} onClick={handleFetchAllMarketData} loading={fetchingMarketData}>
+            Обновить данные
+          </Button>
           <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={refreshing}>
             Обновить
           </Button>
@@ -235,6 +284,26 @@ const Dashboard: React.FC = () => {
           className="bg-surface-card rounded-lg"
         />
       )}
+
+      <Modal
+        title="Добавить фонд"
+        open={addModalVisible}
+        onOk={handleAddFund}
+        onCancel={() => {
+          setAddModalVisible(false);
+          setAddInput('');
+        }}
+        okText="Создать"
+        cancelText="Отмена"
+        confirmLoading={creating}
+      >
+        <Input.TextArea
+          rows={4}
+          value={addInput}
+          onChange={(e) => setAddInput(e.target.value)}
+          placeholder="Введите любую известную информацию о фонде (название, ISIN, тикер, УК и т.д.)"
+        />
+      </Modal>
     </div>
   );
 };

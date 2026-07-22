@@ -9,6 +9,7 @@ export interface Fund {
   has_market_maker: boolean;
   fund_start_date: string | null;
   fund_end_date: string | null;
+  investfunds_url: string;
   created_at: string;
   updated_at: string;
 }

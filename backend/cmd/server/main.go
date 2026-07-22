@@ -11,6 +11,7 @@ import (
 	"github.com/zpif-analyzer/backend/internal/llm"
 	"github.com/zpif-analyzer/backend/internal/middleware"
 	"github.com/zpif-analyzer/backend/internal/models"
+	"github.com/zpif-analyzer/backend/internal/parsers"
 	"github.com/zpif-analyzer/backend/internal/repositories"
 	"github.com/zpif-analyzer/backend/internal/services"
 	"golang.org/x/crypto/bcrypt"
@@ -69,9 +70,16 @@ func main() {
 
 	// Инициализация services
 	fundService := services.NewFundService(fundRepo, financialsRepo, documentRepo, analysisRepo)
+	fundService.SetLLMSettingsRepo(llmSettingsRepo)
 	authService := services.NewAuthService(userRepo)
 	llmService := services.NewLLMService(llmSettingsRepo)
 	excelService := services.NewExcelService(fundRepo, financialsRepo, analysisRepo)
+
+	// Инициализация парсеров рыночных данных
+	moexParser := parsers.NewMoexParser()
+	investfundsParser := parsers.NewInvestfundsParser()
+	marketDataService := services.NewMarketDataService(moexParser, investfundsParser, financialsRepo, fundRepo)
+	log.Println("Market data parsers initialized")
 
 	// Инициализация LLM компонентов (настройки берутся из БД при каждом вызове)
 	discoverer := llm.NewDiscoverer(llmSettingsRepo, documentRepo, fundRepo)
@@ -85,6 +93,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService, cfg)
 	llmHandler := handlers.NewLLMHandler(llmService)
 	excelHandler := handlers.NewExcelHandler(excelService)
+	marketDataHandler := handlers.NewMarketDataHandler(marketDataService)
 
 	// Настройка Gin router
 	r := gin.Default()
@@ -108,6 +117,7 @@ func main() {
 	api.GET("/funds", fundHandler.GetAllFunds)
 	api.GET("/funds/:id", fundHandler.GetFundByID)
 	api.POST("/funds", fundHandler.CreateFund)
+	api.POST("/funds/enrich-and-create", fundHandler.EnrichAndCreateFund)
 	api.PUT("/funds/:id", fundHandler.UpdateFund)
 	api.DELETE("/funds/:id", fundHandler.DeleteFund)
 
@@ -129,6 +139,10 @@ func main() {
 
 	// Discover all
 	api.POST("/funds/discover-all", fundHandler.DiscoverAllDocuments)
+
+	// Market data
+	api.POST("/funds/:id/fetch-market-data", marketDataHandler.FetchMarketData)
+	api.POST("/funds/fetch-all-market-data", marketDataHandler.FetchAllMarketData)
 
 	// Auth
 	api.GET("/auth/me", authHandler.GetMe)

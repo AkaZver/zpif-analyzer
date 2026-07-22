@@ -2,8 +2,11 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/zpif-analyzer/backend/internal/llm"
 	"github.com/zpif-analyzer/backend/internal/models"
@@ -24,6 +27,7 @@ type FundService struct {
 	financialsRepo *repositories.FinancialsRepository
 	documentRepo   *repositories.DocumentRepository
 	analysisRepo   *repositories.AnalysisRepository
+	llmSettingsRepo *repositories.LLMSettingsRepository
 	discoverer     Discoverer
 	analyzer       Analyzer
 }
@@ -48,6 +52,10 @@ func (s *FundService) SetDiscoverer(d Discoverer) {
 
 func (s *FundService) SetAnalyzer(a Analyzer) {
 	s.analyzer = a
+}
+
+func (s *FundService) SetLLMSettingsRepo(repo *repositories.LLMSettingsRepository) {
+	s.llmSettingsRepo = repo
 }
 
 func (s *FundService) GetAllFunds() ([]models.Fund, error) {
@@ -85,6 +93,7 @@ func (s *FundService) UpdateFund(id uint, fund *models.Fund) error {
 	
 	// Update fields
 	existing.Name = fund.Name
+	existing.ISIN = fund.ISIN
 	existing.Ticker = fund.Ticker
 	existing.ManagementCompany = fund.ManagementCompany
 	existing.RealEstateSegment = fund.RealEstateSegment
@@ -92,6 +101,7 @@ func (s *FundService) UpdateFund(id uint, fund *models.Fund) error {
 	existing.HasMarketMaker = fund.HasMarketMaker
 	existing.FundStartDate = fund.FundStartDate
 	existing.FundEndDate = fund.FundEndDate
+	existing.InvestfundsURL = fund.InvestfundsURL
 	
 	return s.fundRepo.Update(existing)
 }
@@ -204,4 +214,86 @@ func (s *FundService) GetDiscoveryStatus(fundID uint) map[string]interface{} {
 		"status":  status.Status,
 		"fund_id": status.FundID,
 	}
+}
+
+func (s *FundService) EnrichAndCreateFund(ctx context.Context, userInput string) (*models.Fund, error) {
+	if s.llmSettingsRepo == nil {
+		return nil, errors.New("LLM settings not configured")
+	}
+
+	settings, err := s.llmSettingsRepo.Get()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load LLM settings: %w", err)
+	}
+
+	if settings.APIKeyEncrypted == "" {
+		return nil, errors.New("LLM API key not configured")
+	}
+
+	client := llm.NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName)
+
+	response, err := client.ChatSimple(ctx, llm.EnrichFundPrompt, userInput)
+	if err != nil {
+		return nil, fmt.Errorf("LLM call failed: %w", err)
+	}
+
+	jsonStr := extractJSON(response)
+
+	var enrichedData struct {
+		Name              string  `json:"name"`
+		ISIN              string  `json:"isin"`
+		Ticker            string  `json:"ticker"`
+		ManagementCompany string  `json:"management_company"`
+		RealEstateSegment string  `json:"real_estate_segment"`
+		QualifiedRequired bool    `json:"qualified_required"`
+		HasMarketMaker    bool    `json:"has_market_maker"`
+		FundStartDate     *string `json:"fund_start_date"`
+		FundEndDate       *string `json:"fund_end_date"`
+	}
+
+	if err := json.Unmarshal([]byte(jsonStr), &enrichedData); err != nil {
+		return nil, fmt.Errorf("failed to parse LLM response: %w", err)
+	}
+
+	if enrichedData.ISIN == "" || enrichedData.ISIN == "UNKNOWN" {
+		enrichedData.ISIN = fmt.Sprintf("PENDING-%d", time.Now().Unix())
+	}
+
+	fund := &models.Fund{
+		Name:              enrichedData.Name,
+		ISIN:              enrichedData.ISIN,
+		Ticker:            enrichedData.Ticker,
+		ManagementCompany: enrichedData.ManagementCompany,
+		RealEstateSegment: enrichedData.RealEstateSegment,
+		QualifiedRequired: enrichedData.QualifiedRequired,
+		HasMarketMaker:    enrichedData.HasMarketMaker,
+	}
+
+	if enrichedData.FundStartDate != nil && *enrichedData.FundStartDate != "" {
+		if t, err := time.Parse("2006-01-02", *enrichedData.FundStartDate); err == nil {
+			fund.FundStartDate = &t
+		}
+	}
+
+	if enrichedData.FundEndDate != nil && *enrichedData.FundEndDate != "" {
+		if t, err := time.Parse("2006-01-02", *enrichedData.FundEndDate); err == nil {
+			fund.FundEndDate = &t
+		}
+	}
+
+	if err := s.CreateFund(fund); err != nil {
+		return nil, err
+	}
+
+	return fund, nil
+}
+
+func extractJSON(s string) string {
+	s = strings.TrimSpace(s)
+	start := strings.Index(s, "{")
+	end := strings.LastIndex(s, "}")
+	if start != -1 && end != -1 && end > start {
+		return s[start : end+1]
+	}
+	return s
 }

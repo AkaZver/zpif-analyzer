@@ -1,20 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Typography, Card, Table, Button, Space, Modal, Form, Input, Select,
-  Switch, message, Popconfirm, Tag,
+  Typography, Card, Button, Space, Form, Input, Select,
+  message,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, CloudDownloadOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CloudDownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import { apiClient } from '../../api/client';
-import type { Fund, LLMSettings } from '../../types';
-import type { ColumnsType } from 'antd/es/table';
+import type { LLMSettings } from '../../types';
 
 const Settings: React.FC = () => {
-  const [funds, setFunds] = useState<Fund[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingFund, setEditingFund] = useState<Fund | null>(null);
   const [llmSettings, setLlmSettings] = useState<LLMSettings | null>(null);
-  const [form] = Form.useForm();
   const [llmForm] = Form.useForm();
   const [testingLlm, setTestingLlm] = useState(false);
   const [savingLlm, setSavingLlm] = useState(false);
@@ -22,22 +16,9 @@ const Settings: React.FC = () => {
   const [loadingModels, setLoadingModels] = useState(false);
 
   useEffect(() => {
-    loadFunds();
     loadLlmSettings();
     loadModels();
   }, []);
-
-  const loadFunds = async () => {
-    setLoading(true);
-    try {
-      const data = await apiClient.getFunds();
-      setFunds(data);
-    } catch {
-      message.error('Не удалось загрузить фонды');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const loadLlmSettings = async () => {
     try {
@@ -46,45 +27,6 @@ const Settings: React.FC = () => {
       llmForm.setFieldsValue(settings);
     } catch {
       // Settings not configured yet
-    }
-  };
-
-  const handleAddFund = () => {
-    setEditingFund(null);
-    form.resetFields();
-    setModalVisible(true);
-  };
-
-  const handleEditFund = (fund: Fund) => {
-    setEditingFund(fund);
-    form.setFieldsValue(fund);
-    setModalVisible(true);
-  };
-
-  const handleDeleteFund = async (id: number) => {
-    try {
-      await apiClient.deleteFund(id);
-      message.success('Фонд удалён');
-      await loadFunds();
-    } catch {
-      message.error('Ошибка при удалении');
-    }
-  };
-
-  const handleSaveFund = async () => {
-    try {
-      const values = await form.validateFields();
-      if (editingFund) {
-        await apiClient.updateFund(editingFund.id, values);
-        message.success('Фонд обновлён');
-      } else {
-        await apiClient.createFund(values);
-        message.success('Фонд создан');
-      }
-      setModalVisible(false);
-      await loadFunds();
-    } catch {
-      // Validation or API error
     }
   };
 
@@ -125,51 +67,11 @@ const Settings: React.FC = () => {
     }
   };
 
-  const fundColumns: ColumnsType<Fund> = [
-    { title: 'Название', dataIndex: 'name', key: 'name' },
-    { title: 'ISIN', dataIndex: 'isin', key: 'isin' },
-    { title: 'Тикер', dataIndex: 'ticker', key: 'ticker', render: (v: string) => v || '—' },
-    { title: 'УК', dataIndex: 'management_company', key: 'management_company' },
-    {
-      title: 'Квал',
-      dataIndex: 'qualified_required',
-      key: 'qualified',
-      render: (v: boolean) => <Tag color={v ? 'red' : 'green'}>{v ? 'Да' : 'Нет'}</Tag>,
-    },
-    {
-      title: 'Действия',
-      key: 'actions',
-      width: 120,
-      render: (_, record) => (
-        <Space>
-          <Button type="text" icon={<EditOutlined />} onClick={() => handleEditFund(record)} />
-          <Popconfirm title="Удалить фонд?" onConfirm={() => handleDeleteFund(record.id)}>
-            <Button type="text" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
-
   return (
     <div>
       <Typography.Title level={3} className="text-text-primary mb-6">
         Настройки
       </Typography.Title>
-
-      <Card
-        title="Управление фондами"
-        className="mb-6 bg-surface-card border-0"
-        extra={<Button type="primary" icon={<PlusOutlined />} onClick={handleAddFund}>Добавить фонд</Button>}
-      >
-        <Table
-          columns={fundColumns}
-          dataSource={funds}
-          rowKey="id"
-          loading={loading}
-          pagination={false}
-        />
-      </Card>
 
       <Card title="Настройки LLM" className="mb-6 bg-surface-card border-0">
         <Form form={llmForm} layout="vertical" initialValues={llmSettings || {}}>
@@ -206,48 +108,6 @@ const Settings: React.FC = () => {
           </Space>
         </Form>
       </Card>
-
-      <Modal
-        title={editingFund ? 'Редактировать фонд' : 'Добавить фонд'}
-        open={modalVisible}
-        onOk={handleSaveFund}
-        onCancel={() => setModalVisible(false)}
-        okText="Сохранить"
-        cancelText="Отмена"
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Название" rules={[{ required: true, message: 'Введите название' }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="isin" label="ISIN" rules={[{ required: true, message: 'Введите ISIN' }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="ticker" label="Тикер">
-            <Input />
-          </Form.Item>
-          <Form.Item name="management_company" label="Управляющая компания">
-            <Input />
-          </Form.Item>
-          <Form.Item name="real_estate_segment" label="Сегмент недвижимости">
-            <Select
-              allowClear
-              options={[
-                { value: 'склады', label: 'Склады' },
-                { value: 'офисы', label: 'Офисы' },
-                { value: 'ТЦ', label: 'Торговые центры' },
-                { value: 'ЦОД', label: 'ЦОД' },
-                { value: 'жильё', label: 'Жильё' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item name="qualified_required" label="Требуется статус квала" valuePropName="checked">
-            <Switch />
-          </Form.Item>
-          <Form.Item name="has_market_maker" label="Маркет-мейкер" valuePropName="checked">
-            <Switch />
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   );
 };

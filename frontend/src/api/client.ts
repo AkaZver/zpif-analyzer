@@ -71,6 +71,11 @@ class ApiClient {
     await this.client.delete(`/funds/${id}`);
   }
 
+  async enrichAndCreateFund(input: string): Promise<Fund> {
+    const response = await this.client.post<Fund>('/funds/enrich-and-create', { input });
+    return response.data;
+  }
+
   // Financials
   async getFinancials(fundId: number): Promise<FundFinancials[]> {
     const response = await this.client.get<FundFinancials[]>(`/funds/${fundId}/financials`);
@@ -119,6 +124,17 @@ class ApiClient {
 
   async getDiscoveryStatus(fundId: number): Promise<{ status: string; found: number; downloaded: number; errors: number }> {
     const response = await this.client.get(`/funds/${fundId}/discovery-status`);
+    return response.data;
+  }
+
+  // Market Data
+  async fetchMarketData(fundId: number): Promise<{ status: string; fund_id: number; records_created: number; records_updated: number; moex_available: boolean; investfunds_available: boolean }> {
+    const response = await this.client.post(`/funds/${fundId}/fetch-market-data`);
+    return response.data;
+  }
+
+  async fetchAllMarketData(): Promise<{ status: string; records_created: number; records_updated: number; moex_available: boolean; investfunds_available: boolean }> {
+    const response = await this.client.post('/funds/fetch-all-market-data');
     return response.data;
   }
 

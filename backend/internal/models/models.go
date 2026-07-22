@@ -25,6 +25,9 @@ type Fund struct {
 	FundStartDate *time.Time `json:"fund_start_date"`
 	FundEndDate   *time.Time `json:"fund_end_date"`
 
+	// Внешние источники
+	InvestfundsURL string `json:"investfunds_url"`
+
 	// Связи
 	Financials []FundFinancials `gorm:"foreignKey:FundID" json:"financials"`
 	Documents  []FundDocument   `gorm:"foreignKey:FundID" json:"documents"`
