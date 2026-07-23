@@ -24,8 +24,10 @@ const Layout: React.FC = () => {
     <AntLayout className="min-h-screen">
       <Header className="bg-[#2a2a2a] px-6 flex items-center justify-between h-16 border-b border-[#3a3a3a]">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-          <img src={buildingIcon} alt="ZPIF" className="w-8 h-8" />
-          <Typography.Title level={4} className="text-primary m-0">
+          <div className="h-8 flex items-center">
+            <img src={buildingIcon} alt="ZPIF" className="h-full" />
+          </div>
+          <Typography.Title level={4} className="text-primary m-0 leading-tight">
             ZPIF Analyzer
           </Typography.Title>
         </div>
@@ -40,7 +42,7 @@ const Layout: React.FC = () => {
             <Button
               type="text"
               icon={<LogoutOutlined />}
-              className="text-text-primary"
+              danger
               onClick={handleLogout}
             />
           </div>

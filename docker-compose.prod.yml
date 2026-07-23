@@ -53,6 +53,7 @@ services:
     image: ${DOCKERHUB_USERNAME}/zpif-frontend:${IMAGE_TAG:-latest}
     container_name: zpif-frontend
     restart: unless-stopped
+    command: ["nginx", "-c", "/etc/nginx/nginx.prod.conf", "-g", "daemon off;"]
     ports:
       - "80:80"
       - "443:443"
@@ -60,7 +61,6 @@ services:
       backend:
         condition: service_healthy
     volumes:
-      - ./frontend/nginx.prod.conf:/etc/nginx/nginx.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
