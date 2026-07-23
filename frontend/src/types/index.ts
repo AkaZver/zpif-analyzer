@@ -7,9 +7,9 @@ export interface Fund {
   real_estate_segment: string;
   qualified_required: boolean;
   has_market_maker: boolean;
-  fund_start_date: string | null;
   fund_end_date: string | null;
   investfunds_url: string;
+  vsezpif_url: string;
   created_at: string;
   updated_at: string;
 }
@@ -35,20 +35,15 @@ export interface FundFinancials {
   annual_payout_rub: number;
   payout_yield_pct: number;
   payout_yield_after_tax_pct: number;
-  total_return_pct: number;
   payout_frequency: string;
   payout_stability: string;
   rent_indexation_pct: number;
   
-  // Долг и операции
-  debt_to_nav_ratio: number;
+  // Операции
   management_fee_pct: number;
   trading_volume_mln_rub: number;
   number_of_properties: number;
   main_tenants: string;
-  
-  // Прогнозы
-  irr_forecast_pct: number;
   
   created_at: string;
   updated_at: string;

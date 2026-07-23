@@ -177,15 +177,21 @@ const Dashboard: React.FC = () => {
     {
       title: 'Цена пая',
       key: 'unit_price',
-      width: 100,
-      render: (_, r) => r.latest_financials?.unit_price_rub?.toFixed(0) || '—',
+      width: 120,
+      align: 'right',
+      render: (_, r) => r.latest_financials?.unit_price_rub 
+        ? new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(r.latest_financials.unit_price_rub)
+        : '—',
       sorter: (a, b) => (a.latest_financials?.unit_price_rub || 0) - (b.latest_financials?.unit_price_rub || 0),
     },
     {
       title: 'РСП',
       key: 'nav',
-      width: 100,
-      render: (_, r) => r.latest_financials?.nav_per_unit_rub?.toFixed(0) || '—',
+      width: 120,
+      align: 'right',
+      render: (_, r) => r.latest_financials?.nav_per_unit_rub
+        ? new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(r.latest_financials.nav_per_unit_rub)
+        : '—',
     },
     {
       title: 'Дисконт',
@@ -200,13 +206,6 @@ const Dashboard: React.FC = () => {
       width: 130,
       render: (_, r) => r.latest_financials ? renderPctCell(r.latest_financials.payout_yield_pct) : '—',
       sorter: (a, b) => (a.latest_financials?.payout_yield_pct || 0) - (b.latest_financials?.payout_yield_pct || 0),
-    },
-    {
-      title: 'Полная доходность',
-      key: 'total_return',
-      width: 140,
-      render: (_, r) => r.latest_financials ? renderPctCell(r.latest_financials.total_return_pct) : '—',
-      sorter: (a, b) => (a.latest_financials?.total_return_pct || 0) - (b.latest_financials?.total_return_pct || 0),
     },
     {
       title: 'Квал',

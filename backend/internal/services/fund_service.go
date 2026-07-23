@@ -99,9 +99,9 @@ func (s *FundService) UpdateFund(id uint, fund *models.Fund) error {
 	existing.RealEstateSegment = fund.RealEstateSegment
 	existing.QualifiedRequired = fund.QualifiedRequired
 	existing.HasMarketMaker = fund.HasMarketMaker
-	existing.FundStartDate = fund.FundStartDate
 	existing.FundEndDate = fund.FundEndDate
 	existing.InvestfundsURL = fund.InvestfundsURL
+	existing.VsezpifURL = fund.VsezpifURL
 	
 	return s.fundRepo.Update(existing)
 }
@@ -247,7 +247,6 @@ func (s *FundService) EnrichAndCreateFund(ctx context.Context, userInput string)
 		RealEstateSegment string  `json:"real_estate_segment"`
 		QualifiedRequired bool    `json:"qualified_required"`
 		HasMarketMaker    bool    `json:"has_market_maker"`
-		FundStartDate     *string `json:"fund_start_date"`
 		FundEndDate       *string `json:"fund_end_date"`
 	}
 
@@ -267,12 +266,6 @@ func (s *FundService) EnrichAndCreateFund(ctx context.Context, userInput string)
 		RealEstateSegment: enrichedData.RealEstateSegment,
 		QualifiedRequired: enrichedData.QualifiedRequired,
 		HasMarketMaker:    enrichedData.HasMarketMaker,
-	}
-
-	if enrichedData.FundStartDate != nil && *enrichedData.FundStartDate != "" {
-		if t, err := time.Parse("2006-01-02", *enrichedData.FundStartDate); err == nil {
-			fund.FundStartDate = &t
-		}
 	}
 
 	if enrichedData.FundEndDate != nil && *enrichedData.FundEndDate != "" {

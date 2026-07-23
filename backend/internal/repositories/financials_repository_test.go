@@ -23,15 +23,15 @@ func TestFinancialsRepository_GetByFundID(t *testing.T) {
 		"unit_price_rub", "nav_per_unit_rub", "nav_total_mln_rub", "discount_to_nav_pct",
 		"cap_rate_pct", "p_nav", "p_affo", "noi_yield_pct",
 		"annual_payout_rub", "payout_yield_pct", "payout_yield_after_tax_pct",
-		"total_return_pct", "payout_frequency", "payout_stability", "rent_indexation_pct",
-		"debt_to_nav_ratio", "management_fee_pct", "trading_volume_mln_rub",
-		"number_of_properties", "main_tenants", "irr_forecast_pct",
+		"payout_frequency", "payout_stability", "rent_indexation_pct",
+		"management_fee_pct", "trading_volume_mln_rub",
+		"number_of_properties", "main_tenants",
 	}).AddRow(1, now, now, nil, 1, snapshotDate, 1000.0, 1050.0, 5000.0, -4.76,
 		8.5, 0.95, 12.0, 7.2,
 		80.0, 8.0, 6.96,
-		12.5, "monthly", "high", 3.0,
-		0.3, 1.5, 5.0,
-		3, "Ozon", 10.5)
+		"monthly", "high", 3.0,
+		1.5, 5.0,
+		3, "Ozon")
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_financials" WHERE fund_id = $1 AND "fund_financials"."deleted_at" IS NULL ORDER BY snapshot_date DESC`)).
 		WithArgs(1).
@@ -59,15 +59,15 @@ func TestFinancialsRepository_GetLatestByFundID(t *testing.T) {
 		"unit_price_rub", "nav_per_unit_rub", "nav_total_mln_rub", "discount_to_nav_pct",
 		"cap_rate_pct", "p_nav", "p_affo", "noi_yield_pct",
 		"annual_payout_rub", "payout_yield_pct", "payout_yield_after_tax_pct",
-		"total_return_pct", "payout_frequency", "payout_stability", "rent_indexation_pct",
-		"debt_to_nav_ratio", "management_fee_pct", "trading_volume_mln_rub",
-		"number_of_properties", "main_tenants", "irr_forecast_pct",
+		"payout_frequency", "payout_stability", "rent_indexation_pct",
+		"management_fee_pct", "trading_volume_mln_rub",
+		"number_of_properties", "main_tenants",
 	}).AddRow(1, now, now, nil, 1, snapshotDate, 1000.0, 1050.0, 5000.0, -4.76,
 		8.5, 0.95, 12.0, 7.2,
 		80.0, 8.0, 6.96,
-		12.5, "monthly", "high", 3.0,
-		0.3, 1.5, 5.0,
-		3, "Ozon", 10.5)
+		"monthly", "high", 3.0,
+		1.5, 5.0,
+		3, "Ozon")
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_financials" WHERE fund_id = $1 AND "fund_financials"."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"."id" LIMIT $2`)).
 		WithArgs(1, 1).
@@ -165,15 +165,15 @@ func TestFinancialsRepository_GetByFundIDAndDateRange(t *testing.T) {
 		"unit_price_rub", "nav_per_unit_rub", "nav_total_mln_rub", "discount_to_nav_pct",
 		"cap_rate_pct", "p_nav", "p_affo", "noi_yield_pct",
 		"annual_payout_rub", "payout_yield_pct", "payout_yield_after_tax_pct",
-		"total_return_pct", "payout_frequency", "payout_stability", "rent_indexation_pct",
-		"debt_to_nav_ratio", "management_fee_pct", "trading_volume_mln_rub",
-		"number_of_properties", "main_tenants", "irr_forecast_pct",
+		"payout_frequency", "payout_stability", "rent_indexation_pct",
+		"management_fee_pct", "trading_volume_mln_rub",
+		"number_of_properties", "main_tenants",
 	}).AddRow(1, now, now, nil, 1, snapshotDate, 1000.0, 1050.0, 5000.0, -4.76,
 		8.5, 0.95, 12.0, 7.2,
 		80.0, 8.0, 6.96,
-		12.5, "monthly", "high", 3.0,
-		0.3, 1.5, 5.0,
-		3, "Ozon", 10.5)
+		"monthly", "high", 3.0,
+		1.5, 5.0,
+		3, "Ozon")
 
 	mock.ExpectQuery(`fund_id = .+ AND snapshot_date BETWEEN`).
 		WithArgs(uint(1), sqlmock.AnyArg(), sqlmock.AnyArg()).

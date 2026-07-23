@@ -5,12 +5,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/zpif-analyzer/backend/internal/models"
+	"github.com/zpif-analyzer/backend/internal/repositories"
 )
 
 func TestNewDiscoverer(t *testing.T) {
-	settingsRepo := nil
-	documentRepo := nil
-	fundRepo := nil
+	var settingsRepo *repositories.LLMSettingsRepository
+	var documentRepo *repositories.DocumentRepository
+	var fundRepo *repositories.FundRepository
 
 	discoverer := NewDiscoverer(settingsRepo, documentRepo, fundRepo)
 

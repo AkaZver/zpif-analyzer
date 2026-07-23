@@ -37,13 +37,10 @@ const ExtractMetricsPrompt = `Ты — финансовый аналитик п�
   "noi_yield_pct": <number>,
   "annual_payout_rub": <number>,
   "payout_yield_pct": <number>,
-  "total_return_pct": <number>,
   "payout_frequency": "monthly|quarterly|semiannual",
-  "debt_to_nav_ratio": <number>,
   "management_fee_pct": <number>,
   "trading_volume_mln_rub": <number>,
-  "number_of_properties": <integer>,
-  "irr_forecast_pct": <number>
+  "number_of_properties": <integer>
 }
 
 Дополнительно текстового ответа не возвращай, только JSON.`
@@ -78,7 +75,6 @@ const EnrichFundPrompt = `Ты — эксперт по российским ЗП
   "real_estate_segment": "Сегмент недвижимости (склады/офисы/ТЦ/ЦОД/жильё/смешанный)",
   "qualified_required": true или false,
   "has_market_maker": true или false,
-  "fund_start_date": "YYYY-MM-DD или null",
   "fund_end_date": "YYYY-MM-DD или null"
 }
 

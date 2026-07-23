@@ -57,7 +57,7 @@ func TestFundHandler_GetAllFunds(t *testing.T) {
 	defer cleanup()
 
 	now := time.Now()
-	rows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_start_date", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
+	rows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
 		AddRow(1, "Парус ОЗН", "RU000A1022Z1", "", "Парус", "склады", false, true, nil, nil, now, now, nil).
 		AddRow(2, "Акцент 5", "RU000A10DQF7", "", "Акцент", "офисы", true, false, nil, nil, now, now, nil)
 
@@ -87,7 +87,7 @@ func TestFundHandler_GetFundByID(t *testing.T) {
 	defer cleanup()
 
 	now := time.Now()
-	rows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_start_date", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
+	rows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
 		AddRow(1, "Парус ОЗН", "RU000A1022Z1", "PARUS", "Парус", "склады", false, true, nil, nil, now, now, nil)
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
@@ -286,7 +286,7 @@ func TestFundHandler_UpdateFund(t *testing.T) {
 	defer cleanup()
 
 	now := time.Now()
-	rows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_start_date", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
+	rows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
 		AddRow(1, "Old Name", "RU000A1022Z1", "", "Парус", "склады", false, true, nil, nil, now, now, nil)
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
@@ -344,15 +344,15 @@ func TestFundHandler_GetFinancialsByFundID(t *testing.T) {
 		"unit_price_rub", "nav_per_unit_rub", "nav_total_mln_rub", "discount_to_nav_pct",
 		"cap_rate_pct", "p_nav", "p_affo", "noi_yield_pct",
 		"annual_payout_rub", "payout_yield_pct", "payout_yield_after_tax_pct",
-		"total_return_pct", "payout_frequency", "payout_stability", "rent_indexation_pct",
-		"debt_to_nav_ratio", "management_fee_pct", "trading_volume_mln_rub",
-		"number_of_properties", "main_tenants", "irr_forecast_pct",
+		"payout_frequency", "payout_stability", "rent_indexation_pct",
+		"management_fee_pct", "trading_volume_mln_rub",
+		"number_of_properties", "main_tenants",
 	}).AddRow(1, now, now, nil, 1, snapshotDate, 1000.0, 1050.0, 5000.0, -4.76,
 		8.5, 0.95, 12.0, 7.2,
 		80.0, 8.0, 6.96,
-		12.5, "monthly", "high", 3.0,
-		0.3, 1.5, 5.0,
-		3, "Ozon", 10.5)
+		"monthly", "high", 3.0,
+		1.5, 5.0,
+		3, "Ozon")
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_financials" WHERE fund_id = $1 AND "fund_financials"."deleted_at" IS NULL ORDER BY snapshot_date DESC`)).
 		WithArgs(uint(1)).
@@ -385,7 +385,7 @@ func TestFundHandler_AddFinancials(t *testing.T) {
 	defer cleanup()
 
 	now := time.Now()
-	fundRows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_start_date", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
+	fundRows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
 		AddRow(1, "Парус", "RU000A1022Z1", "", "Парус", "", false, false, nil, nil, now, now, nil)
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).

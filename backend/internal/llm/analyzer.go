@@ -53,13 +53,10 @@ type MetricsExtraction struct {
 	NoiYieldPct         *float64 `json:"noi_yield_pct,omitempty"`
 	AnnualPayoutRub     *float64 `json:"annual_payout_rub,omitempty"`
 	PayoutYieldPct      *float64 `json:"payout_yield_pct,omitempty"`
-	TotalReturnPct      *float64 `json:"total_return_pct,omitempty"`
 	PayoutFrequency     string   `json:"payout_frequency,omitempty"`
-	DebtToNavRatio      *float64 `json:"debt_to_nav_ratio,omitempty"`
 	ManagementFeePct    *float64 `json:"management_fee_pct,omitempty"`
 	TradingVolumeMlnRub *float64 `json:"trading_volume_mln_rub,omitempty"`
 	NumberOfProperties  *int     `json:"number_of_properties,omitempty"`
-	IRRForecastPct      *float64 `json:"irr_forecast_pct,omitempty"`
 }
 
 const maxDocumentTextBytes = 16000
@@ -244,14 +241,8 @@ func (a *Analyzer) updateFinancialsFromMetrics(fundID uint, metrics *MetricsExtr
 	if metrics.PayoutYieldPct != nil {
 		latest.PayoutYieldPct = *metrics.PayoutYieldPct
 	}
-	if metrics.TotalReturnPct != nil {
-		latest.TotalReturnPct = *metrics.TotalReturnPct
-	}
 	if metrics.PayoutFrequency != "" {
 		latest.PayoutFrequency = metrics.PayoutFrequency
-	}
-	if metrics.DebtToNavRatio != nil {
-		latest.DebtToNavRatio = *metrics.DebtToNavRatio
 	}
 	if metrics.ManagementFeePct != nil {
 		latest.ManagementFeePct = *metrics.ManagementFeePct
@@ -261,9 +252,6 @@ func (a *Analyzer) updateFinancialsFromMetrics(fundID uint, metrics *MetricsExtr
 	}
 	if metrics.NumberOfProperties != nil {
 		latest.NumberOfProperties = *metrics.NumberOfProperties
-	}
-	if metrics.IRRForecastPct != nil {
-		latest.IRRForecastPct = *metrics.IRRForecastPct
 	}
 
 	latest.ID = 0

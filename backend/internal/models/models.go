@@ -22,11 +22,11 @@ type Fund struct {
 	HasMarketMaker     bool   `json:"has_market_maker"`
 
 	// Даты
-	FundStartDate *time.Time `json:"fund_start_date"`
-	FundEndDate   *time.Time `json:"fund_end_date"`
+	FundEndDate *time.Time `json:"fund_end_date"`
 
 	// Внешние источники
 	InvestfundsURL string `json:"investfunds_url"`
+	VsezpifURL     string `json:"vsezpif_url"`
 
 	// Связи
 	Financials []FundFinancials `gorm:"foreignKey:FundID" json:"financials"`
@@ -59,20 +59,15 @@ type FundFinancials struct {
 	AnnualPayoutRub           float64 `json:"annual_payout_rub"`
 	PayoutYieldPct            float64 `json:"payout_yield_pct"`
 	PayoutYieldAfterTaxPct    float64 `json:"payout_yield_after_tax_pct"`
-	TotalReturnPct            float64 `json:"total_return_pct"`
 	PayoutFrequency           string  `json:"payout_frequency"`
 	PayoutStability           string  `json:"payout_stability"`
 	RentIndexationPct         float64 `json:"rent_indexation_pct"`
 
-	// Долг и операции
-	DebtToNavRatio         float64 `json:"debt_to_nav_ratio"`
+	// Операции
 	ManagementFeePct       float64 `json:"management_fee_pct"`
 	TradingVolumeMlnRub    float64 `json:"trading_volume_mln_rub"`
 	NumberOfProperties     int     `json:"number_of_properties"`
 	MainTenants            string  `json:"main_tenants"`
-
-	// Прогнозы
-	IRRForecastPct float64 `json:"irr_forecast_pct"`
 
 	// Связь
 	Fund Fund `gorm:"foreignKey:FundID" json:"fund"`

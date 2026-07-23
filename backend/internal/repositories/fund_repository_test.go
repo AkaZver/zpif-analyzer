@@ -36,7 +36,7 @@ func TestFundRepository_GetAll(t *testing.T) {
 	repo := NewFundRepository(gormDB)
 	now := time.Now()
 
-	rows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_start_date", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
+	rows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
 		AddRow(1, "Парус ОЗН", "RU000A1022Z1", "", "Парус", "склады", false, true, nil, nil, now, now, nil).
 		AddRow(2, "Акцент 5", "RU000A10DQF7", "", "Акцент", "офисы", true, false, nil, nil, now, now, nil)
 
@@ -62,7 +62,7 @@ func TestFundRepository_GetByID(t *testing.T) {
 	repo := NewFundRepository(gormDB)
 	now := time.Now()
 
-	rows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_start_date", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
+	rows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
 		AddRow(1, "Парус ОЗН", "RU000A1022Z1", "PARUS", "Парус", "склады", false, true, nil, nil, now, now, nil)
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
@@ -105,7 +105,7 @@ func TestFundRepository_GetByISIN(t *testing.T) {
 	repo := NewFundRepository(gormDB)
 	now := time.Now()
 
-	rows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_start_date", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
+	rows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
 		AddRow(1, "Парус ОЗН", "RU000A1022Z1", "", "Парус", "склады", false, true, nil, nil, now, now, nil)
 
 	mock.ExpectQuery(`isin = .+ AND "funds"\."deleted_at" IS NULL`).
@@ -191,7 +191,7 @@ func TestFundRepository_GetAll_Empty(t *testing.T) {
 	repo := NewFundRepository(gormDB)
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."deleted_at" IS NULL`)).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_start_date", "fund_end_date", "created_at", "updated_at", "deleted_at"}))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}))
 
 	funds, err := repo.GetAll()
 

@@ -25,6 +25,7 @@ type FetchResult struct {
 type MarketDataService struct {
 	moexParser        *parsers.MoexParser
 	investfundsParser *parsers.InvestfundsParser
+	vsezpifParser     *parsers.VsezpifParser
 	financialsRepo    *repositories.FinancialsRepository
 	fundRepo          *repositories.FundRepository
 }
@@ -32,12 +33,14 @@ type MarketDataService struct {
 func NewMarketDataService(
 	moexParser *parsers.MoexParser,
 	investfundsParser *parsers.InvestfundsParser,
+	vsezpifParser *parsers.VsezpifParser,
 	financialsRepo *repositories.FinancialsRepository,
 	fundRepo *repositories.FundRepository,
 ) *MarketDataService {
 	return &MarketDataService{
 		moexParser:        moexParser,
 		investfundsParser: investfundsParser,
+		vsezpifParser:     vsezpifParser,
 		financialsRepo:    financialsRepo,
 		fundRepo:          fundRepo,
 	}
@@ -134,6 +137,45 @@ func (s *MarketDataService) FetchMarketDataForFund(ctx context.Context, fundID u
 		}
 	}
 
+	// Try to get vsezpif data (количество объектов, арендаторы, сегмент, дата завершения, комиссия, годовая выплата)
+	var vsezpifData *parsers.VsezpifData
+	if fund.VsezpifURL != "" || fund.ISIN != "" {
+		var data *parsers.VsezpifData
+		var err error
+		
+		if fund.VsezpifURL != "" {
+			log.Printf("Fetching vsezpif data from URL: %s", fund.VsezpifURL)
+			data, err = s.vsezpifParser.GetFundDataByURL(fund.VsezpifURL)
+		} else {
+			log.Printf("Fetching vsezpif data by ISIN: %s", fund.ISIN)
+			data, err = s.vsezpifParser.GetFundDataByISIN(fund.ISIN)
+		}
+		
+		if err != nil {
+			log.Printf("vsezpif data error for %s: %v", fund.Name, err)
+		} else {
+			vsezpifData = data
+			log.Printf("vsezpif: fetched data for %s (objects: %d, tenants: %s, segment: %s, annual payout: %.2f)",
+				fund.Name, data.NumberOfProperties, data.MainTenants, data.RealEstateSegment, data.AnnualPayoutRub)
+
+			// Обновляем данные фонда из vsezpif
+			fundUpdated := false
+			if data.RealEstateSegment != "" && fund.RealEstateSegment == "" {
+				fund.RealEstateSegment = data.RealEstateSegment
+				fundUpdated = true
+			}
+			if data.FundEndDate != nil && fund.FundEndDate == nil {
+				fund.FundEndDate = data.FundEndDate
+				fundUpdated = true
+			}
+			if fundUpdated {
+				if err := s.fundRepo.Update(fund); err != nil {
+					log.Printf("Failed to update fund from vsezpif: %v", err)
+				}
+			}
+		}
+	}
+
 	if len(moexHistory) == 0 && investfundsData == nil {
 		return nil, fmt.Errorf("no data available from any source")
 	}
@@ -206,17 +248,15 @@ func (s *MarketDataService) FetchMarketDataForFund(ctx context.Context, fundID u
 		for _, payout := range investfundsData.PayoutHistory {
 			existing, _ := s.financialsRepo.GetByFundIDAndDate(fundID, payout.Date)
 			if existing != nil {
-				existing.AnnualPayoutRub = payout.Amount
 				existing.PayoutYieldPct = payout.YieldPercent
 				if err := s.financialsRepo.Update(existing); err != nil {
 					log.Printf("Failed to update payout for date %s: %v", payout.Date, err)
 				}
 			} else {
 				financials := &models.FundFinancials{
-					FundID:           fundID,
-					SnapshotDate:     payout.Date,
-					AnnualPayoutRub:  payout.Amount,
-					PayoutYieldPct:   payout.YieldPercent,
+					FundID:         fundID,
+					SnapshotDate:   payout.Date,
+					PayoutYieldPct: payout.YieldPercent,
 				}
 				if err := s.financialsRepo.Create(financials); err != nil {
 					log.Printf("Failed to create payout for date %s: %v", payout.Date, err)
@@ -225,11 +265,58 @@ func (s *MarketDataService) FetchMarketDataForFund(ctx context.Context, fundID u
 				}
 			}
 		}
+
+		// Calculate annual payout by summing payouts from the last year
+		annualPayout := s.calculateAnnualPayout(investfundsData.PayoutHistory)
+		if annualPayout > 0 {
+			latest, _ := s.financialsRepo.GetLatestByFundID(fundID)
+			if latest != nil && latest.AnnualPayoutRub == 0 {
+				latest.AnnualPayoutRub = annualPayout
+				if err := s.financialsRepo.Update(latest); err != nil {
+					log.Printf("Failed to update annual payout: %v", err)
+				}
+			}
+		}
+	}
+
+	// Update latest financials with vsezpif data (количество объектов, арендаторы, комиссия, годовая выплата)
+	if vsezpifData != nil {
+		latest, _ := s.financialsRepo.GetLatestByFundID(fundID)
+		if latest != nil {
+			updated := false
+			if vsezpifData.NumberOfProperties > 0 && latest.NumberOfProperties == 0 {
+				latest.NumberOfProperties = vsezpifData.NumberOfProperties
+				updated = true
+			}
+			if vsezpifData.MainTenants != "" && latest.MainTenants == "" {
+				latest.MainTenants = vsezpifData.MainTenants
+				updated = true
+			}
+			if vsezpifData.ManagementFeePct > 0 && latest.ManagementFeePct == 0 {
+				latest.ManagementFeePct = vsezpifData.ManagementFeePct
+				updated = true
+			}
+			// Используем годовую выплату из vsezpif API если она есть и investfunds не дал данных
+			if vsezpifData.AnnualPayoutRub > 0 && latest.AnnualPayoutRub == 0 {
+				latest.AnnualPayoutRub = vsezpifData.AnnualPayoutRub
+				updated = true
+			}
+			if updated {
+				if err := s.financialsRepo.Update(latest); err != nil {
+					log.Printf("Failed to update financials from vsezpif: %v", err)
+				}
+			}
+		}
 	}
 
 	// Интерполяция пропусков в NAV
 	if err := s.interpolateNAV(fundID); err != nil {
 		log.Printf("Failed to interpolate NAV for fund %d: %v", fundID, err)
+	}
+
+	// Расчёт производных метрик (P/NAV, Cap Rate, доходность выплат)
+	if err := s.calculateDerivedMetrics(fundID); err != nil {
+		log.Printf("Failed to calculate derived metrics for fund %d: %v", fundID, err)
 	}
 
 	return result, nil
@@ -303,6 +390,88 @@ func (s *MarketDataService) interpolateNAV(fundID uint) error {
 	}
 
 	return nil
+}
+
+func (s *MarketDataService) calculateDerivedMetrics(fundID uint) error {
+	financials, err := s.financialsRepo.GetByFundID(fundID)
+	if err != nil {
+		return err
+	}
+
+	for i := range financials {
+		f := &financials[i]
+		updated := false
+
+		// P/NAV = Цена пая / РСП
+		if f.UnitPriceRub > 0 && f.NavPerUnitRub > 0 {
+			f.PNav = f.UnitPriceRub / f.NavPerUnitRub
+			updated = true
+		}
+
+		// P/AFFO = Цена пая / Годовая выплата (приближение)
+		if f.UnitPriceRub > 0 && f.AnnualPayoutRub > 0 {
+			f.PAFFO = f.UnitPriceRub / f.AnnualPayoutRub
+			updated = true
+		}
+
+		// Cap Rate = (Годовая выплата + Комиссия УК на пай) / Цена пая * 100
+		// Комиссия УК может быть от СЧА или от дохода
+		if f.AnnualPayoutRub > 0 && f.UnitPriceRub > 0 {
+			managementFeePerUnit := 0.0
+			if f.ManagementFeePct > 0 {
+				if f.NavPerUnitRub > 0 {
+					// Предполагаем, что комиссия от СЧА (более распространённый случай)
+					managementFeePerUnit = (f.ManagementFeePct / 100) * f.NavPerUnitRub
+				} else {
+					// Если нет NAV, используем приближение от выплат
+					managementFeePerUnit = (f.ManagementFeePct / 100) * f.AnnualPayoutRub
+				}
+			}
+			f.CapRatePct = ((f.AnnualPayoutRub + managementFeePerUnit) / f.UnitPriceRub) * 100
+			updated = true
+		}
+
+		// Доходность выплат = Годовая выплата / Цена пая * 100
+		if f.AnnualPayoutRub > 0 && f.UnitPriceRub > 0 {
+			f.PayoutYieldPct = (f.AnnualPayoutRub / f.UnitPriceRub) * 100
+			updated = true
+		}
+
+		if updated {
+			if err := s.financialsRepo.Update(f); err != nil {
+				log.Printf("Failed to update derived metrics for date %s: %v", f.SnapshotDate, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *MarketDataService) calculateAnnualPayout(payouts []parsers.Payout) float64 {
+	if len(payouts) == 0 {
+		return 0
+	}
+
+	// Sort payouts by date descending
+	sortedPayouts := make([]parsers.Payout, len(payouts))
+	copy(sortedPayouts, payouts)
+	sort.Slice(sortedPayouts, func(i, j int) bool {
+		return sortedPayouts[i].Date.After(sortedPayouts[j].Date)
+	})
+
+	// Find the most recent payout date
+	latestDate := sortedPayouts[0].Date
+	oneYearAgo := latestDate.AddDate(-1, 0, 0)
+
+	// Sum all payouts within the last year
+	var total float64
+	for _, p := range sortedPayouts {
+		if p.Date.After(oneYearAgo) || p.Date.Equal(oneYearAgo) {
+			total += p.Amount
+		}
+	}
+
+	return total
 }
 
 func (s *MarketDataService) FetchMarketDataForAllFunds(ctx context.Context) (*FetchResult, error) {

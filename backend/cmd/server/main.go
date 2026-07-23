@@ -78,7 +78,8 @@ func main() {
 	// Инициализация парсеров рыночных данных
 	moexParser := parsers.NewMoexParser()
 	investfundsParser := parsers.NewInvestfundsParser()
-	marketDataService := services.NewMarketDataService(moexParser, investfundsParser, financialsRepo, fundRepo)
+	vsezpifParser := parsers.NewVsezpifParser()
+	marketDataService := services.NewMarketDataService(moexParser, investfundsParser, vsezpifParser, financialsRepo, fundRepo)
 	log.Println("Market data parsers initialized")
 
 	// Инициализация LLM компонентов (настройки берутся из БД при каждом вызове)

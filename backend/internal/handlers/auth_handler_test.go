@@ -315,7 +315,7 @@ func TestExcelHandler_ExportExcel(t *testing.T) {
 
 	// Mock empty funds list
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."deleted_at" IS NULL`)).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_start_date", "fund_end_date", "created_at", "updated_at", "deleted_at"}))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}))
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()

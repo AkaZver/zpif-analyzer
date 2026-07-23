@@ -138,7 +138,6 @@ const FundDetails: React.FC = () => {
     if (!fund) return;
     editForm.setFieldsValue({
       ...fund,
-      fund_start_date: fund.fund_start_date ? dayjs(fund.fund_start_date) : null,
       fund_end_date: fund.fund_end_date ? dayjs(fund.fund_end_date) : null,
     });
     setEditModalVisible(true);
@@ -151,7 +150,6 @@ const FundDetails: React.FC = () => {
       const values = await editForm.validateFields();
       const data = {
         ...values,
-        fund_start_date: values.fund_start_date ? values.fund_start_date.toISOString() : null,
         fund_end_date: values.fund_end_date ? values.fund_end_date.toISOString() : null,
       };
       await apiClient.updateFund(parseInt(id), data);
@@ -373,9 +371,6 @@ const FundDetails: React.FC = () => {
       <Descriptions className="mb-6" bordered size="small" column={3}>
         <Descriptions.Item label="УК">{fund.management_company || '—'}</Descriptions.Item>
         <Descriptions.Item label="Сегмент">{fund.real_estate_segment || '—'}</Descriptions.Item>
-        <Descriptions.Item label="Дата старта">
-          {fund.fund_start_date ? new Date(fund.fund_start_date).toLocaleDateString('ru-RU') : '—'}
-        </Descriptions.Item>
         <Descriptions.Item label="Дата завершения">
           {fund.fund_end_date ? new Date(fund.fund_end_date).toLocaleDateString('ru-RU') : '—'}
         </Descriptions.Item>
@@ -444,33 +439,12 @@ const FundDetails: React.FC = () => {
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic
-              title="Полная доходность"
-              value={latest?.total_return_pct || 0}
-              suffix="%"
-              formatter={(value: any) => formatNumber(value, 1)}
-              valueStyle={{ color: (latest?.total_return_pct || 0) >= 0 ? '#52c41a' : '#ff4d4f' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={12} sm={8} md={6}>
-          <Card className="bg-surface-card border-0">
-            <Statistic title="Долг/СЧА" value={latest?.debt_to_nav_ratio || 0} formatter={(value: any) => formatNumber(value, 2)} />
-          </Card>
-        </Col>
-        <Col xs={12} sm={8} md={6}>
-          <Card className="bg-surface-card border-0">
             <Statistic title="Комиссия УК" value={latest?.management_fee_pct || 0} suffix="%" formatter={(value: any) => formatNumber(value, 1)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
             <Statistic title="Объектов" value={latest?.number_of_properties || 0} formatter={(value: any) => formatNumber(value, 0)} />
-          </Card>
-        </Col>
-        <Col xs={12} sm={8} md={6}>
-          <Card className="bg-surface-card border-0">
-            <Statistic title="Прогноз IRR" value={latest?.irr_forecast_pct || 0} suffix="%" formatter={(value: any) => formatNumber(value, 1)} />
           </Card>
         </Col>
       </Row>
@@ -500,7 +474,7 @@ const FundDetails: React.FC = () => {
               <LineChart data={priceChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#444444" />
                 <XAxis dataKey="date" stroke="#a0a0a0" />
-                <YAxis stroke="#a0a0a0" />
+                <YAxis stroke="#a0a0a0" tickFormatter={(value) => new Intl.NumberFormat('ru-RU').format(value)} />
                 <Tooltip formatter={(value: any) => formatNumber(value, 2)} contentStyle={{ backgroundColor: '#333333', border: 'none' }} />
                 <Legend />
                 
@@ -548,7 +522,7 @@ const FundDetails: React.FC = () => {
               <BarChart data={payoutChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#444444" />
                 <XAxis dataKey="date" stroke="#a0a0a0" />
-                <YAxis stroke="#a0a0a0" />
+                <YAxis stroke="#a0a0a0" tickFormatter={(value) => new Intl.NumberFormat('ru-RU').format(value)} />
                 <Tooltip 
                   formatter={(value: any) => formatNumber(value, 2)}
                   contentStyle={{ backgroundColor: '#333333', border: 'none' }}
@@ -704,14 +678,14 @@ const FundDetails: React.FC = () => {
           <Form.Item name="has_market_maker" label="Маркет-мейкер" valuePropName="checked">
             <Switch />
           </Form.Item>
-          <Form.Item name="fund_start_date" label="Дата начала">
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
           <Form.Item name="fund_end_date" label="Дата завершения">
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="investfunds_url" label="URL на investfunds.ru" tooltip="Например: https://investfunds.ru/funds/5887/">
             <Input placeholder="https://investfunds.ru/funds/..." />
+          </Form.Item>
+          <Form.Item name="vsezpif_url" label="URL на vsezpif.ru" tooltip="Например: https://vsezpif.ru/?route=fund&id=1">
+            <Input placeholder="https://vsezpif.ru/?route=fund&id=..." />
           </Form.Item>
         </Form>
       </Modal>

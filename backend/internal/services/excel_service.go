@@ -64,8 +64,8 @@ func (s *ExcelService) ExportToExcel() ([]byte, error) {
 	financialHeaders := []string{
 		"Fund ID", "Название фонда", "Дата среза", "Цена пая", "NAV", "Дисконт %",
 		"Cap Rate %", "P/NAV", "P/AFFO", "NOI Yield %", "Выплата в год",
-		"Доходность выплат %", "Полная доходность %", "Долг/СЧА", "Комиссия УК %",
-		"Объём торгов", "Объектов", "IRR прогноз %",
+		"Доходность выплат %", "Комиссия УК %",
+		"Объём торгов", "Объектов",
 	}
 	for i, header := range financialHeaders {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
@@ -92,12 +92,9 @@ func (s *ExcelService) ExportToExcel() ([]byte, error) {
 		f.SetCellValue(financialsSheet, cellName(10, row), latest.NoiYieldPct)
 		f.SetCellValue(financialsSheet, cellName(11, row), latest.AnnualPayoutRub)
 		f.SetCellValue(financialsSheet, cellName(12, row), latest.PayoutYieldPct)
-		f.SetCellValue(financialsSheet, cellName(13, row), latest.TotalReturnPct)
-		f.SetCellValue(financialsSheet, cellName(14, row), latest.DebtToNavRatio)
-		f.SetCellValue(financialsSheet, cellName(15, row), latest.ManagementFeePct)
-		f.SetCellValue(financialsSheet, cellName(16, row), latest.TradingVolumeMlnRub)
-		f.SetCellValue(financialsSheet, cellName(17, row), latest.NumberOfProperties)
-		f.SetCellValue(financialsSheet, cellName(18, row), latest.IRRForecastPct)
+		f.SetCellValue(financialsSheet, cellName(13, row), latest.ManagementFeePct)
+		f.SetCellValue(financialsSheet, cellName(14, row), latest.TradingVolumeMlnRub)
+		f.SetCellValue(financialsSheet, cellName(15, row), latest.NumberOfProperties)
 		row++
 	}
 
