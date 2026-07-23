@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Typography, Card, Button, Space, Form, Input, Select,
   message,
@@ -15,12 +15,7 @@ const Settings: React.FC = () => {
   const [models, setModels] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
 
-  useEffect(() => {
-    loadLlmSettings();
-    loadModels();
-  }, []);
-
-  const loadLlmSettings = async () => {
+  const loadLlmSettings = useCallback(async () => {
     try {
       const settings = await apiClient.getLLMSettings();
       setLlmSettings(settings);
@@ -28,7 +23,24 @@ const Settings: React.FC = () => {
     } catch {
       // Settings not configured yet
     }
-  };
+  }, [llmForm]);
+
+  const loadModels = useCallback(async () => {
+    setLoadingModels(true);
+    try {
+      const modelsList = await apiClient.getLLMModels();
+      setModels(modelsList);
+    } catch {
+      setModels([]);
+    } finally {
+      setLoadingModels(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadLlmSettings();
+    loadModels();
+  }, [loadLlmSettings, loadModels]);
 
   const handleSaveLlmSettings = async () => {
     setSavingLlm(true);
@@ -52,18 +64,6 @@ const Settings: React.FC = () => {
       message.error('Ошибка подключения к LLM');
     } finally {
       setTestingLlm(false);
-    }
-  };
-
-  const loadModels = async () => {
-    setLoadingModels(true);
-    try {
-      const modelsList = await apiClient.getLLMModels();
-      setModels(modelsList);
-    } catch {
-      setModels([]);
-    } finally {
-      setLoadingModels(false);
     }
   };
 

@@ -45,7 +45,7 @@ const Dashboard: React.FC = () => {
         })
       );
       setFunds(fundsWithFinancials);
-    } catch (error) {
+    } catch {
       message.error('Не удалось загрузить фонды');
     } finally {
       setLoading(false);
@@ -58,7 +58,7 @@ const Dashboard: React.FC = () => {
       await apiClient.discoverAll();
       message.success('Автопоиск документов запущен');
       setTimeout(() => loadFunds(), 2000);
-    } catch (error) {
+    } catch {
       message.error('Ошибка при обновлении');
     } finally {
       setRefreshing(false);

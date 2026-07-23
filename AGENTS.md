@@ -207,7 +207,7 @@ frontend:
 ```bash
 DB_PASSWORD=<secure-password>
 JWT_SECRET=<secure-secret>
-DOCKERHUB_USERNAME=akazver
+DOCKERHUB_USERNAME=<your-dockerhub-username>
 IMAGE_TAG=<commit-sha или latest>
 ```
 
@@ -216,7 +216,7 @@ IMAGE_TAG=<commit-sha или latest>
 ```bash
 cd ~/zpif-analyzer
 export IMAGE_TAG=latest
-export DOCKERHUB_USERNAME=akazver
+export DOCKERHUB_USERNAME=<your-dockerhub-username>
 docker-compose -f docker-compose.prod.yml pull
 docker-compose -f docker-compose.prod.yml up -d
 ```

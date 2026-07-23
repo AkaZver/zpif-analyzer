@@ -1,22 +1,7 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { apiClient } from '../api/client';
-
-interface AuthContextType {
-  isAuthenticated: boolean;
-  token: string | null;
-  login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextType>({
-  isAuthenticated: false,
-  token: null,
-  login: async () => {},
-  logout: () => {},
-});
-
-export const useAuth = () => useContext(AuthContext);
+import { AuthContext } from './AuthContext';
 
 interface AuthProviderProps {
   children: ReactNode;

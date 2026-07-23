@@ -277,7 +277,7 @@ cd ~/zpif-analyzer
 cat > .env << EOF
 DB_PASSWORD=your-secure-password
 JWT_SECRET=your-jwt-secret
-DOCKERHUB_USERNAME=akazver
+DOCKERHUB_USERNAME=<your-dockerhub-username>
 IMAGE_TAG=latest
 EOF
 ```
@@ -292,7 +292,7 @@ EOF
 # На VM
 cd ~/zpif-analyzer
 export IMAGE_TAG=latest
-export DOCKERHUB_USERNAME=akazver
+export DOCKERHUB_USERNAME=<your-dockerhub-username>
 docker-compose -f docker-compose.prod.yml pull
 docker-compose -f docker-compose.prod.yml up -d
 ```

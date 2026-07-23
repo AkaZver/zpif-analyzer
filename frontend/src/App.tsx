@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, theme } from 'antd';
 import ruRU from 'antd/locale/ru_RU';
-import { AuthProvider } from './hooks/useAuth';
+import { AuthProvider } from './hooks/AuthProvider';
 import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';

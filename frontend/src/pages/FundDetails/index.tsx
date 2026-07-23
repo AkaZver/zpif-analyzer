@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Typography, Card, Row, Col, Statistic, Tag, Button, Space, Table,
@@ -36,11 +36,7 @@ const FundDetails: React.FC = () => {
       maximumFractionDigits: digits,
     }).format(Number(value));
 
-  useEffect(() => {
-    if (id) loadData();
-  }, [id]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
@@ -64,7 +60,11 @@ const FundDetails: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (id) loadData();
+  }, [id, loadData]);
 
   const handleDiscover = async () => {
     if (!id) return;
