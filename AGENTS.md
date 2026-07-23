@@ -18,6 +18,7 @@ go mod download
 go run ./cmd/server           # Запуск сервера
 go test ./... -v              # Все тесты
 go test ./internal/services -v  # Тесты конкретного пакета
+go test ./... -coverprofile=coverage.out  # Тесты с coverage
 ```
 
 **Frontend:**
@@ -52,6 +53,7 @@ npm run lint                  # Проверка кода (oxlint)
 - Используй `sqlmock` для моков БД
 - Тесты в файлах `*_test.go` рядом с кодом
 - Запуск: `go test ./internal/services -v`
+- Coverage: `go test ./... -coverprofile=coverage.out`
 
 **Интеграция с внешними источниками данных:**
 - **MOEX ISS API** — загрузка истории котировок (цена пая)
@@ -121,6 +123,101 @@ cp .env.example .env
 - Backend API: http://localhost:8080
 - PostgreSQL: localhost:5432
 
+## CI/CD Pipeline
+
+Проект использует GitHub Actions для автоматизации CI/CD.
+
+### Workflow: `.github/workflows/ci-cd.yml`
+
+**Jobs:**
+
+1. **build-and-test** — сборка и тестирование
+   - Go: `go mod download`, `go build`, `go test -coverprofile=coverage.out`
+   - Frontend: `npm ci`, `npm run build`, `npm run lint`
+
+2. **sonarcloud** — анализ кода в SonarCloud
+   - Запускается после build-and-test
+   - Проверяет Quality Gate
+   - Анализирует coverage
+
+3. **build-and-push** — сборка и публикация Docker образов
+   - Только для push в master
+   - Пушит в DockerHub с тегами: `latest`, `<commit-sha>`
+
+4. **deploy** — деплой на Yandex Cloud VM
+   - Только для push в master
+   - SSH на VM
+   - `docker-compose pull && docker-compose up -d`
+
+### Триггеры
+
+- `push` to `master` — полный pipeline с деплоем
+- `pull_request` to `master` — только build, test и sonarcloud
+
+### Локальная проверка перед коммитом
+
+```bash
+# Backend тесты с coverage
+cd backend && go test ./... -coverprofile=coverage.out
+
+# Frontend lint
+cd frontend && npm run lint
+
+# Frontend build
+cd frontend && npm run build
+```
+
+## SonarCloud
+
+Конфигурация: `sonar-project.properties`
+
+**Метрики:**
+- Coverage (Go tests)
+- Security Rating
+- Reliability Rating
+- Maintainability Rating
+- Vulnerabilities
+- Code Smells
+
+**Исключения:**
+- `**/node_modules/**`
+- `**/vendor/**`
+- `**/dist/**`
+- `**/migrations/**`
+- `**/cmd/**` (точка входа)
+
+## Production деплой
+
+### Файл: `docker-compose.prod.yml`
+
+Использует готовые образы из DockerHub вместо локальной сборки:
+
+```yaml
+backend:
+  image: ${DOCKERHUB_USERNAME}/zpif-backend:${IMAGE_TAG:-latest}
+frontend:
+  image: ${DOCKERHUB_USERNAME}/zpif-frontend:${IMAGE_TAG:-latest}
+```
+
+### Переменные для production
+
+```bash
+DB_PASSWORD=<secure-password>
+JWT_SECRET=<secure-secret>
+DOCKERHUB_USERNAME=akazver
+IMAGE_TAG=<commit-sha или latest>
+```
+
+### Ручной деплой на VM
+
+```bash
+cd ~/zpif-analyzer
+export IMAGE_TAG=latest
+export DOCKERHUB_USERNAME=akazver
+docker-compose -f docker-compose.prod.yml pull
+docker-compose -f docker-compose.prod.yml up -d
+```
+
 ## Особенности
 
 1. **LLM интеграция** — настройки задаются через UI (страница "Настройки"), сохраняются в БД. LLM компоненты читают настройки из БД при каждом вызове.
@@ -130,3 +227,5 @@ cp .env.example .env
 5. **Рыночные данные** — автоматическая загрузка с MOEX ISS API и investfunds.ru
 6. **Обогащение через LLM** — автоматическое заполнение данных фонда при создании
 7. **Графики** — цена пая отображается только после начала торгов, вертикальная метка "Начало торгов"
+8. **CI/CD** — автоматический деплой при push в master через GitHub Actions
+9. **SonarCloud** — автоматический анализ качества кода при каждом PR и push
