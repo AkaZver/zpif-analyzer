@@ -47,8 +47,8 @@ func TestFundService_GetAllFunds(t *testing.T) {
 	defer cleanup()
 
 	now := time.Now()
-	rows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
-		AddRow(1, "Парус ОЗН", "RU000A1022Z1", "", "Парус", "склады", false, true, nil, nil, now, now, nil)
+	rows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Парус ОЗН", "RU000A1022Z1", "", "Парус", "склады", false, true, nil, "", "")
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."deleted_at" IS NULL`)).WillReturnRows(rows)
 	emptyRows := sqlmock.NewRows([]string{"id", "fund_id"})
@@ -68,8 +68,8 @@ func TestFundService_GetFundByID(t *testing.T) {
 	defer cleanup()
 
 	now := time.Now()
-	rows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
-		AddRow(1, "Парус ОЗН", "RU000A1022Z1", "PARUS", "Парус", "склады", false, true, nil, nil, now, now, nil)
+	rows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Парус ОЗН", "RU000A1022Z1", "PARUS", "Парус", "склады", false, true, nil, "", "")
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
 		WithArgs(uint(1), 1).
@@ -117,8 +117,8 @@ func TestFundService_CreateFund_DuplicateISIN(t *testing.T) {
 	defer cleanup()
 
 	now := time.Now()
-	rows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
-		AddRow(1, "Existing", "RU000A1022Z1", "", "Парус", "", false, false, nil, nil, now, now, nil)
+	rows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Existing", "RU000A1022Z1", "", "Парус", "", false, false, nil, "", "")
 
 	mock.ExpectQuery(`isin = .+ AND "funds"\."deleted_at" IS NULL`).
 		WithArgs("RU000A1022Z1", 1).
@@ -155,8 +155,26 @@ func TestFundService_DeleteFund(t *testing.T) {
 	defer cleanup()
 
 	mock.ExpectBegin()
-	mock.ExpectExec(`UPDATE "funds" SET "deleted_at"=`).
+	mock.ExpectExec(`UPDATE "fund_financials" SET "deleted_at"=`).
 		WithArgs(sqlmock.AnyArg(), uint(1)).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectCommit()
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`UPDATE "fund_documents" SET "deleted_at"=`).
+		WithArgs(sqlmock.AnyArg(), uint(1)).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectCommit()
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`UPDATE "llm_analyses" SET "deleted_at"=`).
+		WithArgs(sqlmock.AnyArg(), uint(1)).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectCommit()
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`DELETE FROM "funds" WHERE "funds"\."id" =`).
+		WithArgs(uint(1)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
@@ -205,8 +223,8 @@ func TestFundService_UpdateFund_Success(t *testing.T) {
 	defer cleanup()
 
 	now := time.Now()
-	rows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
-		AddRow(1, "Old Name", "RU000A1022Z1", "", "Парус", "склады", false, true, nil, nil, now, now, nil)
+	rows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Old Name", "RU000A1022Z1", "", "Парус", "склады", false, true, nil, "", "")
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
 		WithArgs(uint(1), 1).
@@ -305,8 +323,8 @@ func TestFundService_AddFinancials_Success(t *testing.T) {
 	defer cleanup()
 
 	now := time.Now()
-	fundRows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
-		AddRow(1, "Парус", "RU000A1022Z1", "", "Парус", "", false, false, nil, nil, now, now, nil)
+	fundRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Парус", "RU000A1022Z1", "", "Парус", "", false, false, nil, "", "")
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
 		WithArgs(uint(1), 1).
@@ -374,8 +392,8 @@ func TestFundService_AddDocument_Success(t *testing.T) {
 	defer cleanup()
 
 	now := time.Now()
-	fundRows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
-		AddRow(1, "Парус", "RU000A1022Z1", "", "Парус", "", false, false, nil, nil, now, now, nil)
+	fundRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Парус", "RU000A1022Z1", "", "Парус", "", false, false, nil, "", "")
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
 		WithArgs(uint(1), 1).
@@ -409,8 +427,8 @@ func TestFundService_AddDocument_DuplicateHash(t *testing.T) {
 	defer cleanup()
 
 	now := time.Now()
-	fundRows := sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}).
-		AddRow(1, "Парус", "RU000A1022Z1", "", "Парус", "", false, false, nil, nil, now, now, nil)
+	fundRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Парус", "RU000A1022Z1", "", "Парус", "", false, false, nil, "", "")
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
 		WithArgs(uint(1), 1).

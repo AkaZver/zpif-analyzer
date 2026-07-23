@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -95,15 +93,10 @@ func TestAnalyzer_ReadDocumentText_NoFilePathNoURL(t *testing.T) {
 	assert.Empty(t, text)
 }
 
-func TestAnalyzer_ReadDocumentText_HTMLFile(t *testing.T) {
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.html")
-	err := os.WriteFile(testFile, []byte("<html><body>Test content</body></html>"), 0644)
-	assert.NoError(t, err)
-
+func TestAnalyzer_ReadDocumentText_ExtractedText(t *testing.T) {
 	analyzer := &Analyzer{}
 	doc := &models.FundDocument{
-		FilePath: testFile,
+		ExtractedText: "Test content from extracted text",
 	}
 
 	text, err := analyzer.readDocumentText(doc)
@@ -112,15 +105,13 @@ func TestAnalyzer_ReadDocumentText_HTMLFile(t *testing.T) {
 	assert.Contains(t, text, "Test content")
 }
 
-func TestAnalyzer_ReadDocumentText_FileNotFound(t *testing.T) {
+func TestAnalyzer_ReadDocumentText_EmptyFields(t *testing.T) {
 	analyzer := &Analyzer{}
-	doc := &models.FundDocument{
-		FilePath: "/nonexistent/file.txt",
-	}
+	doc := &models.FundDocument{}
 
 	text, err := analyzer.readDocumentText(doc)
 
-	assert.Error(t, err)
+	assert.NoError(t, err)
 	assert.Empty(t, text)
 }
 
