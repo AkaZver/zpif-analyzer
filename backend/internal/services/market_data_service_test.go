@@ -226,6 +226,115 @@ func TestMarketDataService_FetchMarketDataForFund_WithMoexData(t *testing.T) {
 	assert.Equal(t, 1, result.RecordsCreated)
 }
 
+func TestMarketDataService_FetchMarketDataForFund_WithPayoutHistory(t *testing.T) {
+	fundRepo := new(MockFundRepo)
+	financialsRepo := new(MockFinancialsRepo)
+	moexParser := new(MockMoexParser)
+	investfundsParser := new(MockInvestfundsParser)
+	vsezpifParser := new(MockVsezpifParser)
+
+	fund := &models.Fund{ID: 1, Name: "Test Fund", ISIN: "RU000TEST"}
+	fundRepo.On("GetByID", uint(1)).Return(fund, nil)
+
+	moexParser.On("SearchSecurity", "RU000TEST").Return(nil, errors.New("not found"))
+
+	payoutDate := time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC)
+	investfundsData := &parsers.InvestfundsData{
+		PayoutHistory: []parsers.Payout{
+			{Date: payoutDate, Amount: 4200.0, YieldPercent: 8.5},
+		},
+	}
+	investfundsParser.On("SearchFund", "RU000TEST").Return("http://test.ru", nil)
+	investfundsParser.On("GetFundData", "http://test.ru").Return(investfundsData, nil)
+
+	vsezpifParser.On("GetFundDataByISIN", "RU000TEST").Return(nil, errors.New("not found"))
+
+	financialsRepo.On("GetByFundIDAndDate", uint(1), mock.Anything).Return(nil, errors.New("not found"))
+	
+	var capturedFinancial *models.FundFinancials
+	financialsRepo.On("Create", mock.AnythingOfType("*models.FundFinancials")).Run(func(args mock.Arguments) {
+		capturedFinancial = args.Get(0).(*models.FundFinancials)
+	}).Return(nil)
+	
+	financialsRepo.On("GetByFundID", uint(1)).Return([]models.FundFinancials{}, nil)
+	financialsRepo.On("GetLatestByFundID", uint(1)).Return(nil, errors.New("not found"))
+
+	service := &MarketDataService{
+		moexParser:        moexParser,
+		investfundsParser: investfundsParser,
+		vsezpifParser:     vsezpifParser,
+		financialsRepo:    financialsRepo,
+		fundRepo:          fundRepo,
+	}
+
+	result, err := service.FetchMarketDataForFund(context.Background(), 1)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "success", result.Status)
+	assert.True(t, result.InvestfundsAvailable)
+	assert.NotNil(t, capturedFinancial)
+	assert.Equal(t, 4200.0, capturedFinancial.PayoutAmountRub)
+	assert.Equal(t, 8.5, capturedFinancial.PayoutYieldPct)
+}
+
+func TestMarketDataService_FetchMarketDataForFund_UpdatePayoutHistory(t *testing.T) {
+	fundRepo := new(MockFundRepo)
+	financialsRepo := new(MockFinancialsRepo)
+	moexParser := new(MockMoexParser)
+	investfundsParser := new(MockInvestfundsParser)
+	vsezpifParser := new(MockVsezpifParser)
+
+	fund := &models.Fund{ID: 1, Name: "Test Fund", ISIN: "RU000TEST"}
+	fundRepo.On("GetByID", uint(1)).Return(fund, nil)
+
+	moexParser.On("SearchSecurity", "RU000TEST").Return(nil, errors.New("not found"))
+
+	payoutDate := time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC)
+	investfundsData := &parsers.InvestfundsData{
+		PayoutHistory: []parsers.Payout{
+			{Date: payoutDate, Amount: 4200.0, YieldPercent: 8.5},
+		},
+	}
+	investfundsParser.On("SearchFund", "RU000TEST").Return("http://test.ru", nil)
+	investfundsParser.On("GetFundData", "http://test.ru").Return(investfundsData, nil)
+
+	vsezpifParser.On("GetFundDataByISIN", "RU000TEST").Return(nil, errors.New("not found"))
+
+	existingFinancial := &models.FundFinancials{
+		ID:           1,
+		FundID:       1,
+		SnapshotDate: payoutDate,
+	}
+	financialsRepo.On("GetByFundIDAndDate", uint(1), mock.Anything).Return(existingFinancial, nil)
+	
+	var capturedFinancial *models.FundFinancials
+	financialsRepo.On("Update", mock.AnythingOfType("*models.FundFinancials")).Run(func(args mock.Arguments) {
+		capturedFinancial = args.Get(0).(*models.FundFinancials)
+	}).Return(nil)
+	
+	financialsRepo.On("GetByFundID", uint(1)).Return([]models.FundFinancials{}, nil)
+	financialsRepo.On("GetLatestByFundID", uint(1)).Return(nil, errors.New("not found"))
+
+	service := &MarketDataService{
+		moexParser:        moexParser,
+		investfundsParser: investfundsParser,
+		vsezpifParser:     vsezpifParser,
+		financialsRepo:    financialsRepo,
+		fundRepo:          fundRepo,
+	}
+
+	result, err := service.FetchMarketDataForFund(context.Background(), 1)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "success", result.Status)
+	assert.True(t, result.InvestfundsAvailable)
+	assert.NotNil(t, capturedFinancial)
+	assert.Equal(t, 4200.0, capturedFinancial.PayoutAmountRub)
+	assert.Equal(t, 8.5, capturedFinancial.PayoutYieldPct)
+}
+
 func TestMarketDataService_CalculateAnnualPayout(t *testing.T) {
 	service := &MarketDataService{}
 

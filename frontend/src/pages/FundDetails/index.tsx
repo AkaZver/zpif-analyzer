@@ -13,9 +13,7 @@ import {
 } from 'recharts';
 import { apiClient } from '../../api/client';
 import type { Fund, FundFinancials, FundDocument, LLMAnalysis } from '../../types';
-
-const formatMonthYear = (date: Date): string =>
-  `${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getFullYear()).slice(-2)}`;
+import { formatMonthYear } from '../../utils/dateFormatters';
 
 const FundDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
