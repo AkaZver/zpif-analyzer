@@ -1,15 +1,13 @@
 import React from 'react';
-import { Layout as AntLayout, Button, Typography, Dropdown } from 'antd';
+import { Layout as AntLayout, Button, Typography } from 'antd';
 import {
-  DashboardOutlined,
   SettingOutlined,
   LogoutOutlined,
   LoginOutlined,
-  MenuOutlined,
 } from '@ant-design/icons';
 import { useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import type { MenuProps } from 'antd';
+import buildingIcon from '../assets/building-icon.svg';
 
 const { Header, Content } = AntLayout;
 
@@ -22,53 +20,30 @@ const Layout: React.FC = () => {
     navigate('/login');
   };
 
-  const menuItems: MenuProps['items'] = [
-    {
-      key: '/',
-      icon: <DashboardOutlined />,
-      label: 'Сравнение',
-    },
-    {
-      key: '/settings',
-      icon: <SettingOutlined />,
-      label: 'Настройки',
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: 'logout',
-      icon: <LogoutOutlined />,
-      label: 'Выйти',
-      danger: true,
-    },
-  ];
-
-  const handleMenuClick: MenuProps['onClick'] = (e) => {
-    if (e.key === 'logout') {
-      handleLogout();
-    } else {
-      navigate(e.key);
-    }
-  };
-
   return (
     <AntLayout className="min-h-screen">
       <Header className="bg-[#2a2a2a] px-6 flex items-center justify-between h-16 border-b border-[#3a3a3a]">
-        <Typography.Title
-          level={4}
-          className="text-primary m-0 cursor-pointer"
-          onClick={() => navigate('/')}
-        >
-          ZPIF Analyzer
-        </Typography.Title>
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+          <img src={buildingIcon} alt="ZPIF" className="w-8 h-8" />
+          <Typography.Title level={4} className="text-primary m-0">
+            ZPIF Analyzer
+          </Typography.Title>
+        </div>
         {isAuthenticated ? (
-          <Dropdown
-            menu={{ items: menuItems, onClick: handleMenuClick }}
-            trigger={['click']}
-          >
-            <Button type="text" icon={<MenuOutlined />} className="text-text-primary" />
-          </Dropdown>
+          <div className="flex items-center gap-2">
+            <Button
+              type="text"
+              icon={<SettingOutlined />}
+              className="text-text-primary"
+              onClick={() => navigate('/settings')}
+            />
+            <Button
+              type="text"
+              icon={<LogoutOutlined />}
+              className="text-text-primary"
+              onClick={handleLogout}
+            />
+          </div>
         ) : (
           <Button
             type="primary"

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Space, Tag, message, Spin, Select, Checkbox, Typography, Card, Tooltip, Modal, Input } from 'antd';
-import { DownloadOutlined, ReloadOutlined, PlusOutlined, CloudDownloadOutlined } from '@ant-design/icons';
+import { DownloadOutlined, PlusOutlined, CloudDownloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import type { Fund, FundFinancials } from '../../types';
@@ -13,7 +13,6 @@ interface FundWithFinancials extends Fund {
 const Dashboard: React.FC = () => {
   const [funds, setFunds] = useState<FundWithFinancials[]>([]);
   const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [filterSegment, setFilterSegment] = useState<string | undefined>();
   const [filterCompany, setFilterCompany] = useState<string | undefined>();
   const [filterQualified, setFilterQualified] = useState<boolean | undefined>();
@@ -49,19 +48,6 @@ const Dashboard: React.FC = () => {
       message.error('Не удалось загрузить фонды');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await apiClient.discoverAll();
-      message.success('Автопоиск документов запущен');
-      setTimeout(() => loadFunds(), 2000);
-    } catch {
-      message.error('Ошибка при обновлении');
-    } finally {
-      setRefreshing(false);
     }
   };
 
@@ -228,9 +214,6 @@ const Dashboard: React.FC = () => {
           </Button>
           <Button icon={<CloudDownloadOutlined />} onClick={handleFetchAllMarketData} loading={fetchingMarketData}>
             Обновить данные
-          </Button>
-          <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={refreshing}>
-            Обновить
           </Button>
           <Button icon={<DownloadOutlined />} onClick={handleExport}>
             Экспорт

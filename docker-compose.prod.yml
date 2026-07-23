@@ -60,6 +60,7 @@ services:
       backend:
         condition: service_healthy
     volumes:
+      - ./frontend/nginx.prod.conf:/etc/nginx/nginx.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
