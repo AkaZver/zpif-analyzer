@@ -48,6 +48,10 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Frontend - Test with coverage
+        working-directory: frontend
+        run: npm run test -- --coverage
+
       - name: Frontend - Build
         working-directory: frontend
         run: npm run build
@@ -61,6 +65,12 @@ jobs:
         with:
           name: backend-coverage
           path: backend/coverage.out
+
+      - name: Upload frontend coverage
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
 
   sonarcloud:
     name: SonarCloud Analysis
@@ -77,6 +87,12 @@ jobs:
         with:
           name: backend-coverage
           path: backend/
+
+      - name: Download frontend coverage
+        uses: actions/download-artifact@v8
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v8

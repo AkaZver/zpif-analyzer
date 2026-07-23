@@ -42,6 +42,7 @@
 - Ant Design
 - Recharts (графики)
 - React Router
+- vitest (тестирование)
 
 ### Инфраструктура
 - Docker & Docker Compose
@@ -162,13 +163,35 @@ npm run dev
 ```bash
 cd backend
 go test ./... -v
+go test ./... -coverprofile=coverage.out
 ```
 
 #### Frontend
 ```bash
 cd frontend
-npm run build
+npm run test
+npm run test -- --coverage
 ```
+
+### Тестирование
+
+Проект придерживается практики обязательного тестирования с целевым покрытием кода **≥ 80%**.
+
+#### Backend
+- **Фреймворк**: стандартный `testing` + `testify` + `sqlmock`
+- **Парсеры**: тестируются через `httptest.NewServer` (MOEX, investfunds, vsezpif)
+- **Сервисы**: dependency injection через интерфейсы, моки через `testify/mock`
+- **Handlers**: `httptest` + `gin.TestMode`
+
+#### Frontend
+- **Фреймворк**: vitest + @testing-library/react + jsdom
+- **API клиент**: mock через `vi.mock('axios')`
+- **Компоненты**: рендеринг через `@testing-library/react` с моками контекстов
+
+#### CI/CD
+- Тесты запускаются автоматически при каждом push/PR
+- Coverage отчёты загружаются в SonarCloud
+- Quality Gate требует ≥ 80% покрытия для нового кода
 
 ## Структура проекта
 
@@ -225,7 +248,8 @@ zpif-analyzer/
 ┌───────────────────────────┐   ┌───────────────────────────┐
 │  Build & Test             │   │  SonarCloud Analysis      │
 │  - Go build + test        │   │  - Code quality check     │
-│  - Frontend build + lint  │   │  - Security scan          │
+│  - Frontend test + build  │   │  - Security scan          │
+│  - Frontend lint          │   │                           │
 └───────────────────────────┘   └───────────────────────────┘
             │
             ▼ (only on push to master)

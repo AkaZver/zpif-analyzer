@@ -23,7 +23,13 @@ const Layout: React.FC = () => {
   return (
     <AntLayout className="min-h-screen">
       <Header className="bg-[#2a2a2a] px-6 flex items-center justify-between h-16 border-b border-[#3a3a3a]">
-        <div className="inline-flex items-center cursor-pointer" onClick={() => navigate('/')}>
+        <div
+          className="inline-flex items-center cursor-pointer"
+          onClick={() => navigate('/')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/'); }}
+          role="button"
+          tabIndex={0}
+        >
           <img src={buildingIcon} alt="ZPIF" className="h-8 mr-2 -translate-y-1" />
           <Typography.Title level={4} className="text-primary m-0 p-0 leading-none">
             ZPIF Analyzer

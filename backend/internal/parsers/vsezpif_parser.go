@@ -57,7 +57,8 @@ type VsezpifData struct {
 }
 
 type VsezpifParser struct {
-	client *http.Client
+	client  *http.Client
+	baseURL string
 }
 
 func NewVsezpifParser() *VsezpifParser {
@@ -65,6 +66,7 @@ func NewVsezpifParser() *VsezpifParser {
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		baseURL: "https://vsezpif.ru",
 	}
 }
 
@@ -90,7 +92,7 @@ func (p *VsezpifParser) GetFundDataByURL(fundURL string) (*VsezpifData, error) {
 }
 
 func (p *VsezpifParser) getFundByISIN(isin string) (*VsezpifFund, error) {
-	url := "https://vsezpif.ru/?route=api&action=get_funds"
+	url := p.baseURL + "/?route=api&action=get_funds"
 	
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -128,7 +130,7 @@ func (p *VsezpifParser) getFundByISIN(isin string) (*VsezpifFund, error) {
 }
 
 func (p *VsezpifParser) getFundByID(id int) (*VsezpifFund, error) {
-	url := fmt.Sprintf("https://vsezpif.ru/?route=api&action=get_fund&id=%d", id)
+	url := fmt.Sprintf("%s/?route=api&action=get_fund&id=%d", p.baseURL, id)
 	
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

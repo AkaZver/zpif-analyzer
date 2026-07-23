@@ -34,7 +34,8 @@ type Payout struct {
 }
 
 type InvestfundsParser struct {
-	client *http.Client
+	client  *http.Client
+	baseURL string
 }
 
 func NewInvestfundsParser() *InvestfundsParser {
@@ -42,11 +43,12 @@ func NewInvestfundsParser() *InvestfundsParser {
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		baseURL: "https://investfunds.ru",
 	}
 }
 
 func (p *InvestfundsParser) SearchFund(query string) (string, error) {
-	searchURL := fmt.Sprintf("https://investfunds.ru/search/?q=%s", url.QueryEscape(query))
+	searchURL := fmt.Sprintf("%s/search/?q=%s", p.baseURL, url.QueryEscape(query))
 
 	req, err := http.NewRequest("GET", searchURL, nil)
 	if err != nil {
@@ -76,7 +78,7 @@ func (p *InvestfundsParser) SearchFund(query string) (string, error) {
 				if strings.HasPrefix(href, "http") {
 					fundURL = href
 				} else {
-					fundURL = "https://investfunds.ru" + href
+					fundURL = p.baseURL + href
 				}
 			}
 		}

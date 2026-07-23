@@ -28,6 +28,9 @@ npm install
 npm run dev                   # Dev сервер (Vite)
 npm run build                 # Production сборка (tsc + vite)
 npm run lint                  # Проверка кода (oxlint)
+npm run test                  # Запуск тестов (vitest)
+npm run test:watch            # Тесты в watch режиме
+npm run test -- --coverage    # Тесты с coverage report
 ```
 
 ## Архитектура
@@ -50,9 +53,12 @@ npm run lint                  # Проверка кода (oxlint)
 - Все API routes защищены JWT middleware (кроме `/api/auth/login` и `/api/health`)
 
 **Тестирование:**
-- Используй `sqlmock` для моков БД
+- **Обязательно**: каждый новый код должен быть покрыт тестами (целевое покрытие ≥ 80%)
+- Используй `sqlmock` для моков БД, `testify/mock` для моков зависимостей
 - Тесты в файлах `*_test.go` рядом с кодом
-- Запуск: `go test ./internal/services -v`
+- Парсеры (MOEX, investfunds, vsezpif) тестируются через `httptest.NewServer` с настраиваемым `baseURL`
+- Сервисы используют интерфейсы для dependency injection (MoexParserI, InvestfundsParserI, VsezpifParserI, FinancialsRepoI, FundRepoI)
+- Запуск: `go test ./... -v`
 - Coverage: `go test ./... -coverprofile=coverage.out`
 
 **Интеграция с внешними источниками данных:**
@@ -83,6 +89,16 @@ npm run lint                  # Проверка кода (oxlint)
 - UI библиотека: Ant Design 6
 - Стилизация: Tailwind CSS 3
 - Графики: Recharts
+
+**Тестирование:**
+- **Обязательно**: каждый новый компонент/хук/API метод должен быть покрыт тестами (целевое покрытие ≥ 80%)
+- Фреймворк: **vitest** + @testing-library/react + @testing-library/jest-dom
+- Конфигурация: `vite.config.ts` (секция `test`)
+- Setup файл: `src/test/setup.ts`
+- Тесты в файлах `*.test.ts` / `*.test.tsx` рядом с кодом
+- Mock HTTP через `vi.mock('axios')`
+- Запуск: `npm run test`
+- Coverage: `npm run test -- --coverage`
 
 ## Переменные окружения
 
@@ -139,7 +155,7 @@ cp .env.example .env
 
 1. **build-and-test** — сборка и тестирование
    - Go: `go mod download`, `go build`, `go test -coverprofile=coverage.out`
-   - Frontend: `npm ci`, `npm run build`, `npm run lint`
+   - Frontend: `npm ci`, `npm run test`, `npm run build`, `npm run lint`
 
 2. **sonarcloud** — анализ кода в SonarCloud
    - Запускается после build-and-test
@@ -166,6 +182,9 @@ cp .env.example .env
 # Backend тесты с coverage
 cd backend && go test ./... -coverprofile=coverage.out
 
+# Frontend тесты
+cd frontend && npm run test
+
 # Frontend lint
 cd frontend && npm run lint
 
@@ -178,7 +197,7 @@ cd frontend && npm run build
 Конфигурация: `sonar-project.properties`
 
 **Метрики:**
-- Coverage (Go tests)
+- Coverage (Go tests + Frontend tests)
 - Security Rating
 - Reliability Rating
 - Maintainability Rating
@@ -191,6 +210,7 @@ cd frontend && npm run build
 - `**/dist/**`
 - `**/migrations/**`
 - `**/cmd/**` (точка входа)
+- `**/test/**` (тестовые setup файлы)
 
 ## Production деплой
 
@@ -236,3 +256,4 @@ docker-compose -f docker-compose.prod.yml up -d
 8. **CI/CD** — автоматический деплой при push в master через GitHub Actions
 9. **SonarCloud** — автоматический анализ качества кода при каждом PR и push
 10. **Security** — Docker контейнеры запускаются от non-root пользователя, секреты хранятся в GitHub Secrets
+11. **Тестирование** — обязательное написание тестов для backend и frontend, целевое покрытие ≥ 80%, автоматическая проверка в CI/CD

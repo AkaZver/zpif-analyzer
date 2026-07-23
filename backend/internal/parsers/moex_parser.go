@@ -26,7 +26,8 @@ type MoexSecurity struct {
 }
 
 type MoexParser struct {
-	client *http.Client
+	client  *http.Client
+	baseURL string
 }
 
 func NewMoexParser() *MoexParser {
@@ -34,6 +35,7 @@ func NewMoexParser() *MoexParser {
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		baseURL: "https://iss.moex.com",
 	}
 }
 
@@ -53,7 +55,7 @@ func (p *MoexParser) GetCurrentPrice(ticker string) (*MoexMarketData, error) {
 }
 
 func (p *MoexParser) GetCurrentPriceWithBoard(secID, board string) (*MoexMarketData, error) {
-	url := fmt.Sprintf("https://iss.moex.com/iss/engines/stock/markets/shares/boards/%s/securities/%s.json", board, secID)
+	url := fmt.Sprintf("%s/iss/engines/stock/markets/shares/boards/%s/securities/%s.json", p.baseURL, board, secID)
 
 	resp, err := p.client.Get(url)
 	if err != nil {
@@ -123,7 +125,7 @@ func (p *MoexParser) GetCurrentPriceWithBoard(secID, board string) (*MoexMarketD
 
 func (p *MoexParser) SearchSecurity(isin string) (*MoexSecurity, error) {
 	// Получаем информацию о бумаге
-	url := fmt.Sprintf("https://iss.moex.com/iss/securities/%s.json", isin)
+	url := fmt.Sprintf("%s/iss/securities/%s.json", p.baseURL, isin)
 
 	resp, err := p.client.Get(url)
 	if err != nil {
@@ -209,7 +211,7 @@ func (p *MoexParser) GetPriceHistoryWithBoard(secID, board string) ([]MoexMarket
 	limit := 100
 
 	for {
-		url := fmt.Sprintf("https://iss.moex.com/iss/history/engines/stock/markets/shares/boards/%s/securities/%s.json?start=%d&limit=%d", board, secID, start, limit)
+		url := fmt.Sprintf("%s/iss/history/engines/stock/markets/shares/boards/%s/securities/%s.json?start=%d&limit=%d", p.baseURL, board, secID, start, limit)
 
 		resp, err := p.client.Get(url)
 		if err != nil {

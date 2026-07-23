@@ -12,6 +12,35 @@ import (
 	"github.com/zpif-analyzer/backend/internal/repositories"
 )
 
+type MoexParserI interface {
+	SearchSecurity(isin string) (*parsers.MoexSecurity, error)
+	GetPriceHistoryWithBoard(secID, board string) ([]parsers.MoexMarketData, error)
+}
+
+type InvestfundsParserI interface {
+	SearchFund(query string) (string, error)
+	GetFundData(fundURL string) (*parsers.InvestfundsData, error)
+}
+
+type VsezpifParserI interface {
+	GetFundDataByISIN(isin string) (*parsers.VsezpifData, error)
+	GetFundDataByURL(fundURL string) (*parsers.VsezpifData, error)
+}
+
+type FinancialsRepoI interface {
+	GetByFundID(fundID uint) ([]models.FundFinancials, error)
+	GetByFundIDAndDate(fundID uint, date time.Time) (*models.FundFinancials, error)
+	GetLatestByFundID(fundID uint) (*models.FundFinancials, error)
+	Create(financial *models.FundFinancials) error
+	Update(financial *models.FundFinancials) error
+}
+
+type FundRepoI interface {
+	GetAll() ([]models.Fund, error)
+	GetByID(id uint) (*models.Fund, error)
+	Update(fund *models.Fund) error
+}
+
 type FetchResult struct {
 	Status               string `json:"status"`
 	FundID               uint   `json:"fund_id,omitempty"`
@@ -23,11 +52,11 @@ type FetchResult struct {
 }
 
 type MarketDataService struct {
-	moexParser        *parsers.MoexParser
-	investfundsParser *parsers.InvestfundsParser
-	vsezpifParser     *parsers.VsezpifParser
-	financialsRepo    *repositories.FinancialsRepository
-	fundRepo          *repositories.FundRepository
+	moexParser        MoexParserI
+	investfundsParser InvestfundsParserI
+	vsezpifParser     VsezpifParserI
+	financialsRepo    FinancialsRepoI
+	fundRepo          FundRepoI
 }
 
 func NewMarketDataService(
