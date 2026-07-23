@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Typography, Card, Row, Col, Statistic, Tag, Button, Space, Table,
   message, Spin, Upload, Descriptions, List, Modal, Form, Input, Select,
-  Switch, Popconfirm, DatePicker,
+  Switch, Popconfirm, DatePicker, Segmented,
 } from 'antd';
 import { ArrowLeftOutlined, SearchOutlined, UploadOutlined, ThunderboltOutlined, CheckCircleOutlined, CloseCircleOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, CloudDownloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -28,6 +28,13 @@ const FundDetails: React.FC = () => {
   const [editForm] = Form.useForm();
   const [saving, setSaving] = useState(false);
   const [fetchingMarketData, setFetchingMarketData] = useState(false);
+  const [timeRange, setTimeRange] = useState<'3m' | '6m' | '1y' | '3y' | '5y' | 'all'>('1y');
+
+  const formatNumber = (value: number | string, digits = 0) =>
+    new Intl.NumberFormat('ru-RU', {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    }).format(Number(value));
 
   useEffect(() => {
     if (id) loadData();
@@ -228,11 +235,18 @@ const FundDetails: React.FC = () => {
     ? tradingStartDate.toLocaleDateString('ru-RU', { month: 'short', year: '2-digit' })
     : null;
 
+  const filteredFinancials = (() => {
+    if (timeRange === 'all') return financials;
+    const months: Record<string, number> = { '3m': 3, '6m': 6, '1y': 12, '3y': 36, '5y': 60 };
+    const cutoff = dayjs().subtract(months[timeRange], 'month');
+    return financials.filter(f => dayjs(f.snapshot_date).isAfter(cutoff));
+  })();
+
   const priceChartData = (() => {
     // Группируем по месяцам, берём последнюю запись каждого месяца
     const grouped = new Map<string, FundFinancials>();
     
-    financials.forEach((f) => {
+    filteredFinancials.forEach((f) => {
       // Пропускаем записи с нулевыми значениями
       if (f.unit_price_rub === 0 && f.nav_per_unit_rub === 0) {
         return;
@@ -266,7 +280,7 @@ const FundDetails: React.FC = () => {
       });
   })();
 
-  const payoutChartData = financials
+  const payoutChartData = filteredFinancials
     .filter((f) => f.annual_payout_rub > 0)
     .sort((a, b) => new Date(a.snapshot_date).getTime() - new Date(b.snapshot_date).getTime())
     .map((f) => ({
@@ -373,12 +387,12 @@ const FundDetails: React.FC = () => {
       <Row gutter={[16, 16]} className="mb-6">
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic title="Цена пая" value={latest?.unit_price_rub || 0} suffix="₽" precision={0} />
+            <Statistic title="Цена пая" value={latest?.unit_price_rub || 0} suffix="₽" formatter={(value: any) => formatNumber(value, 0)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic title="РСП" value={latest?.nav_per_unit_rub || 0} suffix="₽" precision={0} />
+            <Statistic title="РСП" value={latest?.nav_per_unit_rub || 0} suffix="₽" formatter={(value: any) => formatNumber(value, 0)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
@@ -387,14 +401,14 @@ const FundDetails: React.FC = () => {
               title="Дисконт к РСП"
               value={latest?.discount_to_nav_pct || 0}
               suffix="%"
-              precision={1}
+              formatter={(value: any) => formatNumber(value, 1)}
               valueStyle={{ color: (latest?.discount_to_nav_pct || 0) <= 0 ? '#52c41a' : '#ff4d4f' }}
             />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic title="Cap Rate" value={latest?.cap_rate_pct || 0} suffix="%" precision={1} />
+            <Statistic title="Cap Rate" value={latest?.cap_rate_pct || 0} suffix="%" formatter={(value: any) => formatNumber(value, 1)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
@@ -403,18 +417,18 @@ const FundDetails: React.FC = () => {
               title="СЧА" 
               value={latest?.nav_total_mln_rub || 0} 
               suffix="млн ₽" 
-              precision={2} 
+              formatter={(value: any) => formatNumber(value, 2)}
             />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic title="P/NAV" value={latest?.p_nav || 0} precision={2} />
+            <Statistic title="P/NAV" value={latest?.p_nav || 0} formatter={(value: any) => formatNumber(value, 2)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic title="P/AFFO" value={latest?.p_affo || 0} precision={2} />
+            <Statistic title="P/AFFO" value={latest?.p_affo || 0} formatter={(value: any) => formatNumber(value, 2)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
@@ -423,7 +437,7 @@ const FundDetails: React.FC = () => {
               title="Доходность выплат"
               value={latest?.payout_yield_pct || 0}
               suffix="%"
-              precision={1}
+              formatter={(value: any) => formatNumber(value, 1)}
               valueStyle={{ color: (latest?.payout_yield_pct || 0) >= 0 ? '#52c41a' : '#ff4d4f' }}
             />
           </Card>
@@ -434,32 +448,47 @@ const FundDetails: React.FC = () => {
               title="Полная доходность"
               value={latest?.total_return_pct || 0}
               suffix="%"
-              precision={1}
+              formatter={(value: any) => formatNumber(value, 1)}
               valueStyle={{ color: (latest?.total_return_pct || 0) >= 0 ? '#52c41a' : '#ff4d4f' }}
             />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic title="Долг/СЧА" value={latest?.debt_to_nav_ratio || 0} precision={2} />
+            <Statistic title="Долг/СЧА" value={latest?.debt_to_nav_ratio || 0} formatter={(value: any) => formatNumber(value, 2)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic title="Комиссия УК" value={latest?.management_fee_pct || 0} suffix="%" precision={1} />
+            <Statistic title="Комиссия УК" value={latest?.management_fee_pct || 0} suffix="%" formatter={(value: any) => formatNumber(value, 1)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic title="Объектов" value={latest?.number_of_properties || 0} />
+            <Statistic title="Объектов" value={latest?.number_of_properties || 0} formatter={(value: any) => formatNumber(value, 0)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic title="Прогноз IRR" value={latest?.irr_forecast_pct || 0} suffix="%" precision={1} />
+            <Statistic title="Прогноз IRR" value={latest?.irr_forecast_pct || 0} suffix="%" formatter={(value: any) => formatNumber(value, 1)} />
           </Card>
         </Col>
       </Row>
+
+      <div className="flex justify-end mb-4">
+        <Segmented
+          value={timeRange}
+          onChange={(value) => setTimeRange(value as typeof timeRange)}
+          options={[
+            { label: '3 мес', value: '3m' },
+            { label: '6 мес', value: '6m' },
+            { label: '1 год', value: '1y' },
+            { label: '3 года', value: '3y' },
+            { label: '5 лет', value: '5y' },
+            { label: 'Всё', value: 'all' },
+          ]}
+        />
+      </div>
 
       {priceChartData.length > 0 && (
         <>
@@ -472,7 +501,7 @@ const FundDetails: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#444444" />
                 <XAxis dataKey="date" stroke="#a0a0a0" />
                 <YAxis stroke="#a0a0a0" />
-                <Tooltip contentStyle={{ backgroundColor: '#333333', border: 'none' }} />
+                <Tooltip formatter={(value: any) => formatNumber(value, 2)} contentStyle={{ backgroundColor: '#333333', border: 'none' }} />
                 <Legend />
                 
                 {/* Вертикальная линия "Начало торгов" */}
@@ -521,6 +550,7 @@ const FundDetails: React.FC = () => {
                 <XAxis dataKey="date" stroke="#a0a0a0" />
                 <YAxis stroke="#a0a0a0" />
                 <Tooltip 
+                  formatter={(value: any) => formatNumber(value, 2)}
                   contentStyle={{ backgroundColor: '#333333', border: 'none' }}
                   cursor={{ fill: '#444444', fillOpacity: 0.3 }}
                 />
