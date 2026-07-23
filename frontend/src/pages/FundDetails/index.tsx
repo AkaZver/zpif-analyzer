@@ -14,6 +14,9 @@ import {
 import { apiClient } from '../../api/client';
 import type { Fund, FundFinancials, FundDocument, LLMAnalysis } from '../../types';
 
+const formatMonthYear = (date: Date): string =>
+  `${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getFullYear()).slice(-2)}`;
+
 const FundDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -229,16 +232,16 @@ const FundDetails: React.FC = () => {
     ? new Date(firstTradingDate.snapshot_date)
     : null;
 
-  const tradingStartFormatted = tradingStartDate
-    ? tradingStartDate.toLocaleDateString('ru-RU', { month: 'short', year: '2-digit' })
-    : null;
-
   const filteredFinancials = (() => {
     if (timeRange === 'all') return financials;
     const months: Record<string, number> = { '3m': 3, '6m': 6, '1y': 12, '3y': 36, '5y': 60 };
     const cutoff = dayjs().subtract(months[timeRange], 'month');
     return financials.filter(f => dayjs(f.snapshot_date).isAfter(cutoff));
   })();
+
+  const tradingStartFormatted = tradingStartDate
+    ? formatMonthYear(tradingStartDate)
+    : null;
 
   const priceChartData = (() => {
     // Группируем по месяцам, берём последнюю запись каждого месяца
@@ -265,7 +268,7 @@ const FundDetails: React.FC = () => {
       .sort((a, b) => new Date(a.snapshot_date).getTime() - new Date(b.snapshot_date).getTime())
       .map((f) => {
         const currentDate = new Date(f.snapshot_date);
-        const formattedDate = currentDate.toLocaleDateString('ru-RU', { month: 'short', year: '2-digit' });
+        const formattedDate = formatMonthYear(currentDate);
         
         // Показываем цену пая только после начала торгов
         const showPrice = tradingStartDate && currentDate >= tradingStartDate;
@@ -278,13 +281,28 @@ const FundDetails: React.FC = () => {
       });
   })();
 
-  const payoutChartData = filteredFinancials
-    .filter((f) => f.annual_payout_rub > 0)
-    .sort((a, b) => new Date(a.snapshot_date).getTime() - new Date(b.snapshot_date).getTime())
-    .map((f) => ({
-      date: new Date(f.snapshot_date).toLocaleDateString('ru-RU', { month: 'short', year: '2-digit' }),
-      'Выплата': f.annual_payout_rub,
-    }));
+  const payoutChartData = (() => {
+    const grouped = new Map<string, FundFinancials>();
+    
+    filteredFinancials
+      .filter((f) => f.payout_amount_rub > 0)
+      .forEach((f) => {
+        const date = new Date(f.snapshot_date);
+        const key = `${date.getFullYear()}-${date.getMonth()}`;
+        
+        const existing = grouped.get(key);
+        if (!existing || new Date(f.snapshot_date) > new Date(existing.snapshot_date)) {
+          grouped.set(key, f);
+        }
+      });
+    
+    return Array.from(grouped.values())
+      .sort((a, b) => new Date(a.snapshot_date).getTime() - new Date(b.snapshot_date).getTime())
+      .map((f) => ({
+        date: formatMonthYear(new Date(f.snapshot_date)),
+        'Выплата': f.payout_amount_rub,
+      }));
+  })();
 
   const docColumns = [
     { title: 'Файл', dataIndex: 'file_name', key: 'file_name' },
@@ -470,16 +488,16 @@ const FundDetails: React.FC = () => {
             Динамика цены и РСП
           </Typography.Title>
           <Card className="bg-surface-card border-0 mb-6">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={priceChartData}>
+            <ResponsiveContainer width="100%" height={350}>
+              <LineChart data={priceChartData} margin={{ bottom: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#444444" />
-                <XAxis dataKey="date" stroke="#a0a0a0" />
+                <XAxis dataKey="date" stroke="#a0a0a0" interval={0} angle={-45} textAnchor="end" dy={10} />
                 <YAxis stroke="#a0a0a0" tickFormatter={(value) => new Intl.NumberFormat('ru-RU').format(value)} />
                 <Tooltip formatter={(value: any) => formatNumber(value, 2)} contentStyle={{ backgroundColor: '#333333', border: 'none' }} />
-                <Legend />
+                <Legend layout="horizontal" verticalAlign="top" align="center" />
                 
                 {/* Вертикальная линия "Начало торгов" */}
-                {tradingStartFormatted && (
+                {tradingStartFormatted && priceChartData.some(d => d.date === tradingStartFormatted) && (
                   <ReferenceLine 
                     x={tradingStartFormatted} 
                     stroke="#888888" 

@@ -57,6 +57,7 @@ type FundFinancials struct {
 
 	// Выплаты
 	AnnualPayoutRub           float64 `json:"annual_payout_rub"`
+	PayoutAmountRub           float64 `json:"payout_amount_rub"`
 	PayoutYieldPct            float64 `json:"payout_yield_pct"`
 	PayoutYieldAfterTaxPct    float64 `json:"payout_yield_after_tax_pct"`
 	PayoutFrequency           string  `json:"payout_frequency"`

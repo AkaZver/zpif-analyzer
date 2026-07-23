@@ -33,6 +33,7 @@ export interface FundFinancials {
   
   // Выплаты
   annual_payout_rub: number;
+  payout_amount_rub: number;
   payout_yield_pct: number;
   payout_yield_after_tax_pct: number;
   payout_frequency: string;

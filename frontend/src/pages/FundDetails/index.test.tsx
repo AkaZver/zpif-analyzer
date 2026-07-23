@@ -133,6 +133,7 @@ describe('FundDetails', () => {
         p_affo: 12.0,
         noi_yield_pct: 7.2,
         annual_payout_rub: 80,
+        payout_amount_rub: 80,
         payout_yield_pct: 8.0,
         payout_yield_after_tax_pct: 6.96,
         payout_frequency: 'monthly',

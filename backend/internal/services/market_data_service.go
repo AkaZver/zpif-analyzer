@@ -278,14 +278,16 @@ func (s *MarketDataService) FetchMarketDataForFund(ctx context.Context, fundID u
 			existing, _ := s.financialsRepo.GetByFundIDAndDate(fundID, payout.Date)
 			if existing != nil {
 				existing.PayoutYieldPct = payout.YieldPercent
+				existing.PayoutAmountRub = payout.Amount
 				if err := s.financialsRepo.Update(existing); err != nil {
 					log.Printf("Failed to update payout for date %s: %v", payout.Date, err)
 				}
 			} else {
 				financials := &models.FundFinancials{
-					FundID:         fundID,
-					SnapshotDate:   payout.Date,
-					PayoutYieldPct: payout.YieldPercent,
+					FundID:          fundID,
+					SnapshotDate:    payout.Date,
+					PayoutYieldPct:  payout.YieldPercent,
+					PayoutAmountRub: payout.Amount,
 				}
 				if err := s.financialsRepo.Create(financials); err != nil {
 					log.Printf("Failed to create payout for date %s: %v", payout.Date, err)
