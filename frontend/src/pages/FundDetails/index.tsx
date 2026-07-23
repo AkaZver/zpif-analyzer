@@ -14,6 +14,11 @@ import {
 import { apiClient } from '../../api/client';
 import type { Fund, FundFinancials, FundDocument, LLMAnalysis } from '../../types';
 import { formatMonthYear } from '../../utils/dateFormatters';
+import {
+  buildPayoutChartData,
+  getTradingStartFormatted,
+  groupFinancialsByMonth,
+} from '../../utils/chartDataTransformers';
 
 const FundDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -237,70 +242,28 @@ const FundDetails: React.FC = () => {
     return financials.filter(f => dayjs(f.snapshot_date).isAfter(cutoff));
   })();
 
-  const tradingStartFormatted = tradingStartDate
-    ? formatMonthYear(tradingStartDate)
-    : null;
+  const tradingStartFormatted = getTradingStartFormatted(financials);
 
   const priceChartData = (() => {
-    // Группируем по месяцам, берём последнюю запись каждого месяца
-    const grouped = new Map<string, FundFinancials>();
-    
-    filteredFinancials.forEach((f) => {
-      // Пропускаем записи с нулевыми значениями
-      if (f.unit_price_rub === 0 && f.nav_per_unit_rub === 0) {
-        return;
-      }
-      
-      const date = new Date(f.snapshot_date);
-      const key = `${date.getFullYear()}-${date.getMonth()}`;
-      
-      // Берём последнюю запись каждого месяца
-      const existing = grouped.get(key);
-      if (!existing || new Date(f.snapshot_date) > new Date(existing.snapshot_date)) {
-        grouped.set(key, f);
-      }
+    const grouped = groupFinancialsByMonth(
+      filteredFinancials,
+      (f) => f.unit_price_rub > 0 || f.nav_per_unit_rub > 0
+    );
+
+    return grouped.map((f) => {
+      const currentDate = new Date(f.snapshot_date);
+      const formattedDate = formatMonthYear(currentDate);
+      const showPrice = tradingStartDate && currentDate >= tradingStartDate;
+
+      return {
+        date: formattedDate,
+        'Цена пая': showPrice ? f.unit_price_rub : null,
+        'РСП': f.nav_per_unit_rub,
+      };
     });
-    
-    // Сортируем по дате и форматируем
-    return Array.from(grouped.values())
-      .sort((a, b) => new Date(a.snapshot_date).getTime() - new Date(b.snapshot_date).getTime())
-      .map((f) => {
-        const currentDate = new Date(f.snapshot_date);
-        const formattedDate = formatMonthYear(currentDate);
-        
-        // Показываем цену пая только после начала торгов
-        const showPrice = tradingStartDate && currentDate >= tradingStartDate;
-        
-        return {
-          date: formattedDate,
-          'Цена пая': showPrice ? f.unit_price_rub : null,
-          'РСП': f.nav_per_unit_rub,
-        };
-      });
   })();
 
-  const payoutChartData = (() => {
-    const grouped = new Map<string, FundFinancials>();
-    
-    filteredFinancials
-      .filter((f) => f.payout_amount_rub > 0)
-      .forEach((f) => {
-        const date = new Date(f.snapshot_date);
-        const key = `${date.getFullYear()}-${date.getMonth()}`;
-        
-        const existing = grouped.get(key);
-        if (!existing || new Date(f.snapshot_date) > new Date(existing.snapshot_date)) {
-          grouped.set(key, f);
-        }
-      });
-    
-    return Array.from(grouped.values())
-      .sort((a, b) => new Date(a.snapshot_date).getTime() - new Date(b.snapshot_date).getTime())
-      .map((f) => ({
-        date: formatMonthYear(new Date(f.snapshot_date)),
-        'Выплата': f.payout_amount_rub,
-      }));
-  })();
+  const payoutChartData = buildPayoutChartData(filteredFinancials);
 
   const docColumns = [
     { title: 'Файл', dataIndex: 'file_name', key: 'file_name' },
