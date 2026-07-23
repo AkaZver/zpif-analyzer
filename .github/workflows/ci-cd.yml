@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -56,7 +56,7 @@ jobs:
         run: npm run lint
 
       - name: Upload backend coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: backend-coverage
           path: backend/coverage.out
@@ -67,18 +67,18 @@ jobs:
     needs: build-and-test
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Download backend coverage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: backend-coverage
           path: backend/
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: SonarSource/sonarqube-scan-action@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -90,7 +90,7 @@ jobs:
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Login to DockerHub
         uses: docker/login-action@v3
@@ -130,7 +130,7 @@ jobs:
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Copy docker-compose.prod.yml to VM
         uses: appleboy/scp-action@master
@@ -140,6 +140,21 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           source: "docker-compose.prod.yml"
           target: "~/zpif-analyzer"
+
+      - name: Initialize .env on VM (first deploy only)
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            cd ~/zpif-analyzer
+            if [ ! -f .env ]; then
+              echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" > .env
+              echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+              echo "ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}" >> .env
+              echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+            fi
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master

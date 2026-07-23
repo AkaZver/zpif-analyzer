@@ -27,6 +27,16 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Copy built files
 COPY --from=builder /build/dist /usr/share/nginx/html
 
+# Set proper permissions for nginx
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chown -R nginx:nginx /var/cache/nginx && \
+    chown -R nginx:nginx /var/log/nginx && \
+    touch /var/run/nginx.pid && \
+    chown -R nginx:nginx /var/run/nginx.pid
+
+# Switch to non-root user
+USER nginx
+
 # Expose port
 EXPOSE 80
 

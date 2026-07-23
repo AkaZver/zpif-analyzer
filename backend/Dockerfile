@@ -24,11 +24,18 @@ WORKDIR /app
 # Install runtime dependencies
 RUN apk add --no-cache ca-certificates tzdata
 
-# Create directories
-RUN mkdir -p /app/documents
+# Create non-root user
+RUN addgroup -g 1001 appgroup && \
+    adduser -u 1001 -G appgroup -D appuser
+
+# Create directories with proper permissions
+RUN mkdir -p /app/documents && chown -R appuser:appgroup /app
 
 # Copy binary
 COPY --from=builder /app/server .
+
+# Switch to non-root user
+USER appuser
 
 # Expose port
 EXPOSE 8080

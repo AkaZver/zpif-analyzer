@@ -16,6 +16,8 @@ type Config struct {
 	JWTSecret string
 
 	ServerPort string
+
+	AdminPassword string
 }
 
 func Load() *Config {
@@ -28,6 +30,7 @@ func Load() *Config {
 		DBSSLMode:     getEnv("DB_SSL_MODE", "disable"),
 		JWTSecret:     getEnv("JWT_SECRET", "change-me-in-production"),
 		ServerPort:    getEnv("SERVER_PORT", "8080"),
+		AdminPassword: getEnv("ADMIN_PASSWORD", "admin"),
 	}
 	return cfg
 }

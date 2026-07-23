@@ -58,7 +58,7 @@ func main() {
 	log.Println("Database migration completed")
 
 	// Создание начальных данных (seed)
-	seedInitialData(db)
+	seedInitialData(db, cfg)
 
 	// Инициализация repositories
 	fundRepo := repositories.NewFundRepository(db)
@@ -166,7 +166,7 @@ func main() {
 	}
 }
 
-func seedInitialData(db *gorm.DB) {
+func seedInitialData(db *gorm.DB, cfg *config.Config) {
 	// Проверка, есть ли уже данные
 	var count int64
 	db.Model(&models.Fund{}).Count(&count)
@@ -211,7 +211,7 @@ func seedInitialData(db *gorm.DB) {
 	}
 
 	// Начальный пользователь (admin)
-	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("admin"), bcrypt.DefaultCost)
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(cfg.AdminPassword), bcrypt.DefaultCost)
 	user := models.User{
 		Username:     "admin",
 		PasswordHash: string(hashedPassword),
@@ -221,7 +221,7 @@ func seedInitialData(db *gorm.DB) {
 	if err := db.Create(&user).Error; err != nil {
 		log.Printf("Failed to seed admin user: %v", err)
 	} else {
-		log.Println("Seeded admin user (username: admin, password: admin)")
+		log.Println("Seeded admin user (username: admin)")
 	}
 
 	log.Println("Initial data seeded successfully")

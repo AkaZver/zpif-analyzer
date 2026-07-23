@@ -37,6 +37,7 @@ services:
       DB_SSL_MODE: disable
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       SERVER_PORT: 8080
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
     ports:
       - "8080:8080"
     depends_on:

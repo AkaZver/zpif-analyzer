@@ -6,7 +6,7 @@
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=AkaZver_zpif-analyzer)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=AkaZver_zpif-analyzer)
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=AkaZver_zpif-analyzer)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=coverage)](https://sonarcloud.io/summary/new_code?id=AkaZver_zpif-analyzer)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=coverage)](https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer)
 
 Сервис для анализа закрытых паевых инвестиционных фондов (ЗПИФ) недвижимости с использованием LLM.
 
