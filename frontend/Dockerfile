@@ -37,8 +37,8 @@ RUN chown -R nginx:nginx /usr/share/nginx/html && \
 # Switch to non-root user
 USER nginx
 
-# Expose port
-EXPOSE 80
+# Expose ports
+EXPOSE 80 443
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
