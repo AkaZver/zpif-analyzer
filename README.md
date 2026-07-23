@@ -1,11 +1,11 @@
 # ZPIF Analyzer
 
 [![CI/CD Pipeline](https://github.com/AkaZver/zpif-analyzer/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/AkaZver/zpif-analyzer/actions/workflows/ci-cd.yml)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=AkaZver_zpif-analyzer)
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=AkaZver_zpif-analyzer)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=AkaZver_zpif-analyzer)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=AkaZver_zpif-analyzer)
-[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=AkaZver_zpif-analyzer)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=alert_status)](https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=security_rating)](https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=reliability_rating)](https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=sqale_rating)](https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=vulnerabilities)](https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=coverage)](https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer)
 
 Сервис для анализа закрытых паевых инвестиционных фондов (ЗПИФ) недвижимости с использованием LLM.
@@ -197,8 +197,10 @@ zpif-analyzer/
 │   │   ├── pages/             # Страницы
 │   │   ├── hooks/             # Custom hooks
 │   │   ├── api/               # API клиент
+│   │   ├── assets/            # Статические ресурсы (иконки, изображения)
 │   │   └── types/             # TypeScript типы
-│   ├── nginx.conf
+│   ├── nginx.dev.conf         # Nginx конфигурация для разработки
+│   ├── nginx.prod.conf        # Nginx конфигурация для production (с SSL)
 │   └── Dockerfile
 ├── docker-compose.yml         # Локальная разработка
 ├── docker-compose.prod.yml    # Production деплой

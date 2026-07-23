@@ -72,7 +72,10 @@ npm run lint                  # Проверка кода (oxlint)
 - `src/components/` — переиспользуемые компоненты
 - `src/api/client.ts` — единый API клиент (Axios)
 - `src/hooks/` — custom hooks (useAuth)
+- `src/assets/` — статические ресурсы (building-icon.svg, hero.png)
 - `src/types/` — TypeScript типы
+- `nginx.dev.conf` — конфигурация для локальной разработки (используется по умолчанию в Dockerfile)
+- `nginx.prod.conf` — конфигурация для production с SSL (используется через command override)
 
 **Важно:**
 - Линтер: **oxlint** (не eslint!)
@@ -233,5 +236,3 @@ docker-compose -f docker-compose.prod.yml up -d
 8. **CI/CD** — автоматический деплой при push в master через GitHub Actions
 9. **SonarCloud** — автоматический анализ качества кода при каждом PR и push
 10. **Security** — Docker контейнеры запускаются от non-root пользователя, секреты хранятся в GitHub Secrets
-8. **CI/CD** — автоматический деплой при push в master через GitHub Actions
-9. **SonarCloud** — автоматический анализ качества кода при каждом PR и push
