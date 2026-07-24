@@ -27,15 +27,17 @@ func (r *LLMSettingsRepository) Upsert(settings *models.LLMSettings) error {
 	err := r.db.First(&existing).Error
 	
 	if err == gorm.ErrRecordNotFound {
-		// Create new
 		return r.db.Create(settings).Error
 	} else if err != nil {
 		return err
 	}
 	
-	// Update existing
 	existing.APIKeyEncrypted = settings.APIKeyEncrypted
 	existing.BaseURL = settings.BaseURL
 	existing.ModelName = settings.ModelName
+	existing.ProxyEnabled = settings.ProxyEnabled
+	existing.ProxyURL = settings.ProxyURL
+	existing.ProxyUsername = settings.ProxyUsername
+	existing.ProxyPassword = settings.ProxyPassword
 	return r.db.Save(&existing).Error
 }

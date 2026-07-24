@@ -21,6 +21,10 @@ describe('Settings', () => {
       api_key_encrypted: '',
       base_url: 'https://api.openai.com/v1',
       model_name: 'gpt-4o-mini',
+      proxy_enabled: false,
+      proxy_url: '',
+      proxy_username: '',
+      proxy_password: '',
       created_at: '2024-01-01',
       updated_at: '2024-01-01',
     });
@@ -102,6 +106,58 @@ describe('Settings', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Настройки')).toBeInTheDocument();
+    });
+  });
+
+  it('should render proxy section', async () => {
+    render(
+      <MemoryRouter>
+        <Settings />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Прокси')).toBeInTheDocument();
+      expect(screen.getByText('Использовать прокси')).toBeInTheDocument();
+    });
+  });
+
+  it('should have proxy fields disabled by default', async () => {
+    render(
+      <MemoryRouter>
+        <Settings />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      const proxyUrlInput = screen.getByPlaceholderText('http://proxy.example.com:8080');
+      expect(proxyUrlInput).toBeDisabled();
+    });
+  });
+
+  it('should enable proxy fields when checkbox is checked', async () => {
+    vi.mocked(apiClient.getLLMSettings).mockResolvedValue({
+      id: 1,
+      api_key_encrypted: '',
+      base_url: 'https://api.openai.com/v1',
+      model_name: 'gpt-4o-mini',
+      proxy_enabled: true,
+      proxy_url: 'http://proxy.example.com:8080',
+      proxy_username: 'user',
+      proxy_password: '****',
+      created_at: '2024-01-01',
+      updated_at: '2024-01-01',
+    });
+
+    render(
+      <MemoryRouter>
+        <Settings />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      const proxyUrlInput = screen.getByPlaceholderText('http://proxy.example.com:8080');
+      expect(proxyUrlInput).not.toBeDisabled();
     });
   });
 });

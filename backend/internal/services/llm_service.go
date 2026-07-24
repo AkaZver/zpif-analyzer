@@ -36,6 +36,12 @@ func (s *LLMService) UpdateSettings(settings *models.LLMSettings) error {
 			settings.APIKeyEncrypted = existing.APIKeyEncrypted
 		}
 	}
+	if strings.Contains(settings.ProxyPassword, "****") {
+		existing, err := s.settingsRepo.Get()
+		if err == nil {
+			settings.ProxyPassword = existing.ProxyPassword
+		}
+	}
 	return s.settingsRepo.Upsert(settings)
 }
 
@@ -48,7 +54,13 @@ func (s *LLMService) TestConnection() error {
 		return fmt.Errorf("API key not configured")
 	}
 
-	client := llm.NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName)
+	proxy := &llm.ProxyConfig{
+		Enabled:  settings.ProxyEnabled,
+		URL:      settings.ProxyURL,
+		Username: settings.ProxyUsername,
+		Password: settings.ProxyPassword,
+	}
+	client := llm.NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName, proxy)
 	ctx := context.Background()
 	return client.TestConnection(ctx)
 }
@@ -62,7 +74,13 @@ func (s *LLMService) ListModels() ([]string, error) {
 		return nil, fmt.Errorf("API key not configured")
 	}
 
-	client := llm.NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName)
+	proxy := &llm.ProxyConfig{
+		Enabled:  settings.ProxyEnabled,
+		URL:      settings.ProxyURL,
+		Username: settings.ProxyUsername,
+		Password: settings.ProxyPassword,
+	}
+	client := llm.NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName, proxy)
 	ctx := context.Background()
 	return client.ListModels(ctx)
 }

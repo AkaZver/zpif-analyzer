@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
-	client := NewClient("test-key", "https://api.openai.com/v1", "gpt-4o-mini")
+	client := NewClient("test-key", "https://api.openai.com/v1", "gpt-4o-mini", nil)
 	assert.NotNil(t, client)
 	assert.Equal(t, "test-key", client.apiKey)
 	assert.Equal(t, "https://api.openai.com/v1", client.baseURL)
@@ -19,14 +19,14 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestNewClient_Defaults(t *testing.T) {
-	client := NewClient("test-key", "", "")
+	client := NewClient("test-key", "", "", nil)
 	assert.NotNil(t, client)
 	assert.Equal(t, "https://api.openai.com/v1", client.baseURL)
 	assert.Equal(t, "gpt-4o-mini", client.model)
 }
 
 func TestClient_Chat_EmptyAPIKey(t *testing.T) {
-	client := NewClient("", "https://api.openai.com/v1", "gpt-4o-mini")
+	client := NewClient("", "https://api.openai.com/v1", "gpt-4o-mini", nil)
 	messages := []Message{{Role: "user", Content: "test"}}
 
 	resp, err := client.Chat(context.Background(), messages)
@@ -79,7 +79,7 @@ func TestClient_Chat_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient("test-key", server.URL, "gpt-4o-mini")
+	client := NewClient("test-key", server.URL, "gpt-4o-mini", nil)
 	messages := []Message{{Role: "user", Content: "Hello"}}
 
 	resp, err := client.Chat(context.Background(), messages)
@@ -107,7 +107,7 @@ func TestClient_Chat_NoChoices(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient("test-key", server.URL, "gpt-4o-mini")
+	client := NewClient("test-key", server.URL, "gpt-4o-mini", nil)
 	messages := []Message{{Role: "user", Content: "Hello"}}
 
 	resp, err := client.Chat(context.Background(), messages)
@@ -144,7 +144,7 @@ func TestClient_ChatSimple_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient("test-key", server.URL, "gpt-4o-mini")
+	client := NewClient("test-key", server.URL, "gpt-4o-mini", nil)
 	resp, err := client.ChatSimple(context.Background(), "You are helpful", "Hello")
 
 	assert.NoError(t, err)
@@ -178,7 +178,7 @@ func TestClient_TestConnection_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient("test-key", server.URL, "gpt-4o-mini")
+	client := NewClient("test-key", server.URL, "gpt-4o-mini", nil)
 	err := client.TestConnection(context.Background())
 
 	assert.NoError(t, err)
@@ -211,7 +211,7 @@ func TestClient_TestConnection_EmptyResponse(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient("test-key", server.URL, "gpt-4o-mini")
+	client := NewClient("test-key", server.URL, "gpt-4o-mini", nil)
 	err := client.TestConnection(context.Background())
 
 	assert.Error(t, err)
@@ -219,6 +219,46 @@ func TestClient_TestConnection_EmptyResponse(t *testing.T) {
 }
 
 func TestClient_GetModel(t *testing.T) {
-	client := NewClient("test-key", "", "gpt-4-turbo")
+	client := NewClient("test-key", "", "gpt-4-turbo", nil)
 	assert.Equal(t, "gpt-4-turbo", client.GetModel())
+}
+
+func TestNewClient_WithProxy(t *testing.T) {
+	proxy := &ProxyConfig{
+		Enabled: true,
+		URL:     "http://proxy.example.com:8080",
+	}
+	client := NewClient("test-key", "https://api.openai.com/v1", "gpt-4o-mini", proxy)
+	assert.NotNil(t, client)
+	assert.NotNil(t, client.client.Transport)
+}
+
+func TestNewClient_WithProxyAuth(t *testing.T) {
+	proxy := &ProxyConfig{
+		Enabled:  true,
+		URL:      "http://proxy.example.com:8080",
+		Username: "user",
+		Password: "pass",
+	}
+	client := NewClient("test-key", "https://api.openai.com/v1", "gpt-4o-mini", proxy)
+	assert.NotNil(t, client)
+	assert.NotNil(t, client.client.Transport)
+}
+
+func TestNewClient_ProxyDisabled(t *testing.T) {
+	proxy := &ProxyConfig{
+		Enabled: false,
+		URL:     "http://proxy.example.com:8080",
+	}
+	client := NewClient("test-key", "https://api.openai.com/v1", "gpt-4o-mini", proxy)
+	assert.NotNil(t, client)
+}
+
+func TestNewClient_ProxyInvalidURL(t *testing.T) {
+	proxy := &ProxyConfig{
+		Enabled: true,
+		URL:     "://invalid",
+	}
+	client := NewClient("test-key", "https://api.openai.com/v1", "gpt-4o-mini", proxy)
+	assert.NotNil(t, client)
 }

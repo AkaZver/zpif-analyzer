@@ -67,7 +67,13 @@ func (a *Analyzer) Analyze(ctx context.Context, fund *models.Fund, documentID ui
 		return nil, fmt.Errorf("failed to get LLM settings: %w", err)
 	}
 
-	llmClient := NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName)
+	proxy := &ProxyConfig{
+		Enabled:  settings.ProxyEnabled,
+		URL:      settings.ProxyURL,
+		Username: settings.ProxyUsername,
+		Password: settings.ProxyPassword,
+	}
+	llmClient := NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName, proxy)
 
 	document, err := a.documentRepo.GetByID(documentID)
 	if err != nil {

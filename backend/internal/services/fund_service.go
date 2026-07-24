@@ -230,7 +230,13 @@ func (s *FundService) EnrichAndCreateFund(ctx context.Context, userInput string)
 		return nil, errors.New("LLM API key not configured")
 	}
 
-	client := llm.NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName)
+	proxy := &llm.ProxyConfig{
+		Enabled:  settings.ProxyEnabled,
+		URL:      settings.ProxyURL,
+		Username: settings.ProxyUsername,
+		Password: settings.ProxyPassword,
+	}
+	client := llm.NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName, proxy)
 
 	response, err := client.ChatSimple(ctx, llm.EnrichFundPrompt, userInput)
 	if err != nil {

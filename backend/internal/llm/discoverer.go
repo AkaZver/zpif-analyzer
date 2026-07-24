@@ -58,7 +58,13 @@ func (d *Discoverer) Discover(ctx context.Context, fund *models.Fund) (*Discover
 		return status, fmt.Errorf("failed to get LLM settings: %w", err)
 	}
 
-	llmClient := NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName)
+	proxy := &ProxyConfig{
+		Enabled:  settings.ProxyEnabled,
+		URL:      settings.ProxyURL,
+		Username: settings.ProxyUsername,
+		Password: settings.ProxyPassword,
+	}
+	llmClient := NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName, proxy)
 
 	prompt := buildDiscoveryPrompt(fund)
 

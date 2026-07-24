@@ -103,7 +103,9 @@ func TestLLMService_TestConnection(t *testing.T) {
 	now := time.Now()
 	rows := sqlmock.NewRows([]string{
 		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "model_name",
-	}).AddRow(1, now, now, nil, "test-api-key", "https://api.openai.com/v1", "gpt-4o-mini")
+		"proxy_enabled", "proxy_url", "proxy_username", "proxy_password",
+	}).AddRow(1, now, now, nil, "test-api-key", "https://api.openai.com/v1", "gpt-4o-mini",
+		false, "", "", "")
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
@@ -111,6 +113,34 @@ func TestLLMService_TestConnection(t *testing.T) {
 
 	err := service.TestConnection()
 
-	// Will fail because we can't connect to real OpenAI, but that's expected
 	assert.Error(t, err)
+}
+
+func TestLLMService_UpdateSettings_WithProxy(t *testing.T) {
+	service, mock, cleanup := setupTestLLMService(t)
+	defer cleanup()
+
+	mock.ExpectQuery(`SELECT \* FROM "llm_settings"`).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`INSERT INTO "llm_settings"`).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectCommit()
+
+	settings := &models.LLMSettings{
+		APIKeyEncrypted: "test_key",
+		BaseURL:         "https://api.openai.com/v1",
+		ModelName:       "gpt-4",
+		ProxyEnabled:    true,
+		ProxyURL:        "http://proxy.example.com:8080",
+		ProxyUsername:   "user",
+		ProxyPassword:   "pass",
+	}
+
+	err := service.UpdateSettings(settings)
+
+	assert.NoError(t, err)
+	assert.True(t, settings.ProxyEnabled)
+	assert.Equal(t, "http://proxy.example.com:8080", settings.ProxyURL)
 }

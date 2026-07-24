@@ -147,7 +147,7 @@ func TestAnalyzer_ExtractMetrics_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	llmClient := NewClient("test-key", server.URL, "gpt-4o-mini")
+	llmClient := NewClient("test-key", server.URL, "gpt-4o-mini", nil)
 	analyzer := &Analyzer{}
 
 	metrics, err := analyzer.extractMetrics(context.Background(), llmClient, "test document")
@@ -186,7 +186,7 @@ func TestAnalyzer_ExtractMetrics_InvalidJSON(t *testing.T) {
 	}))
 	defer server.Close()
 
-	llmClient := NewClient("test-key", server.URL, "gpt-4o-mini")
+	llmClient := NewClient("test-key", server.URL, "gpt-4o-mini", nil)
 	analyzer := &Analyzer{}
 
 	metrics, err := analyzer.extractMetrics(context.Background(), llmClient, "test document")
@@ -229,7 +229,7 @@ func TestAnalyzer_GenerateAnalysis_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	llmClient := NewClient("test-key", server.URL, "gpt-4o-mini")
+	llmClient := NewClient("test-key", server.URL, "gpt-4o-mini", nil)
 	analyzer := &Analyzer{}
 
 	fund := &models.Fund{
@@ -276,7 +276,7 @@ func TestAnalyzer_GenerateAnalysis_InvalidJSON(t *testing.T) {
 	}))
 	defer server.Close()
 
-	llmClient := NewClient("test-key", server.URL, "gpt-4o-mini")
+	llmClient := NewClient("test-key", server.URL, "gpt-4o-mini", nil)
 	analyzer := &Analyzer{}
 
 	fund := &models.Fund{

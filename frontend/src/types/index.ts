@@ -84,6 +84,10 @@ export interface LLMSettings {
   api_key_encrypted: string;
   base_url: string;
   model_name: string;
+  proxy_enabled: boolean;
+  proxy_url: string;
+  proxy_username: string;
+  proxy_password: string;
   created_at: string;
   updated_at: string;
 }

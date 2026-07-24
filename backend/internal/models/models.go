@@ -125,6 +125,11 @@ type LLMSettings struct {
 	APIKeyEncrypted string `json:"api_key_encrypted"`
 	BaseURL         string `json:"base_url"`
 	ModelName       string `json:"model_name"`
+
+	ProxyEnabled  bool   `gorm:"default:false" json:"proxy_enabled"`
+	ProxyURL      string `json:"proxy_url"`
+	ProxyUsername string `json:"proxy_username"`
+	ProxyPassword string `json:"proxy_password"`
 }
 
 type User struct {

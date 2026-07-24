@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -18,18 +19,41 @@ type Client struct {
 	client  *http.Client
 }
 
-func NewClient(apiKey, baseURL, model string) *Client {
+type ProxyConfig struct {
+	Enabled  bool
+	URL      string
+	Username string
+	Password string
+}
+
+func NewClient(apiKey, baseURL, model string, proxy *ProxyConfig) *Client {
 	if baseURL == "" {
 		baseURL = "https://api.openai.com/v1"
 	}
 	if model == "" {
 		model = "gpt-4o-mini"
 	}
+
+	transport := &http.Transport{}
+
+	if proxy != nil && proxy.Enabled && proxy.URL != "" {
+		proxyURL, err := url.Parse(proxy.URL)
+		if err == nil {
+			if proxy.Username != "" {
+				proxyURL.User = url.UserPassword(proxy.Username, proxy.Password)
+			}
+			transport.Proxy = http.ProxyURL(proxyURL)
+		}
+	}
+
 	return &Client{
 		apiKey:  apiKey,
 		baseURL: strings.TrimSuffix(baseURL, "/"),
 		model:   model,
-		client:  &http.Client{Timeout: 120 * time.Second},
+		client: &http.Client{
+			Timeout:   120 * time.Second,
+			Transport: transport,
+		},
 	}
 }
 

@@ -266,6 +266,42 @@ func TestLLMHandler_GetSettings(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
+func TestLLMHandler_GetSettings_WithProxy(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
+	assert.NoError(t, err)
+	defer func() { sqlDB, _ := gormDB.DB(); sqlDB.Close() }()
+
+	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
+	llmService := services.NewLLMService(settingsRepo)
+	handler := NewLLMHandler(llmService)
+
+	now := time.Now()
+	rows := sqlmock.NewRows([]string{
+		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "model_name",
+		"proxy_enabled", "proxy_url", "proxy_username", "proxy_password",
+	}).AddRow(1, now, now, nil, "test-key", "https://api.openai.com/v1", "gpt-4o-mini",
+		true, "http://proxy.example.com:8080", "user", "secret-password")
+
+	mock.ExpectQuery(`SELECT \* FROM "llm_settings"`).
+		WillReturnRows(rows)
+
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.GET("/api/llm/settings", handler.GetSettings)
+
+	req := httptest.NewRequest("GET", "/api/llm/settings", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "proxy_enabled")
+	assert.Contains(t, w.Body.String(), "****")
+	assert.NotContains(t, w.Body.String(), "secret-password")
+}
+
 func TestLLMHandler_TestConnection(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
@@ -281,7 +317,9 @@ func TestLLMHandler_TestConnection(t *testing.T) {
 	now := time.Now()
 	rows := sqlmock.NewRows([]string{
 		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "model_name",
-	}).AddRow(1, now, now, nil, "test-api-key", "https://api.openai.com/v1", "gpt-4o-mini")
+		"proxy_enabled", "proxy_url", "proxy_username", "proxy_password",
+	}).AddRow(1, now, now, nil, "test-api-key", "https://api.openai.com/v1", "gpt-4o-mini",
+		false, "", "", "")
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
@@ -295,7 +333,6 @@ func TestLLMHandler_TestConnection(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	// Will fail because we can't connect to real OpenAI, but that's expected
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
 
@@ -352,6 +389,38 @@ func TestLLMHandler_UpdateSettings(t *testing.T) {
 	router.PUT("/api/llm/settings", handler.UpdateSettings)
 
 	body := `{"api_key_encrypted":"key","base_url":"https://api.openai.com/v1","model_name":"gpt-4"}`
+	req := httptest.NewRequest("PUT", "/api/llm/settings", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestLLMHandler_UpdateSettings_WithProxy(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
+	assert.NoError(t, err)
+	defer func() { sqlDB, _ := gormDB.DB(); sqlDB.Close() }()
+
+	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
+	llmService := services.NewLLMService(settingsRepo)
+	handler := NewLLMHandler(llmService)
+
+	mock.ExpectQuery(`SELECT \* FROM "llm_settings"`).
+		WillReturnError(gorm.ErrRecordNotFound)
+	mock.ExpectBegin()
+	mock.ExpectQuery(`INSERT INTO "llm_settings"`).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectCommit()
+
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.PUT("/api/llm/settings", handler.UpdateSettings)
+
+	body := `{"api_key_encrypted":"key","base_url":"https://api.openai.com/v1","model_name":"gpt-4","proxy_enabled":true,"proxy_url":"http://proxy.example.com:8080","proxy_username":"user","proxy_password":"pass"}`
 	req := httptest.NewRequest("PUT", "/api/llm/settings", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()

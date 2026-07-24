@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Typography, Card, Button, Space, Form, Input, Select,
-  message,
+  message, Checkbox,
 } from 'antd';
 import { CloudDownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import { apiClient } from '../../api/client';
@@ -14,14 +14,15 @@ const Settings: React.FC = () => {
   const [savingLlm, setSavingLlm] = useState(false);
   const [models, setModels] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
+  const [proxyEnabled, setProxyEnabled] = useState(false);
 
   const loadLlmSettings = useCallback(async () => {
     try {
       const settings = await apiClient.getLLMSettings();
       setLlmSettings(settings);
       llmForm.setFieldsValue(settings);
+      setProxyEnabled(settings.proxy_enabled || false);
     } catch {
-      // Settings not configured yet
     }
   }, [llmForm]);
 
@@ -95,6 +96,22 @@ const Settings: React.FC = () => {
               <Input placeholder="gpt-4o-mini" />
             )}
           </Form.Item>
+          <Form.Item name="proxy_enabled" valuePropName="checked">
+            <Checkbox onChange={(e) => setProxyEnabled(e.target.checked)}>
+              Использовать прокси
+            </Checkbox>
+          </Form.Item>
+          <Card title="Прокси" className="mb-4" size="small">
+            <Form.Item name="proxy_url" label="URL прокси">
+              <Input placeholder="http://proxy.example.com:8080" disabled={!proxyEnabled} />
+            </Form.Item>
+            <Form.Item name="proxy_username" label="Логин">
+              <Input placeholder="username" disabled={!proxyEnabled} />
+            </Form.Item>
+            <Form.Item name="proxy_password" label="Пароль">
+              <Input.Password placeholder="password" disabled={!proxyEnabled} />
+            </Form.Item>
+          </Card>
           <Space>
             <Button type="primary" onClick={handleSaveLlmSettings} loading={savingLlm}>
               Сохранить
