@@ -1,13 +1,17 @@
-# ZPIF Analyzer
+<div align="center">
+  <h1>ZPIF Analyzer</h1>
+  <p>Сервис для анализа закрытых паевых инвестиционных фондов (ЗПИФ) недвижимости с использованием LLM</p>
+  <img src="docs/screenshot.png" width="600" alt="ZPIF Analyzer Dashboard" />
+</div>
 
-[![CI/CD Pipeline](https://github.com/AkaZver/zpif-analyzer/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/AkaZver/zpif-analyzer/actions/workflows/ci-cd.yml)
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=security_rating)](https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=reliability_rating)](https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=sqale_rating)](https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer)
-[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=vulnerabilities)](https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=coverage)](https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer)
-
-Сервис для анализа закрытых паевых инвестиционных фондов (ЗПИФ) недвижимости с использованием LLM.
+<p align="center">
+  <a href="https://github.com/AkaZver/zpif-analyzer/actions/workflows/ci-cd.yml"><img src="https://github.com/AkaZver/zpif-analyzer/actions/workflows/ci-cd.yml/badge.svg" alt="CI/CD Pipeline" /></a>
+  <a href="https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer"><img src="https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=security_rating" alt="Security Rating" /></a>
+  <a href="https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer"><img src="https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=reliability_rating" alt="Reliability Rating" /></a>
+  <a href="https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer"><img src="https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=sqale_rating" alt="Maintainability Rating" /></a>
+  <a href="https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer"><img src="https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=vulnerabilities" alt="Vulnerabilities" /></a>
+  <a href="https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer"><img src="https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=coverage" alt="Coverage" /></a>
+</p>
 
 ## Возможности
 
