@@ -161,7 +161,7 @@ func (h *FundHandler) GetDocumentsByFundID(c *gin.Context) {
 
 // DeleteDocument godoc
 func (h *FundHandler) DeleteDocument(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseUint(c.Param("docId"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document ID"})
 		return

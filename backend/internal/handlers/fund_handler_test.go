@@ -544,9 +544,9 @@ func TestFundHandler_DeleteDocument_InvalidDocID(t *testing.T) {
 	handler, router, _, cleanup := setupTestFundHandler(t)
 	defer cleanup()
 
-	router.DELETE("/api/funds/documents/:id", handler.DeleteDocument)
+	router.DELETE("/api/funds/:id/documents/:docId", handler.DeleteDocument)
 
-	req := httptest.NewRequest("DELETE", "/api/funds/documents/abc", nil)
+	req := httptest.NewRequest("DELETE", "/api/funds/1/documents/abc", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -563,9 +563,9 @@ func TestFundHandler_DeleteDocument_Success(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
-	router.DELETE("/api/funds/documents/:id", handler.DeleteDocument)
+	router.DELETE("/api/funds/:id/documents/:docId", handler.DeleteDocument)
 
-	req := httptest.NewRequest("DELETE", "/api/funds/documents/5", nil)
+	req := httptest.NewRequest("DELETE", "/api/funds/1/documents/5", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
