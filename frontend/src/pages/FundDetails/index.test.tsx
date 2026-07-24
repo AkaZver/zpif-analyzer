@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import FundDetails from './index';
 import { apiClient } from '../../api/client';
@@ -53,6 +53,10 @@ describe('FundDetails', () => {
     vi.mocked(apiClient.getFinancials).mockResolvedValue([]);
     vi.mocked(apiClient.getDocuments).mockResolvedValue([]);
     vi.mocked(apiClient.getAnalysis).mockRejectedValue(new Error('No analysis'));
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it('should render loading state initially', () => {
