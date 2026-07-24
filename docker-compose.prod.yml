@@ -53,7 +53,8 @@ services:
     image: ${DOCKERHUB_USERNAME}/zpif-frontend:${IMAGE_TAG:-latest}
     container_name: zpif-frontend
     restart: unless-stopped
-    command: ["nginx", "-c", "/etc/nginx/nginx.prod.conf", "-g", "daemon off;"]
+    environment:
+      VM_DOMAIN: ${VM_DOMAIN:-zpif-analyzer.freeddns.org}
     ports:
       - "80:80"
       - "443:443"

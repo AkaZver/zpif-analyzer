@@ -23,7 +23,9 @@ RUN apk add --no-cache curl
 
 # Copy nginx configuration
 COPY nginx.dev.conf /etc/nginx/nginx.conf
-COPY nginx.prod.conf /etc/nginx/nginx.prod.conf
+COPY nginx.prod.conf.template /etc/nginx/nginx.prod.conf.template
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Copy built files
 COPY --from=builder /build/dist /usr/share/nginx/html
@@ -39,4 +41,5 @@ RUN chown -R nginx:nginx /usr/share/nginx/html && \
 EXPOSE 80 443
 
 # Start nginx
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]

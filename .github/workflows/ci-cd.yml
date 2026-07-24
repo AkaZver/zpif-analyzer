@@ -158,7 +158,7 @@ jobs:
           source: "docker-compose.prod.yml"
           target: "~/zpif-analyzer"
 
-      - name: Initialize .env on VM (first deploy only)
+      - name: Initialize .env on VM
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VM_HOST }}
@@ -166,13 +166,12 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             cd ~/zpif-analyzer
-            if [ ! -f .env ]; then
-              echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" > .env
-              echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
-              echo "ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}" >> .env
-              echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
-              echo "IMAGE_TAG=latest" >> .env
-            fi
+            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" > .env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+            echo "ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}" >> .env
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+            echo "VM_DOMAIN=${{ secrets.VM_DOMAIN }}" >> .env
+            echo "IMAGE_TAG=latest" >> .env
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
@@ -184,6 +183,7 @@ jobs:
             cd ~/zpif-analyzer
             export IMAGE_TAG=${{ github.sha }}
             export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+            export VM_DOMAIN=${{ secrets.VM_DOMAIN }}
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
             docker image prune -f
