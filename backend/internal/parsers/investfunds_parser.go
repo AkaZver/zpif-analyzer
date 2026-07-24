@@ -1,6 +1,7 @@
 package parsers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -33,6 +34,19 @@ type Payout struct {
 	YieldPercent float64
 }
 
+type investfundsSearchResult struct {
+	FundID   string `json:"fund_id"`
+	FundName string `json:"fund_name"`
+	ISIN     string `json:"isin"`
+	FundsURL string `json:"funds_url"`
+}
+
+type investfundsSearchResponse struct {
+	Total          int                       `json:"total"`
+	CurrentResults []investfundsSearchResult `json:"currentResults"`
+	VerifyHash     string                    `json:"verifyHash"`
+}
+
 type InvestfundsParser struct {
 	client  *http.Client
 	baseURL string
@@ -48,7 +62,7 @@ func NewInvestfundsParser() *InvestfundsParser {
 }
 
 func (p *InvestfundsParser) SearchFund(query string) (string, error) {
-	searchURL := fmt.Sprintf("%s/search/?q=%s", p.baseURL, url.QueryEscape(query))
+	searchURL := fmt.Sprintf("%s/funds/index.php?searchString=%s&verifyHash=check", p.baseURL, url.QueryEscape(query))
 
 	req, err := http.NewRequest("GET", searchURL, nil)
 	if err != nil {
@@ -66,29 +80,37 @@ func (p *InvestfundsParser) SearchFund(query string) (string, error) {
 		return "", fmt.Errorf("investfunds search returned status %d", resp.StatusCode)
 	}
 
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse search results: %w", err)
+	var searchResp investfundsSearchResponse
+	if err := json.NewDecoder(resp.Body).Decode(&searchResp); err != nil {
+		return "", fmt.Errorf("failed to parse search response: %w", err)
 	}
 
-	var fundURL string
-	doc.Find("a[href*='/funds/']").Each(func(i int, s *goquery.Selection) {
-		if href, exists := s.Attr("href"); exists && strings.Contains(href, "/funds/") {
-			if fundURL == "" {
-				if strings.HasPrefix(href, "http") {
-					fundURL = href
-				} else {
-					fundURL = p.baseURL + href
-				}
-			}
-		}
-	})
-
-	if fundURL == "" {
+	if searchResp.Total == 0 || len(searchResp.CurrentResults) == 0 {
 		return "", fmt.Errorf("fund not found on investfunds.ru for query: %s", query)
 	}
 
-	return fundURL, nil
+	isISIN := isISINFormat(query)
+	queryLower := strings.ToLower(query)
+
+	for _, result := range searchResp.CurrentResults {
+		if isISIN {
+			if strings.EqualFold(result.ISIN, query) {
+				return p.baseURL + result.FundsURL, nil
+			}
+		} else {
+			resultNameLower := strings.ToLower(result.FundName)
+			if strings.Contains(resultNameLower, queryLower) || strings.Contains(queryLower, resultNameLower) {
+				return p.baseURL + result.FundsURL, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("fund not found on investfunds.ru for query: %s", query)
+}
+
+func isISINFormat(s string) bool {
+	isinRegex := regexp.MustCompile(`^[A-Z]{2}[A-Z0-9]{9}\d$`)
+	return isinRegex.MatchString(s)
 }
 
 func (p *InvestfundsParser) GetFundData(fundURL string) (*InvestfundsData, error) {

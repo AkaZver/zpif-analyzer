@@ -9,6 +9,8 @@ docker-compose up --build -d  # Пересборка и запуск
 docker-compose down           # Остановка
 ```
 
+**ВАЖНО:** После любых изменений файлов frontend или backend обязательно запускай `docker-compose up --build -d` для пересборки и перезапуска контейнеров.
+
 ### Локальная разработка
 
 **Backend:**

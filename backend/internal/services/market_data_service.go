@@ -25,6 +25,7 @@ type InvestfundsParserI interface {
 type VsezpifParserI interface {
 	GetFundDataByISIN(isin string) (*parsers.VsezpifData, error)
 	GetFundDataByURL(fundURL string) (*parsers.VsezpifData, error)
+	SearchByISIN(isin string) (string, *parsers.VsezpifData, error)
 }
 
 type FinancialsRepoI interface {
@@ -133,15 +134,16 @@ func (s *MarketDataService) FetchMarketDataForFund(ctx context.Context, fundID u
 
 	// Try to get investfunds data
 	var fundURL string
+	urlsChanged := false
 
 	if fund.InvestfundsURL != "" {
 		// Use provided URL directly
 		fundURL = fund.InvestfundsURL
 		log.Printf("Using provided investfunds URL: %s", fundURL)
 	} else {
-		// Try to search for fund
+		// Try to search for fund by ISIN or name
 		searchQuery := fund.ISIN
-		if searchQuery == "" || len(searchQuery) > 12 {
+		if searchQuery == "" {
 			searchQuery = fund.Name
 		}
 
@@ -150,6 +152,10 @@ func (s *MarketDataService) FetchMarketDataForFund(ctx context.Context, fundID u
 		if err != nil {
 			log.Printf("investfunds search error for %s: %v", searchQuery, err)
 			result.InvestfundsAvailable = false
+		} else {
+			fund.InvestfundsURL = fundURL
+			urlsChanged = true
+			log.Printf("Auto-discovered investfunds URL: %s", fundURL)
 		}
 	}
 
@@ -168,40 +174,49 @@ func (s *MarketDataService) FetchMarketDataForFund(ctx context.Context, fundID u
 
 	// Try to get vsezpif data (количество объектов, арендаторы, сегмент, дата завершения, комиссия, годовая выплата)
 	var vsezpifData *parsers.VsezpifData
-	if fund.VsezpifURL != "" || fund.ISIN != "" {
-		var data *parsers.VsezpifData
-		var err error
-		
-		if fund.VsezpifURL != "" {
-			log.Printf("Fetching vsezpif data from URL: %s", fund.VsezpifURL)
-			data, err = s.vsezpifParser.GetFundDataByURL(fund.VsezpifURL)
-		} else {
-			log.Printf("Fetching vsezpif data by ISIN: %s", fund.ISIN)
-			data, err = s.vsezpifParser.GetFundDataByISIN(fund.ISIN)
-		}
-		
+	if fund.VsezpifURL != "" {
+		log.Printf("Fetching vsezpif data from URL: %s", fund.VsezpifURL)
+		data, err := s.vsezpifParser.GetFundDataByURL(fund.VsezpifURL)
 		if err != nil {
 			log.Printf("vsezpif data error for %s: %v", fund.Name, err)
 		} else {
 			vsezpifData = data
 			log.Printf("vsezpif: fetched data for %s (objects: %d, tenants: %s, segment: %s, annual payout: %.2f)",
 				fund.Name, data.NumberOfProperties, data.MainTenants, data.RealEstateSegment, data.AnnualPayoutRub)
+		}
+	} else if fund.ISIN != "" {
+		log.Printf("Searching vsezpif by ISIN: %s", fund.ISIN)
+		discoveredURL, data, err := s.vsezpifParser.SearchByISIN(fund.ISIN)
+		if err != nil {
+			log.Printf("vsezpif search error for %s: %v", fund.ISIN, err)
+		} else {
+			vsezpifData = data
+			fund.VsezpifURL = discoveredURL
+			urlsChanged = true
+			log.Printf("Auto-discovered vsezpif URL: %s (objects: %d, tenants: %s, segment: %s, annual payout: %.2f)",
+				discoveredURL, data.NumberOfProperties, data.MainTenants, data.RealEstateSegment, data.AnnualPayoutRub)
+		}
+	}
 
-			// Обновляем данные фонда из vsezpif
-			fundUpdated := false
-			if data.RealEstateSegment != "" && fund.RealEstateSegment == "" {
-				fund.RealEstateSegment = data.RealEstateSegment
-				fundUpdated = true
-			}
-			if data.FundEndDate != nil && fund.FundEndDate == nil {
-				fund.FundEndDate = data.FundEndDate
-				fundUpdated = true
-			}
-			if fundUpdated {
-				if err := s.fundRepo.Update(fund); err != nil {
-					log.Printf("Failed to update fund from vsezpif: %v", err)
-				}
-			}
+	if vsezpifData != nil {
+		// Обновляем данные фонда из vsezpif
+		fundUpdated := false
+		if vsezpifData.RealEstateSegment != "" && fund.RealEstateSegment == "" {
+			fund.RealEstateSegment = vsezpifData.RealEstateSegment
+			fundUpdated = true
+		}
+		if vsezpifData.FundEndDate != nil && fund.FundEndDate == nil {
+			fund.FundEndDate = vsezpifData.FundEndDate
+			fundUpdated = true
+		}
+		if fundUpdated {
+			urlsChanged = true
+		}
+	}
+
+	if urlsChanged {
+		if err := s.fundRepo.Update(fund); err != nil {
+			log.Printf("Failed to update fund with discovered URLs: %v", err)
 		}
 	}
 

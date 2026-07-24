@@ -11,11 +11,20 @@ import (
 
 func TestInvestfundsParser_SearchFund(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		html := `<html><body>
-			<a href="/funds/123-test-fund">Test Fund</a>
-			<a href="/funds/456-other">Other Fund</a>
-		</body></html>`
-		w.Write([]byte(html))
+		w.Header().Set("Content-Type", "application/json")
+		jsonResp := `{
+			"total": 1,
+			"currentResults": [
+				{
+					"fund_id": "5887",
+					"fund_name": "Акцент 4",
+					"isin": "RU000A100WZ5",
+					"funds_url": "/funds/5887/"
+				}
+			],
+			"verifyHash": "check"
+		}`
+		w.Write([]byte(jsonResp))
 	}))
 	defer server.Close()
 
@@ -24,18 +33,34 @@ func TestInvestfundsParser_SearchFund(t *testing.T) {
 		baseURL: server.URL,
 	}
 
-	url, err := parser.SearchFund("test")
+	url, err := parser.SearchFund("RU000A100WZ5")
 
 	assert.NoError(t, err)
-	assert.Contains(t, url, "/funds/123-test-fund")
+	assert.Equal(t, server.URL+"/funds/5887/", url)
 }
 
-func TestInvestfundsParser_SearchFund_AbsoluteURL(t *testing.T) {
+func TestInvestfundsParser_SearchFund_ByName(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		html := `<html><body>
-			<a href="https://investfunds.ru/funds/123-test">Test Fund</a>
-		</body></html>`
-		w.Write([]byte(html))
+		w.Header().Set("Content-Type", "application/json")
+		jsonResp := `{
+			"total": 2,
+			"currentResults": [
+				{
+					"fund_id": "5887",
+					"fund_name": "Акцент 4",
+					"isin": "RU000A100WZ5",
+					"funds_url": "/funds/5887/"
+				},
+				{
+					"fund_id": "123",
+					"fund_name": "Другой фонд",
+					"isin": "RU000OTHER01",
+					"funds_url": "/funds/123/"
+				}
+			],
+			"verifyHash": "check"
+		}`
+		w.Write([]byte(jsonResp))
 	}))
 	defer server.Close()
 
@@ -44,16 +69,17 @@ func TestInvestfundsParser_SearchFund_AbsoluteURL(t *testing.T) {
 		baseURL: server.URL,
 	}
 
-	url, err := parser.SearchFund("test")
+	url, err := parser.SearchFund("Акцент")
 
 	assert.NoError(t, err)
-	assert.Equal(t, "https://investfunds.ru/funds/123-test", url)
+	assert.Equal(t, server.URL+"/funds/5887/", url)
 }
 
 func TestInvestfundsParser_SearchFund_NotFound(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		html := `<html><body><p>No results</p></body></html>`
-		w.Write([]byte(html))
+		w.Header().Set("Content-Type", "application/json")
+		jsonResp := `{"total": 0, "currentResults": [], "verifyHash": "check"}`
+		w.Write([]byte(jsonResp))
 	}))
 	defer server.Close()
 
@@ -62,7 +88,38 @@ func TestInvestfundsParser_SearchFund_NotFound(t *testing.T) {
 		baseURL: server.URL,
 	}
 
-	url, err := parser.SearchFund("nonexistent")
+	url, err := parser.SearchFund("RU000A100WZ5")
+
+	assert.Error(t, err)
+	assert.Empty(t, url)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestInvestfundsParser_SearchFund_WrongMatch(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		jsonResp := `{
+			"total": 1,
+			"currentResults": [
+				{
+					"fund_id": "123",
+					"fund_name": "Другой фонд",
+					"isin": "RU000OTHER01",
+					"funds_url": "/funds/123/"
+				}
+			],
+			"verifyHash": "check"
+		}`
+		w.Write([]byte(jsonResp))
+	}))
+	defer server.Close()
+
+	parser := &InvestfundsParser{
+		client:  server.Client(),
+		baseURL: server.URL,
+	}
+
+	url, err := parser.SearchFund("Акцент")
 
 	assert.Error(t, err)
 	assert.Empty(t, url)
@@ -207,4 +264,27 @@ func TestNewInvestfundsParser(t *testing.T) {
 	assert.NotNil(t, parser)
 	assert.NotNil(t, parser.client)
 	assert.Equal(t, 30*time.Second, parser.client.Timeout)
+}
+
+func TestIsISINFormat(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"RU000A100WZ5", true},
+		{"US0378331005", true},
+		{"GB0002634946", true},
+		{"RU000OTHER01", true},
+		{"RU000A100WZ", false},
+		{"RU000A100WZ55", false},
+		{"000A100WZ5", false},
+		{"Акцент 4", false},
+		{"", false},
+		{"ru000a100wz5", false},
+	}
+
+	for _, tt := range tests {
+		result := isISINFormat(tt.input)
+		assert.Equal(t, tt.expected, result, "input: %s", tt.input)
+	}
 }

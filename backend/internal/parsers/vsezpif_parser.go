@@ -15,7 +15,7 @@ type VsezpifFund struct {
 	ID                   int         `json:"id"`
 	Name                 string      `json:"name"`
 	ISIN                 string      `json:"isin"`
-	Price                float64     `json:"price"`
+	Price                interface{} `json:"price"`
 	PaymentsPerYear      int         `json:"payments_per_year"`
 	PaymentBeforeTax     interface{} `json:"payment_before_tax"`
 	ForQualifiedInvestors int        `json:"for_qualified_investors"`
@@ -23,10 +23,10 @@ type VsezpifFund struct {
 	ManagementCompany    string      `json:"management_company"`
 	PaymentStability     string      `json:"payment_stability"`
 	PaymentIndexation    string      `json:"payment_indexation"`
-	CalculatedNAV        float64     `json:"calculated_nav"`
-	DiscountPercent      float64     `json:"discount_percent"`
+	CalculatedNAV        interface{} `json:"calculated_nav"`
+	DiscountPercent      interface{} `json:"discount_percent"`
 	FundLifetime         string      `json:"fund_lifetime"`
-	NAV                  float64     `json:"nav"`
+	NAV                  interface{} `json:"nav"`
 	PaymentsForLastYear  interface{} `json:"payments_for_last_year"`
 	AvgTradeVolume       interface{} `json:"avg_trade_volume"`
 	Renters              string      `json:"renters"`
@@ -35,10 +35,10 @@ type VsezpifFund struct {
 	MarketMaker          string      `json:"market_maker"`
 	Slug                 string      `json:"slug"`
 	UKCommission         string      `json:"uk_commission"`
-	YieldBeforeTaxYear   float64     `json:"yield_before_tax_year"`
-	PaymentAfterTax      float64     `json:"payment_after_tax"`
-	YieldMonth           float64     `json:"yield_month"`
-	YieldYear            float64     `json:"yield_year"`
+	YieldBeforeTaxYear   interface{} `json:"yield_before_tax_year"`
+	PaymentAfterTax      interface{} `json:"payment_after_tax"`
+	YieldMonth           interface{} `json:"yield_month"`
+	YieldYear            interface{} `json:"yield_year"`
 	YieldLastYear        interface{} `json:"yield_last_year"`
 	FullYieldLastYear    interface{} `json:"full_yield_last_year"`
 }
@@ -76,6 +76,19 @@ func (p *VsezpifParser) GetFundDataByISIN(isin string) (*VsezpifData, error) {
 		return nil, err
 	}
 	return p.parseFundData(fund)
+}
+
+func (p *VsezpifParser) SearchByISIN(isin string) (string, *VsezpifData, error) {
+	fund, err := p.getFundByISIN(isin)
+	if err != nil {
+		return "", nil, err
+	}
+	data, err := p.parseFundData(fund)
+	if err != nil {
+		return "", nil, err
+	}
+	fundURL := fmt.Sprintf("%s/?route=fund&id=%d", p.baseURL, fund.ID)
+	return fundURL, data, nil
 }
 
 func (p *VsezpifParser) GetFundDataByURL(fundURL string) (*VsezpifData, error) {
