@@ -80,7 +80,7 @@ func TestVsezpifParser_GetFundDataByISIN_NotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 }
 
-func TestVsezpifParser_SearchByISIN(t *testing.T) {
+func TestVsezpifParser_SearchFund_ByISIN(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		funds := []VsezpifFund{
 			{
@@ -104,7 +104,7 @@ func TestVsezpifParser_SearchByISIN(t *testing.T) {
 		baseURL: server.URL,
 	}
 
-	fundURL, data, err := parser.SearchByISIN("RU000TEST01")
+	fundURL, data, err := parser.SearchFund("RU000TEST01", "", "")
 
 	assert.NoError(t, err)
 	assert.NotNil(t, data)
@@ -113,10 +113,20 @@ func TestVsezpifParser_SearchByISIN(t *testing.T) {
 	assert.Equal(t, "Ozon", data.MainTenants)
 }
 
-func TestVsezpifParser_SearchByISIN_NotFound(t *testing.T) {
+func TestVsezpifParser_SearchFund_ByTicker(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		funds := []VsezpifFund{
-			{ID: 1, ISIN: "RU000OTHER"},
+			{
+				ID:                   30,
+				Name:                 "Акцент 5",
+				ISIN:                 "XACCSK",
+				Description:          "Складской комплекс",
+				ObjectsInFund:        "1",
+				Renters:              "Деловые линии",
+				UKCommission:         "1% от СЧА",
+				PaymentsForLastYear:  123.77,
+				FundLifetime:         "03.09.2040",
+			},
 		}
 		json.NewEncoder(w).Encode(funds)
 	}))
@@ -127,7 +137,61 @@ func TestVsezpifParser_SearchByISIN_NotFound(t *testing.T) {
 		baseURL: server.URL,
 	}
 
-	fundURL, data, err := parser.SearchByISIN("RU000TEST01")
+	fundURL, data, err := parser.SearchFund("RU000A10DQF7", "XACCSK", "Акцент 5")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, data)
+	assert.Equal(t, server.URL+"/?route=fund&id=30", fundURL)
+	assert.Equal(t, 1, data.NumberOfProperties)
+	assert.Equal(t, "Деловые линии", data.MainTenants)
+}
+
+func TestVsezpifParser_SearchFund_ByName(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		funds := []VsezpifFund{
+			{
+				ID:                   30,
+				Name:                 "Акцент 5",
+				ISIN:                 "XACCSK",
+				Description:          "Складской комплекс",
+				ObjectsInFund:        "1",
+				Renters:              "Деловые линии",
+				UKCommission:         "1% от СЧА",
+				PaymentsForLastYear:  123.77,
+				FundLifetime:         "03.09.2040",
+			},
+		}
+		json.NewEncoder(w).Encode(funds)
+	}))
+	defer server.Close()
+
+	parser := &VsezpifParser{
+		client:  server.Client(),
+		baseURL: server.URL,
+	}
+
+	fundURL, data, err := parser.SearchFund("", "", "Акцент 5")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, data)
+	assert.Equal(t, server.URL+"/?route=fund&id=30", fundURL)
+}
+
+func TestVsezpifParser_SearchFund_NotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		funds := []VsezpifFund{
+			{ID: 1, Name: "Совершенно другой фонд", ISIN: "RU000OTHER"},
+		}
+		json.NewEncoder(w).Encode(funds)
+	}))
+	defer server.Close()
+
+	parser := &VsezpifParser{
+		client:  server.Client(),
+		baseURL: server.URL,
+	}
+
+	fundURL, data, err := parser.SearchFund("RU000TEST01", "TEST", "Test Fund")
 
 	assert.Error(t, err)
 	assert.Nil(t, data)

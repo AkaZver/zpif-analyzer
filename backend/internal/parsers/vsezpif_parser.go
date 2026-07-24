@@ -71,15 +71,15 @@ func NewVsezpifParser() *VsezpifParser {
 }
 
 func (p *VsezpifParser) GetFundDataByISIN(isin string) (*VsezpifData, error) {
-	fund, err := p.getFundByISIN(isin)
+	fund, err := p.getFundByQuery(isin, "", "")
 	if err != nil {
 		return nil, err
 	}
 	return p.parseFundData(fund)
 }
 
-func (p *VsezpifParser) SearchByISIN(isin string) (string, *VsezpifData, error) {
-	fund, err := p.getFundByISIN(isin)
+func (p *VsezpifParser) SearchFund(isin, ticker, name string) (string, *VsezpifData, error) {
+	fund, err := p.getFundByQuery(isin, ticker, name)
 	if err != nil {
 		return "", nil, err
 	}
@@ -104,7 +104,7 @@ func (p *VsezpifParser) GetFundDataByURL(fundURL string) (*VsezpifData, error) {
 	return p.parseFundData(fund)
 }
 
-func (p *VsezpifParser) getFundByISIN(isin string) (*VsezpifFund, error) {
+func (p *VsezpifParser) getFundByQuery(isin, ticker, name string) (*VsezpifFund, error) {
 	url := p.baseURL + "/?route=api&action=get_funds"
 	
 	req, err := http.NewRequest("GET", url, nil)
@@ -133,13 +133,36 @@ func (p *VsezpifParser) getFundByISIN(isin string) (*VsezpifFund, error) {
 		return nil, fmt.Errorf("failed to parse funds list: %w", err)
 	}
 
-	for _, fund := range funds {
-		if fund.ISIN == isin {
-			return &fund, nil
+	// 1. Try exact match by ISIN
+	if isin != "" {
+		for _, fund := range funds {
+			if fund.ISIN == isin {
+				return &fund, nil
+			}
 		}
 	}
 
-	return nil, fmt.Errorf("fund with ISIN %s not found", isin)
+	// 2. Try exact match by ticker (vsezpif stores ticker in isin field for some funds)
+	if ticker != "" {
+		for _, fund := range funds {
+			if fund.ISIN == ticker {
+				return &fund, nil
+			}
+		}
+	}
+
+	// 3. Try partial match by name (case-insensitive)
+	if name != "" {
+		nameLower := strings.ToLower(name)
+		for _, fund := range funds {
+			fundNameLower := strings.ToLower(fund.Name)
+			if strings.Contains(fundNameLower, nameLower) || strings.Contains(nameLower, fundNameLower) {
+				return &fund, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("fund not found on vsezpif.ru (isin: %s, ticker: %s, name: %s)", isin, ticker, name)
 }
 
 func (p *VsezpifParser) getFundByID(id int) (*VsezpifFund, error) {

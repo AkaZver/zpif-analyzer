@@ -69,8 +69,8 @@ func (m *MockVsezpifParser) GetFundDataByURL(fundURL string) (*parsers.VsezpifDa
 	return args.Get(0).(*parsers.VsezpifData), args.Error(1)
 }
 
-func (m *MockVsezpifParser) SearchByISIN(isin string) (string, *parsers.VsezpifData, error) {
-	args := m.Called(isin)
+func (m *MockVsezpifParser) SearchFund(isin, ticker, name string) (string, *parsers.VsezpifData, error) {
+	args := m.Called(isin, ticker, name)
 	url := args.String(0)
 	if args.Get(1) == nil {
 		return url, nil, args.Error(2)
@@ -176,7 +176,7 @@ func TestMarketDataService_FetchMarketDataForFund_NoDataAvailable(t *testing.T) 
 	fundRepo.On("GetByID", uint(1)).Return(fund, nil)
 	moexParser.On("SearchSecurity", "RU000TEST").Return(nil, errors.New("not found"))
 	investfundsParser.On("SearchFund", "RU000TEST").Return("", errors.New("not found"))
-	vsezpifParser.On("SearchByISIN", "RU000TEST").Return("", nil, errors.New("not found"))
+	vsezpifParser.On("SearchFund", "RU000TEST", "", "Test Fund").Return("", nil, errors.New("not found"))
 
 	service := &MarketDataService{
 		moexParser:        moexParser,
@@ -212,7 +212,7 @@ func TestMarketDataService_FetchMarketDataForFund_WithMoexData(t *testing.T) {
 	moexParser.On("GetPriceHistoryWithBoard", "TEST", "TQBR").Return(moexHistory, nil)
 
 	investfundsParser.On("SearchFund", "RU000TEST").Return("", errors.New("not found"))
-	vsezpifParser.On("SearchByISIN", "RU000TEST").Return("", nil, errors.New("not found"))
+	vsezpifParser.On("SearchFund", "RU000TEST", "", "Test Fund").Return("", nil, errors.New("not found"))
 
 	financialsRepo.On("GetByFundIDAndDate", uint(1), mock.Anything).Return(nil, errors.New("not found"))
 	financialsRepo.On("Create", mock.AnythingOfType("*models.FundFinancials")).Return(nil)
@@ -256,7 +256,7 @@ func TestMarketDataService_FetchMarketDataForFund_WithPayoutHistory(t *testing.T
 	investfundsParser.On("SearchFund", "RU000TEST").Return("http://test.ru", nil)
 	investfundsParser.On("GetFundData", "http://test.ru").Return(investfundsData, nil)
 
-	vsezpifParser.On("SearchByISIN", "RU000TEST").Return("", nil, errors.New("not found"))
+	vsezpifParser.On("SearchFund", "RU000TEST", "", "Test Fund").Return("", nil, errors.New("not found"))
 
 	financialsRepo.On("GetByFundIDAndDate", uint(1), mock.Anything).Return(nil, errors.New("not found"))
 	
@@ -310,7 +310,7 @@ func TestMarketDataService_FetchMarketDataForFund_UpdatePayoutHistory(t *testing
 	investfundsParser.On("SearchFund", "RU000TEST").Return("http://test.ru", nil)
 	investfundsParser.On("GetFundData", "http://test.ru").Return(investfundsData, nil)
 
-	vsezpifParser.On("SearchByISIN", "RU000TEST").Return("", nil, errors.New("not found"))
+	vsezpifParser.On("SearchFund", "RU000TEST", "", "Test Fund").Return("", nil, errors.New("not found"))
 
 	existingFinancial := &models.FundFinancials{
 		ID:           1,
@@ -374,7 +374,7 @@ func TestMarketDataService_FetchMarketDataForFund_AutoDiscoversURLs(t *testing.T
 		MainTenants:        "Ozon",
 		RealEstateSegment:  "склады",
 	}
-	vsezpifParser.On("SearchByISIN", "RU000TEST").Return("https://vsezpif.ru/?route=fund&id=42", vsezpifData, nil)
+	vsezpifParser.On("SearchFund", "RU000TEST", "", "Test Fund").Return("https://vsezpif.ru/?route=fund&id=42", vsezpifData, nil)
 
 	financialsRepo.On("GetByFundIDAndDate", uint(1), mock.Anything).Return(nil, errors.New("not found"))
 	financialsRepo.On("Create", mock.AnythingOfType("*models.FundFinancials")).Return(nil)
@@ -506,7 +506,7 @@ func TestMarketDataService_FetchMarketDataForAllFunds(t *testing.T) {
 	fundRepo.On("GetByID", uint(1)).Return(&funds[0], nil)
 	moexParser.On("SearchSecurity", "RU0001").Return(nil, errors.New("not found"))
 	investfundsParser.On("SearchFund", "RU0001").Return("", errors.New("not found"))
-	vsezpifParser.On("SearchByISIN", "RU0001").Return("", nil, errors.New("not found"))
+	vsezpifParser.On("SearchFund", "RU0001", "", "Fund 1").Return("", nil, errors.New("not found"))
 
 	service := &MarketDataService{
 		moexParser:        moexParser,

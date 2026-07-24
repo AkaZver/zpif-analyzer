@@ -25,7 +25,7 @@ type InvestfundsParserI interface {
 type VsezpifParserI interface {
 	GetFundDataByISIN(isin string) (*parsers.VsezpifData, error)
 	GetFundDataByURL(fundURL string) (*parsers.VsezpifData, error)
-	SearchByISIN(isin string) (string, *parsers.VsezpifData, error)
+	SearchFund(isin, ticker, name string) (string, *parsers.VsezpifData, error)
 }
 
 type FinancialsRepoI interface {
@@ -184,9 +184,9 @@ func (s *MarketDataService) FetchMarketDataForFund(ctx context.Context, fundID u
 			log.Printf("vsezpif: fetched data for %s (objects: %d, tenants: %s, segment: %s, annual payout: %.2f)",
 				fund.Name, data.NumberOfProperties, data.MainTenants, data.RealEstateSegment, data.AnnualPayoutRub)
 		}
-	} else if fund.ISIN != "" {
-		log.Printf("Searching vsezpif by ISIN: %s", fund.ISIN)
-		discoveredURL, data, err := s.vsezpifParser.SearchByISIN(fund.ISIN)
+	} else if fund.ISIN != "" || fund.Ticker != "" || fund.Name != "" {
+		log.Printf("Searching vsezpif for: %s (ticker: %s, name: %s)", fund.ISIN, fund.Ticker, fund.Name)
+		discoveredURL, data, err := s.vsezpifParser.SearchFund(fund.ISIN, fund.Ticker, fund.Name)
 		if err != nil {
 			log.Printf("vsezpif search error for %s: %v", fund.ISIN, err)
 		} else {
