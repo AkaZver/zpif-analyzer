@@ -30,14 +30,24 @@ func (s *ExcelService) ExportToExcel() ([]byte, error) {
 	f := excelize.NewFile()
 	defer f.Close()
 
-	// Sheet 1: Funds
-	fundsSheet := "Фонды"
-	f.SetSheetName("Sheet1", fundsSheet)
-	
-	fundHeaders := []string{"ID", "Название", "ISIN", "Тикер", "УК", "Сегмент", "Квал", "ММ", "Дата создания"}
-	for i, header := range fundHeaders {
+	sheetName := "Фонды"
+	f.SetSheetName("Sheet1", sheetName)
+
+	rubFmt := `#,##0.00" "[$₽-419]`
+	pctFmt := "[$-419]0.00%"
+	numFmt := "[$-419]0.00"
+	rubStyle, _ := f.NewStyle(&excelize.Style{CustomNumFmt: &rubFmt})
+	pctStyle, _ := f.NewStyle(&excelize.Style{CustomNumFmt: &pctFmt})
+	numStyle, _ := f.NewStyle(&excelize.Style{CustomNumFmt: &numFmt})
+
+	headers := []string{
+		"Название", "ISIN", "Тикер", "Квал", "УК", "Сегмент",
+		"Цена пая", "РСП", "Дисконт к РСП", "Cap Rate", "СЧА, млн ₽",
+		"P/NAV", "P/AFFO", "Доходность выплат", "Комиссия УК",
+	}
+	for i, header := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(fundsSheet, cell, header)
+		f.SetCellValue(sheetName, cell, header)
 	}
 
 	funds, err := s.fundRepo.GetAll()
@@ -46,85 +56,42 @@ func (s *ExcelService) ExportToExcel() ([]byte, error) {
 	}
 
 	for row, fund := range funds {
-		f.SetCellValue(fundsSheet, cellName(1, row+2), fund.ID)
-		f.SetCellValue(fundsSheet, cellName(2, row+2), fund.Name)
-		f.SetCellValue(fundsSheet, cellName(3, row+2), fund.ISIN)
-		f.SetCellValue(fundsSheet, cellName(4, row+2), fund.Ticker)
-		f.SetCellValue(fundsSheet, cellName(5, row+2), fund.ManagementCompany)
-		f.SetCellValue(fundsSheet, cellName(6, row+2), fund.RealEstateSegment)
-		f.SetCellValue(fundsSheet, cellName(7, row+2), boolToString(fund.QualifiedRequired))
-		f.SetCellValue(fundsSheet, cellName(8, row+2), boolToString(fund.HasMarketMaker))
-		f.SetCellValue(fundsSheet, cellName(9, row+2), fund.CreatedAt.Format("2006-01-02 15:04:05"))
-	}
+		r := row + 2
+		f.SetCellValue(sheetName, cellName(1, r), fund.Name)
+		f.SetCellValue(sheetName, cellName(2, r), fund.ISIN)
+		f.SetCellValue(sheetName, cellName(3, r), fund.Ticker)
+		f.SetCellValue(sheetName, cellName(4, r), boolToString(fund.QualifiedRequired))
+		f.SetCellValue(sheetName, cellName(5, r), fund.ManagementCompany)
+		f.SetCellValue(sheetName, cellName(6, r), fund.RealEstateSegment)
 
-	// Sheet 2: Financials
-	financialsSheet := "Финансы"
-	f.NewSheet(financialsSheet)
-	
-	financialHeaders := []string{
-		"Fund ID", "Название фонда", "Дата среза", "Цена пая", "NAV", "Дисконт %",
-		"Cap Rate %", "P/NAV", "P/AFFO", "NOI Yield %", "Выплата в год",
-		"Доходность выплат %", "Комиссия УК %",
-		"Объём торгов", "Объектов",
-	}
-	for i, header := range financialHeaders {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(financialsSheet, cell, header)
-	}
-
-	row := 2
-	for _, fund := range funds {
 		financials, err := s.financialsRepo.GetByFundID(fund.ID)
 		if err != nil || len(financials) == 0 {
 			continue
 		}
 
 		latest := financials[0]
-		f.SetCellValue(financialsSheet, cellName(1, row), latest.FundID)
-		f.SetCellValue(financialsSheet, cellName(2, row), fund.Name)
-		f.SetCellValue(financialsSheet, cellName(3, row), latest.SnapshotDate.Format("2006-01-02"))
-		f.SetCellValue(financialsSheet, cellName(4, row), latest.UnitPriceRub)
-		f.SetCellValue(financialsSheet, cellName(5, row), latest.NavPerUnitRub)
-		f.SetCellValue(financialsSheet, cellName(6, row), latest.DiscountToNavPct)
-		f.SetCellValue(financialsSheet, cellName(7, row), latest.CapRatePct)
-		f.SetCellValue(financialsSheet, cellName(8, row), latest.PNav)
-		f.SetCellValue(financialsSheet, cellName(9, row), latest.PAFFO)
-		f.SetCellValue(financialsSheet, cellName(10, row), latest.NoiYieldPct)
-		f.SetCellValue(financialsSheet, cellName(11, row), latest.AnnualPayoutRub)
-		f.SetCellValue(financialsSheet, cellName(12, row), latest.PayoutYieldPct)
-		f.SetCellValue(financialsSheet, cellName(13, row), latest.ManagementFeePct)
-		f.SetCellValue(financialsSheet, cellName(14, row), latest.TradingVolumeMlnRub)
-		f.SetCellValue(financialsSheet, cellName(15, row), latest.NumberOfProperties)
-		row++
+		f.SetCellValue(sheetName, cellName(7, r), latest.UnitPriceRub)
+		f.SetCellValue(sheetName, cellName(8, r), latest.NavPerUnitRub)
+		f.SetCellValue(sheetName, cellName(9, r), latest.DiscountToNavPct/100)
+		f.SetCellValue(sheetName, cellName(10, r), latest.CapRatePct/100)
+		f.SetCellValue(sheetName, cellName(11, r), latest.NavTotalMlnRub)
+		f.SetCellValue(sheetName, cellName(12, r), latest.PNav)
+		f.SetCellValue(sheetName, cellName(13, r), latest.PAFFO)
+		f.SetCellValue(sheetName, cellName(14, r), latest.PayoutYieldPct/100)
+		f.SetCellValue(sheetName, cellName(15, r), latest.ManagementFeePct/100)
 	}
 
-	// Sheet 3: Analysis
-	if s.analysisRepo != nil {
-		analysisSheet := "Анализ"
-		f.NewSheet(analysisSheet)
-		
-		analysisHeaders := []string{"Fund ID", "Название фонда", "Модель", "Дата анализа", "Резюме", "Оценка рисков", "Плюсы/Минусы"}
-		for i, header := range analysisHeaders {
-			cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-			f.SetCellValue(analysisSheet, cell, header)
-		}
-
-		row := 2
-		for _, fund := range funds {
-			analysis, err := s.analysisRepo.GetLatestByFundID(fund.ID)
-			if err != nil || analysis == nil {
-				continue
-			}
-
-			f.SetCellValue(analysisSheet, cellName(1, row), analysis.FundID)
-			f.SetCellValue(analysisSheet, cellName(2, row), fund.Name)
-			f.SetCellValue(analysisSheet, cellName(3, row), analysis.ModelUsed)
-			f.SetCellValue(analysisSheet, cellName(4, row), analysis.CreatedAt.Format("2006-01-02 15:04:05"))
-			f.SetCellValue(analysisSheet, cellName(5, row), analysis.AnalysisSummary)
-			f.SetCellValue(analysisSheet, cellName(6, row), analysis.RiskAssessment)
-			f.SetCellValue(analysisSheet, cellName(7, row), analysis.ProsCons)
-			row++
-		}
+	lastRow := len(funds) + 1
+	if lastRow >= 2 {
+		f.SetCellStyle(sheetName, "G2", cellName(7, lastRow), rubStyle)
+		f.SetCellStyle(sheetName, "H2", cellName(8, lastRow), rubStyle)
+		f.SetCellStyle(sheetName, "I2", cellName(9, lastRow), pctStyle)
+		f.SetCellStyle(sheetName, "J2", cellName(10, lastRow), pctStyle)
+		f.SetCellStyle(sheetName, "K2", cellName(11, lastRow), rubStyle)
+		f.SetCellStyle(sheetName, "L2", cellName(12, lastRow), numStyle)
+		f.SetCellStyle(sheetName, "M2", cellName(13, lastRow), numStyle)
+		f.SetCellStyle(sheetName, "N2", cellName(14, lastRow), pctStyle)
+		f.SetCellStyle(sheetName, "O2", cellName(15, lastRow), pctStyle)
 	}
 
 	var buf bytes.Buffer

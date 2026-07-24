@@ -65,11 +65,14 @@ func TestExcelService_ExportToExcel_WithFunds(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."deleted_at" IS NULL`)).
 		WillReturnRows(rows)
 
-	// Mock preloads
+	// Mock preloads - use generic pattern for all three preloads
 	emptyRows := sqlmock.NewRows([]string{"id", "fund_id"})
-	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
-	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
-	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" = \$1`).WillReturnRows(emptyRows)
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" = \$1`).WillReturnRows(emptyRows)
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" = \$1`).WillReturnRows(emptyRows)
+
+	// Mock financials query in ExportToExcel
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = \$1`).WillReturnRows(emptyRows)
 
 	data, err := service.ExportToExcel()
 
@@ -83,13 +86,25 @@ func TestExcelService_ExportToExcel_WithFunds(t *testing.T) {
 	if f != nil {
 		defer f.Close()
 
-		// Check that sheets exist
+		// Check that only "Фонды" sheet exists
 		idx1, _ := f.GetSheetIndex("Фонды")
 		assert.NotEqual(t, -1, idx1)
-		idx2, _ := f.GetSheetIndex("Финансы")
-		assert.NotEqual(t, -1, idx2)
-		idx3, _ := f.GetSheetIndex("Анализ")
-		assert.NotEqual(t, -1, idx3)
+
+		// Check headers
+		headers := []string{"Название", "ISIN", "Тикер", "Квал", "УК", "Сегмент",
+			"Цена пая", "РСП", "Дисконт к РСП", "Cap Rate", "СЧА, млн ₽",
+			"P/NAV", "P/AFFO", "Доходность выплат", "Комиссия УК"}
+		for i, expected := range headers {
+			cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+			val, _ := f.GetCellValue("Фонды", cell)
+			assert.Equal(t, expected, val)
+		}
+
+		// Check fund data in row 2
+		name, _ := f.GetCellValue("Фонды", "A2")
+		assert.Equal(t, "Парус ОЗН", name)
+		isin, _ := f.GetCellValue("Фонды", "B2")
+		assert.Equal(t, "RU000A1022Z1", isin)
 	}
 }
 
