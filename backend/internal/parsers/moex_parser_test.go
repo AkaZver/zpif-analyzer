@@ -79,22 +79,31 @@ func TestMoexParser_GetCurrentPriceWithBoard_EmptyData(t *testing.T) {
 
 func TestMoexParser_SearchSecurity(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := map[string]interface{}{
-			"description": map[string]interface{}{
-				"sec_id": "TEST01",
-				"name":   "Test Fund",
-				"isin":   "RU000TEST01",
-			},
-			"boards": map[string]interface{}{
-				"columns": []string{"boardid", "market"},
-				"data": [][]interface{}{
-					{"TQBR", "shares"},
-					{"TQIF", "shares"},
-					{"SMAL", "bonds"},
+		if r.URL.Path == "/iss/securities.json" {
+			// Search endpoint
+			resp := map[string]interface{}{
+				"securities": map[string]interface{}{
+					"columns": []string{"secid", "shortname", "isin", "primary_boardid"},
+					"data": [][]interface{}{
+						{"RU000TEST01", "Test Fund", "RU000TEST01", "TQBR"},
+					},
 				},
-			},
+			}
+			json.NewEncoder(w).Encode(resp)
+		} else if r.URL.Path == "/iss/securities/RU000TEST01.json" {
+			// Boards endpoint
+			resp := map[string]interface{}{
+				"boards": map[string]interface{}{
+					"columns": []string{"boardid", "market"},
+					"data": [][]interface{}{
+						{"TQBR", "shares"},
+						{"TQIF", "shares"},
+						{"SMAL", "bonds"},
+					},
+				},
+			}
+			json.NewEncoder(w).Encode(resp)
 		}
-		json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -115,20 +124,73 @@ func TestMoexParser_SearchSecurity(t *testing.T) {
 	assert.NotContains(t, security.Boards, "SMAL")
 }
 
+func TestMoexParser_SearchSecurity_ByTicker(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/iss/securities.json" {
+			// Search endpoint - secid (тикер) отличается от ISIN
+			resp := map[string]interface{}{
+				"securities": map[string]interface{}{
+					"columns": []string{"secid", "shortname", "isin", "primary_boardid"},
+					"data": [][]interface{}{
+						{"XACCSK", "Акцент 5", "RU000A10DQF7", "TQBR"},
+					},
+				},
+			}
+			json.NewEncoder(w).Encode(resp)
+		} else if r.URL.Path == "/iss/securities/XACCSK.json" {
+			// Boards endpoint
+			resp := map[string]interface{}{
+				"boards": map[string]interface{}{
+					"columns": []string{"boardid", "market"},
+					"data": [][]interface{}{
+						{"TQIF", "shares"},
+						{"TQBR", "shares"},
+					},
+				},
+			}
+			json.NewEncoder(w).Encode(resp)
+		}
+	}))
+	defer server.Close()
+
+	parser := &MoexParser{
+		client:  server.Client(),
+		baseURL: server.URL,
+	}
+
+	// Поиск по ISIN, но secid = тикер
+	security, err := parser.SearchSecurity("RU000A10DQF7")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, security)
+	assert.Equal(t, "XACCSK", security.SecID)
+	assert.Equal(t, "RU000A10DQF7", security.ISIN)
+	assert.Equal(t, "Акцент 5", security.Name)
+	assert.Contains(t, security.Boards, "TQIF")
+	assert.Contains(t, security.Boards, "TQBR")
+}
+
 func TestMoexParser_SearchSecurity_NoBoards(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := map[string]interface{}{
-			"description": map[string]interface{}{
-				"sec_id": "TEST01",
-				"name":   "Test Fund",
-				"isin":   "RU000TEST01",
-			},
-			"boards": map[string]interface{}{
-				"columns": []string{"boardid", "market"},
-				"data":    [][]interface{}{},
-			},
+		if r.URL.Path == "/iss/securities.json" {
+			resp := map[string]interface{}{
+				"securities": map[string]interface{}{
+					"columns": []string{"secid", "shortname", "isin", "primary_boardid"},
+					"data": [][]interface{}{
+						{"TEST01", "Test Fund", "RU000TEST01", "TQBR"},
+					},
+				},
+			}
+			json.NewEncoder(w).Encode(resp)
+		} else if r.URL.Path == "/iss/securities/TEST01.json" {
+			resp := map[string]interface{}{
+				"boards": map[string]interface{}{
+					"columns": []string{"boardid", "market"},
+					"data":    [][]interface{}{},
+				},
+			}
+			json.NewEncoder(w).Encode(resp)
 		}
-		json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 

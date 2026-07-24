@@ -123,48 +123,124 @@ func (p *MoexParser) GetCurrentPriceWithBoard(secID, board string) (*MoexMarketD
 	return result, nil
 }
 
-func (p *MoexParser) SearchSecurity(isin string) (*MoexSecurity, error) {
-	// Получаем информацию о бумаге
-	url := fmt.Sprintf("%s/iss/securities/%s.json", p.baseURL, isin)
+func (p *MoexParser) SearchSecurity(query string) (*MoexSecurity, error) {
+	// Шаг 1: Поиск бумаги через search endpoint
+	searchURL := fmt.Sprintf("%s/iss/securities.json?q=%s", p.baseURL, query)
 
-	resp, err := p.client.Get(url)
+	resp, err := p.client.Get(searchURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch MOEX security info: %w", err)
+		return nil, fmt.Errorf("failed to search MOEX security: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("MOEX API returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("MOEX search API returned status %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
+		return nil, fmt.Errorf("failed to read search response: %w", err)
 	}
 
-	// Парсим ответ
-	var secInfo struct {
-		Description struct {
-			SecID string `json:"sec_id"`
-			Name  string `json:"name"`
-			ISIN  string `json:"isin"`
-		} `json:"description"`
+	var searchResp struct {
+		Securities struct {
+			Columns []string        `json:"columns"`
+			Data    [][]interface{} `json:"data"`
+		} `json:"securities"`
+	}
+
+	if err := json.Unmarshal(body, &searchResp); err != nil {
+		return nil, fmt.Errorf("failed to parse search response: %w", err)
+	}
+
+	if len(searchResp.Securities.Data) == 0 {
+		return nil, fmt.Errorf("no securities found for query %s", query)
+	}
+
+	// Найти индексы колонок
+	columns := searchResp.Securities.Columns
+	secidIdx := -1
+	isinIdx := -1
+	shortnameIdx := -1
+
+	for i, col := range columns {
+		switch col {
+		case "secid":
+			secidIdx = i
+		case "isin":
+			isinIdx = i
+		case "shortname":
+			shortnameIdx = i
+		}
+	}
+
+	if secidIdx == -1 {
+		return nil, fmt.Errorf("secid column not found in search response")
+	}
+
+	// Найти подходящую бумагу
+	var foundSecID, foundISIN, foundName string
+	for _, row := range searchResp.Securities.Data {
+		if len(row) <= secidIdx {
+			continue
+		}
+
+		secid, _ := row[secidIdx].(string)
+		isin := ""
+		if isinIdx >= 0 && isinIdx < len(row) {
+			isin, _ = row[isinIdx].(string)
+		}
+
+		// Совпадение по ISIN или secid (тикеру)
+		if secid == query || isin == query {
+			foundSecID = secid
+			foundISIN = isin
+			if shortnameIdx >= 0 && shortnameIdx < len(row) {
+				foundName, _ = row[shortnameIdx].(string)
+			}
+			break
+		}
+	}
+
+	if foundSecID == "" {
+		return nil, fmt.Errorf("no matching security found for query %s", query)
+	}
+
+	// Шаг 2: Получить все boards для найденной бумаги
+	boardsURL := fmt.Sprintf("%s/iss/securities/%s.json", p.baseURL, foundSecID)
+
+	resp2, err := p.client.Get(boardsURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch boards info: %w", err)
+	}
+	defer resp2.Body.Close()
+
+	if resp2.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("MOEX boards API returned status %d", resp2.StatusCode)
+	}
+
+	body2, err := io.ReadAll(resp2.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read boards response: %w", err)
+	}
+
+	var boardsResp struct {
 		Boards struct {
 			Columns []string        `json:"columns"`
 			Data    [][]interface{} `json:"data"`
 		} `json:"boards"`
 	}
 
-	if err := json.Unmarshal(body, &secInfo); err != nil {
-		return nil, fmt.Errorf("failed to parse MOEX security info: %w", err)
+	if err := json.Unmarshal(body2, &boardsResp); err != nil {
+		return nil, fmt.Errorf("failed to parse boards response: %w", err)
 	}
 
-	// Извлекаем все board'ы, где торговалась бумага (market = "shares")
+	// Извлечь все board'ы с market = "shares"
 	var boards []string
 	boardIdx := -1
 	marketIdx := -1
 
-	for i, col := range secInfo.Boards.Columns {
+	for i, col := range boardsResp.Boards.Columns {
 		switch col {
 		case "boardid":
 			boardIdx = i
@@ -173,7 +249,7 @@ func (p *MoexParser) SearchSecurity(isin string) (*MoexSecurity, error) {
 		}
 	}
 
-	for _, row := range secInfo.Boards.Data {
+	for _, row := range boardsResp.Boards.Data {
 		if boardIdx >= 0 && boardIdx < len(row) {
 			boardID, _ := row[boardIdx].(string)
 			market := ""
@@ -190,14 +266,14 @@ func (p *MoexParser) SearchSecurity(isin string) (*MoexSecurity, error) {
 	}
 
 	if len(boards) == 0 {
-		return nil, fmt.Errorf("no trading boards found for ISIN %s", isin)
+		return nil, fmt.Errorf("no trading boards found for security %s", foundSecID)
 	}
 
 	return &MoexSecurity{
-		SecID:  isin,
+		SecID:  foundSecID,
 		Boards: boards,
-		ISIN:   isin,
-		Name:   secInfo.Description.Name,
+		ISIN:   foundISIN,
+		Name:   foundName,
 	}, nil
 }
 
