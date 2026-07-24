@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -59,8 +60,6 @@ type MetricsExtraction struct {
 	NumberOfProperties  *int     `json:"number_of_properties,omitempty"`
 }
 
-const maxDocumentTextBytes = 16000
-
 func (a *Analyzer) Analyze(ctx context.Context, fund *models.Fund, documentID uint) (*models.LLMAnalysis, error) {
 	settings, err := a.settingsRepo.Get()
 	if err != nil {
@@ -73,7 +72,7 @@ func (a *Analyzer) Analyze(ctx context.Context, fund *models.Fund, documentID ui
 		Username: settings.ProxyUsername,
 		Password: settings.ProxyPassword,
 	}
-	llmClient := NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName, proxy)
+	llmClient := NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.AnalysisModelName, proxy)
 
 	document, err := a.documentRepo.GetByID(documentID)
 	if err != nil {
@@ -86,9 +85,6 @@ func (a *Analyzer) Analyze(ctx context.Context, fund *models.Fund, documentID ui
 	}
 	if len(docText) == 0 {
 		return nil, fmt.Errorf("document is empty")
-	}
-	if len(docText) > maxDocumentTextBytes {
-		docText = docText[:maxDocumentTextBytes] + "..."
 	}
 
 	metrics, err := a.extractMetrics(ctx, llmClient, docText)
@@ -155,6 +151,90 @@ func (a *Analyzer) AnalyzeLatestDocuments(ctx context.Context, fund *models.Fund
 	return a.Analyze(ctx, fund, latest.ID)
 }
 
+func (a *Analyzer) AnalyzeDocuments(ctx context.Context, fund *models.Fund, documentIDs []uint) (*models.LLMAnalysis, error) {
+	if len(documentIDs) == 0 {
+		return nil, fmt.Errorf("no documents specified")
+	}
+
+	settings, err := a.settingsRepo.Get()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get LLM settings: %w", err)
+	}
+
+	proxy := &ProxyConfig{
+		Enabled:  settings.ProxyEnabled,
+		URL:      settings.ProxyURL,
+		Username: settings.ProxyUsername,
+		Password: settings.ProxyPassword,
+	}
+	llmClient := NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.AnalysisModelName, proxy)
+
+	var combinedText string
+	var processedDocIDs []uint
+
+	for _, docID := range documentIDs {
+		document, err := a.documentRepo.GetByID(docID)
+		if err != nil {
+			continue
+		}
+
+		docText, err := a.readDocumentText(document)
+		if err != nil || len(docText) == 0 {
+			continue
+		}
+
+		combinedText += fmt.Sprintf("\n\n=== Документ: %s ===\n%s", document.FileName, docText)
+		processedDocIDs = append(processedDocIDs, docID)
+	}
+
+	if len(processedDocIDs) == 0 {
+		return nil, fmt.Errorf("no valid documents to analyze")
+	}
+
+	metrics, err := a.extractMetrics(ctx, llmClient, combinedText)
+	if err != nil {
+		return nil, fmt.Errorf("metrics extraction failed: %w", err)
+	}
+
+	analysis, err := a.generateAnalysis(ctx, llmClient, combinedText, fund)
+	if err != nil {
+		return nil, fmt.Errorf("analysis generation failed: %w", err)
+	}
+
+	metricsJSON, _ := json.Marshal(metrics)
+	prosConsJSON, _ := json.Marshal(struct {
+		Pros []string `json:"pros"`
+		Cons []string `json:"cons"`
+	}{analysis.Pros, analysis.Cons})
+
+	record := &models.LLMAnalysis{
+		FundID:           fund.ID,
+		DocumentID:       processedDocIDs[0],
+		ModelUsed:        llmClient.GetModel(),
+		RawResponse:      combinedText,
+		AnalysisSummary:  analysis.Summary,
+		RiskAssessment:   analysis.RiskAssessment,
+		ProsCons:         string(prosConsJSON),
+		ExtractedMetrics: string(metricsJSON),
+	}
+
+	if err := a.analysisRepo.Create(record); err != nil {
+		return nil, fmt.Errorf("failed to save analysis: %w", err)
+	}
+
+	if err := a.updateFinancialsFromMetrics(fund.ID, metrics); err != nil {
+		return record, fmt.Errorf("analysis saved, but financials update failed: %v", err)
+	}
+
+	for _, docID := range processedDocIDs {
+		if err := a.documentRepo.UpdateStatus(docID, "analyzed"); err != nil {
+			return record, fmt.Errorf("analysis saved, but status update failed for doc %d: %v", docID, err)
+		}
+	}
+
+	return record, nil
+}
+
 func (a *Analyzer) readDocumentText(doc *models.FundDocument) (string, error) {
 	if doc.ExtractedText != "" {
 		return doc.ExtractedText, nil
@@ -166,29 +246,35 @@ func (a *Analyzer) readDocumentText(doc *models.FundDocument) (string, error) {
 }
 
 func (a *Analyzer) extractMetrics(ctx context.Context, llmClient *Client, docText string) (*MetricsExtraction, error) {
+	log.Printf("Extracting metrics: document size=%d bytes", len(docText))
 	resp, err := llmClient.ChatSimple(ctx, ExtractMetricsPrompt, docText)
 	if err != nil {
 		return nil, err
 	}
 	cleaned := extractJSONObject(resp)
 	if cleaned == "" {
+		log.Printf("Extract metrics: no JSON found in response")
 		return &MetricsExtraction{}, nil
 	}
 	var metrics MetricsExtraction
 	if err := json.Unmarshal([]byte(cleaned), &metrics); err != nil {
+		log.Printf("Extract metrics: failed to parse JSON: %v", err)
 		return &MetricsExtraction{}, nil
 	}
+	log.Printf("Extract metrics: successfully extracted metrics")
 	return &metrics, nil
 }
 
 func (a *Analyzer) generateAnalysis(ctx context.Context, llmClient *Client, docText string, fund *models.Fund) (*AnalysisResult, error) {
 	contextText := fmt.Sprintf("Фонд: %s\nISIN: %s\nУК: %s\n\nДокумент:\n%s", fund.Name, fund.ISIN, fund.ManagementCompany, docText)
+	log.Printf("Generating analysis: fund=%s, context size=%d bytes", fund.Name, len(contextText))
 	resp, err := llmClient.ChatSimple(ctx, AnalyzePrompt, contextText)
 	if err != nil {
 		return nil, err
 	}
 	cleaned := extractJSONObject(resp)
 	if cleaned == "" {
+		log.Printf("Generate analysis: no JSON found in response, using raw text")
 		return &AnalysisResult{
 			Summary:        truncateString(resp, 1000),
 			RiskAssessment: "не удалось получить",
@@ -196,11 +282,13 @@ func (a *Analyzer) generateAnalysis(ctx context.Context, llmClient *Client, docT
 	}
 	var result AnalysisResult
 	if err := json.Unmarshal([]byte(cleaned), &result); err != nil {
+		log.Printf("Generate analysis: failed to parse JSON: %v", err)
 		return &AnalysisResult{
 			Summary:        truncateString(resp, 1000),
 			RiskAssessment: "не удалось получить",
 		}, nil
 	}
+	log.Printf("Generate analysis: successfully generated analysis for fund=%s", fund.Name)
 	return &result, nil
 }
 

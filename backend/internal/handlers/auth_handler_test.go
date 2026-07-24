@@ -280,9 +280,9 @@ func TestLLMHandler_GetSettings_WithProxy(t *testing.T) {
 
 	now := time.Now()
 	rows := sqlmock.NewRows([]string{
-		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "model_name",
+		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name",
 		"proxy_enabled", "proxy_url", "proxy_username", "proxy_password",
-	}).AddRow(1, now, now, nil, "test-key", "https://api.openai.com/v1", "gpt-4o-mini",
+	}).AddRow(1, now, now, nil, "test-key", "https://api.openai.com/v1", "gpt-4o-mini", "gpt-4o-mini",
 		true, "http://proxy.example.com:8080", "user", "secret-password")
 
 	mock.ExpectQuery(`SELECT \* FROM "llm_settings"`).
@@ -315,9 +315,9 @@ func TestLLMHandler_TestConnection(t *testing.T) {
 
 	now := time.Now()
 	rows := sqlmock.NewRows([]string{
-		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "model_name",
+		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name",
 		"proxy_enabled", "proxy_url", "proxy_username", "proxy_password",
-	}).AddRow(1, now, now, nil, "test-api-key", "https://api.openai.com/v1", "gpt-4o-mini",
+	}).AddRow(1, now, now, nil, "test-api-key", "https://api.openai.com/v1", "gpt-4o-mini", "gpt-4o-mini",
 		false, "", "", "")
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
@@ -332,7 +332,9 @@ func TestLLMHandler_TestConnection(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "search_model")
+	assert.Contains(t, w.Body.String(), "analysis_model")
 }
 
 func TestExcelHandler_ExportExcel(t *testing.T) {
@@ -387,7 +389,7 @@ func TestLLMHandler_UpdateSettings(t *testing.T) {
 	router := gin.New()
 	router.PUT("/api/llm/settings", handler.UpdateSettings)
 
-	body := `{"api_key_encrypted":"key","base_url":"https://api.openai.com/v1","model_name":"gpt-4"}`
+	body := `{"api_key_encrypted":"key","base_url":"https://api.openai.com/v1","search_model_name":"gpt-4","analysis_model_name":"gpt-4"}`
 	req := httptest.NewRequest("PUT", "/api/llm/settings", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -419,7 +421,7 @@ func TestLLMHandler_UpdateSettings_WithProxy(t *testing.T) {
 	router := gin.New()
 	router.PUT("/api/llm/settings", handler.UpdateSettings)
 
-	body := `{"api_key_encrypted":"key","base_url":"https://api.openai.com/v1","model_name":"gpt-4","proxy_enabled":true,"proxy_url":"http://proxy.example.com:8080","proxy_username":"user","proxy_password":"pass"}`
+	body := `{"api_key_encrypted":"key","base_url":"https://api.openai.com/v1","search_model_name":"gpt-4","analysis_model_name":"gpt-4","proxy_enabled":true,"proxy_url":"http://proxy.example.com:8080","proxy_username":"user","proxy_password":"pass"}`
 	req := httptest.NewRequest("PUT", "/api/llm/settings", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()

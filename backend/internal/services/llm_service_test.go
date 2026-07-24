@@ -49,7 +49,8 @@ func TestLLMService_GetSettings_Defaults(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, settings)
 	assert.Equal(t, "https://api.openai.com/v1", settings.BaseURL)
-	assert.Equal(t, "gpt-4o-mini", settings.ModelName)
+	assert.Equal(t, "gpt-4o-mini", settings.SearchModelName)
+	assert.Equal(t, "gpt-4o-mini", settings.AnalysisModelName)
 }
 
 func TestLLMService_GetSettings_FromDB(t *testing.T) {
@@ -58,8 +59,8 @@ func TestLLMService_GetSettings_FromDB(t *testing.T) {
 
 	now := time.Now()
 	rows := sqlmock.NewRows([]string{
-		"id", "api_key_encrypted", "base_url", "model_name", "created_at", "updated_at",
-	}).AddRow(1, "key", "https://custom.api.com", "gpt-4", now, now)
+		"id", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "created_at", "updated_at",
+	}).AddRow(1, "key", "https://custom.api.com", "gpt-4", "gpt-4", now, now)
 
 	mock.ExpectQuery(`SELECT \* FROM "llm_settings"`).
 		WillReturnRows(rows)
@@ -69,7 +70,8 @@ func TestLLMService_GetSettings_FromDB(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, settings)
 	assert.Equal(t, "https://custom.api.com", settings.BaseURL)
-	assert.Equal(t, "gpt-4", settings.ModelName)
+	assert.Equal(t, "gpt-4", settings.SearchModelName)
+	assert.Equal(t, "gpt-4", settings.AnalysisModelName)
 }
 
 func TestLLMService_UpdateSettings(t *testing.T) {
@@ -86,9 +88,10 @@ func TestLLMService_UpdateSettings(t *testing.T) {
 	mock.ExpectCommit()
 
 	settings := &models.LLMSettings{
-		APIKeyEncrypted: "test_key",
-		BaseURL:         "https://api.openai.com/v1",
-		ModelName:       "gpt-4",
+		APIKeyEncrypted:   "test_key",
+		BaseURL:           "https://api.openai.com/v1",
+		SearchModelName:   "gpt-4",
+		AnalysisModelName: "gpt-4",
 	}
 
 	err := service.UpdateSettings(settings)
@@ -102,18 +105,44 @@ func TestLLMService_TestConnection(t *testing.T) {
 
 	now := time.Now()
 	rows := sqlmock.NewRows([]string{
-		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "model_name",
+		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name",
 		"proxy_enabled", "proxy_url", "proxy_username", "proxy_password",
-	}).AddRow(1, now, now, nil, "test-api-key", "https://api.openai.com/v1", "gpt-4o-mini",
+	}).AddRow(1, now, now, nil, "test-api-key", "https://api.openai.com/v1", "gpt-4o-mini", "gpt-4o-mini",
 		false, "", "", "")
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(rows)
 
-	err := service.TestConnection()
+	result, err := service.TestConnection()
 
-	assert.Error(t, err)
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.NotNil(t, result.SearchModel)
+	assert.NotNil(t, result.AnalysisModel)
+}
+
+func TestLLMService_TestConnection_DifferentModels(t *testing.T) {
+	service, mock, cleanup := setupTestLLMService(t)
+	defer cleanup()
+
+	now := time.Now()
+	rows := sqlmock.NewRows([]string{
+		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name",
+		"proxy_enabled", "proxy_url", "proxy_username", "proxy_password",
+	}).AddRow(1, now, now, nil, "test-api-key", "https://api.openai.com/v1", "gpt-4o-mini", "gpt-4",
+		false, "", "", "")
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+		WithArgs(1).
+		WillReturnRows(rows)
+
+	result, err := service.TestConnection()
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.NotNil(t, result.SearchModel)
+	assert.NotNil(t, result.AnalysisModel)
 }
 
 func TestLLMService_UpdateSettings_WithProxy(t *testing.T) {
@@ -129,13 +158,14 @@ func TestLLMService_UpdateSettings_WithProxy(t *testing.T) {
 	mock.ExpectCommit()
 
 	settings := &models.LLMSettings{
-		APIKeyEncrypted: "test_key",
-		BaseURL:         "https://api.openai.com/v1",
-		ModelName:       "gpt-4",
-		ProxyEnabled:    true,
-		ProxyURL:        "http://proxy.example.com:8080",
-		ProxyUsername:   "user",
-		ProxyPassword:   "pass",
+		APIKeyEncrypted:   "test_key",
+		BaseURL:           "https://api.openai.com/v1",
+		SearchModelName:   "gpt-4",
+		AnalysisModelName: "gpt-4",
+		ProxyEnabled:      true,
+		ProxyURL:          "http://proxy.example.com:8080",
+		ProxyUsername:     "user",
+		ProxyPassword:     "pass",
 	}
 
 	err := service.UpdateSettings(settings)

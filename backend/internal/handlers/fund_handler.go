@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -235,7 +237,12 @@ func (h *FundHandler) AnalyzeFund(c *gin.Context) {
 		return
 	}
 
-	analysis, err := h.fundService.AnalyzeFund(c.Request.Context(), uint(id))
+	var body struct {
+		DocumentIDs []uint `json:"document_ids"`
+	}
+	_ = c.ShouldBindJSON(&body)
+
+	analysis, err := h.fundService.AnalyzeFund(c.Request.Context(), uint(id), body.DocumentIDs)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -277,10 +284,27 @@ func (h *FundHandler) UploadDocument(c *gin.Context) {
 		extractedText = string(data)
 	}
 
+	documentType := c.PostForm("document_type")
+	if documentType == "" {
+		ext := strings.ToLower(filepath.Ext(header.Filename))
+		switch ext {
+		case ".pdf":
+			documentType = "pdf"
+		case ".doc", ".docx":
+			documentType = "word"
+		case ".xlsx":
+			documentType = "excel"
+		case ".txt":
+			documentType = "text"
+		default:
+			documentType = "other"
+		}
+	}
+
 	document := &models.FundDocument{
 		FundID:        uint(id),
 		FileName:      header.Filename,
-		DocumentType:  c.PostForm("document_type"),
+		DocumentType:  documentType,
 		ContentHash:   hash,
 		Source:        "manual",
 		UploadDate:    time.Now(),

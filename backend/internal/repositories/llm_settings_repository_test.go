@@ -19,8 +19,8 @@ func TestLLMSettingsRepository_Get(t *testing.T) {
 	now := time.Now()
 
 	rows := sqlmock.NewRows([]string{
-		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "model_name",
-	}).AddRow(1, now, now, nil, "encrypted_key", "https://api.openai.com/v1", "gpt-4")
+		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name",
+	}).AddRow(1, now, now, nil, "encrypted_key", "https://api.openai.com/v1", "gpt-4", "gpt-4")
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
@@ -31,7 +31,8 @@ func TestLLMSettingsRepository_Get(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, settings)
 	assert.Equal(t, "https://api.openai.com/v1", settings.BaseURL)
-	assert.Equal(t, "gpt-4", settings.ModelName)
+	assert.Equal(t, "gpt-4", settings.SearchModelName)
+	assert.Equal(t, "gpt-4", settings.AnalysisModelName)
 }
 
 func TestLLMSettingsRepository_Get_NotFound(t *testing.T) {
@@ -57,9 +58,10 @@ func TestLLMSettingsRepository_Upsert_Create(t *testing.T) {
 	repo := NewLLMSettingsRepository(gormDB)
 
 	settings := &models.LLMSettings{
-		APIKeyEncrypted: "key",
-		BaseURL:         "https://api.openai.com/v1",
-		ModelName:       "gpt-4",
+		APIKeyEncrypted:   "key",
+		BaseURL:           "https://api.openai.com/v1",
+		SearchModelName:   "gpt-4",
+		AnalysisModelName: "gpt-4",
 	}
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
@@ -84,14 +86,15 @@ func TestLLMSettingsRepository_Upsert_Update(t *testing.T) {
 	now := time.Now()
 
 	settings := &models.LLMSettings{
-		APIKeyEncrypted: "new_key",
-		BaseURL:         "https://api.openai.com/v1",
-		ModelName:       "gpt-4-turbo",
+		APIKeyEncrypted:   "new_key",
+		BaseURL:           "https://api.openai.com/v1",
+		SearchModelName:   "gpt-4-turbo",
+		AnalysisModelName: "gpt-4-turbo",
 	}
 
 	rows := sqlmock.NewRows([]string{
-		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "model_name",
-	}).AddRow(1, now, now, nil, "old_key", "https://api.openai.com/v1", "gpt-4")
+		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name",
+	}).AddRow(1, now, now, nil, "old_key", "https://api.openai.com/v1", "gpt-4", "gpt-4")
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).

@@ -139,8 +139,10 @@ class ApiClient {
   }
 
   // Analysis
-  async analyzeFund(fundId: number): Promise<LLMAnalysis> {
-    const response = await this.client.post<LLMAnalysis>(`/funds/${fundId}/analyze`);
+  async analyzeFund(fundId: number, documentIds?: number[]): Promise<LLMAnalysis> {
+    const response = await this.client.post<LLMAnalysis>(`/funds/${fundId}/analyze`, {
+      document_ids: documentIds || [],
+    });
     return response.data;
   }
 
@@ -160,7 +162,10 @@ class ApiClient {
     return response.data;
   }
 
-  async testLLMConnection(): Promise<{ success: boolean; message: string }> {
+  async testLLMConnection(): Promise<{
+    search_model: { success: boolean; message: string };
+    analysis_model: { success: boolean; message: string };
+  }> {
     const response = await this.client.post('/llm/test');
     return response.data;
   }

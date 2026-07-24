@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -639,4 +640,395 @@ func TestFundHandler_GetDocumentsByFundID_ServiceError(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestFundHandler_UploadDocument_WithExplicitType(t *testing.T) {
+	handler, router, mock, cleanup := setupTestFundHandler(t)
+	defer cleanup()
+
+	now := time.Now()
+	// Mock for fund existence check with preloads
+	fundRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Test Fund", "RU000TEST001", "", "Test UK", "", false, false, nil, "", "")
+	
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
+		WithArgs(uint(1), 1).
+		WillReturnRows(fundRows)
+	
+	emptyRows := sqlmock.NewRows([]string{"id", "fund_id"})
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+
+	// Mock for AddDocument - check for duplicate
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	// Mock for Create
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "fund_documents"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectCommit()
+
+	router.POST("/api/funds/:id/documents", handler.UploadDocument)
+
+	// Create multipart form
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("file", "test.pdf")
+	part.Write([]byte("test content"))
+	writer.WriteField("document_type", "custom_type")
+	writer.Close()
+
+	req := httptest.NewRequest("POST", "/api/funds/1/documents", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestFundHandler_UploadDocument_AutoDetectPDF(t *testing.T) {
+	handler, router, mock, cleanup := setupTestFundHandler(t)
+	defer cleanup()
+
+	now := time.Now()
+	fundRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Test Fund", "RU000TEST001", "", "Test UK", "", false, false, nil, "", "")
+	
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
+		WithArgs(uint(1), 1).
+		WillReturnRows(fundRows)
+	
+	emptyRows := sqlmock.NewRows([]string{"id", "fund_id"})
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "fund_documents"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectCommit()
+
+	router.POST("/api/funds/:id/documents", handler.UploadDocument)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("file", "document.pdf")
+	part.Write([]byte("%PDF-1.4 test content"))
+	writer.Close()
+
+	req := httptest.NewRequest("POST", "/api/funds/1/documents", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestFundHandler_UploadDocument_AutoDetectWord(t *testing.T) {
+	handler, router, mock, cleanup := setupTestFundHandler(t)
+	defer cleanup()
+
+	now := time.Now()
+	fundRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Test Fund", "RU000TEST001", "", "Test UK", "", false, false, nil, "", "")
+	
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
+		WithArgs(uint(1), 1).
+		WillReturnRows(fundRows)
+	
+	emptyRows := sqlmock.NewRows([]string{"id", "fund_id"})
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "fund_documents"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectCommit()
+
+	router.POST("/api/funds/:id/documents", handler.UploadDocument)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("file", "document.docx")
+	part.Write([]byte("word content"))
+	writer.Close()
+
+	req := httptest.NewRequest("POST", "/api/funds/1/documents", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestFundHandler_UploadDocument_AutoDetectExcel(t *testing.T) {
+	handler, router, mock, cleanup := setupTestFundHandler(t)
+	defer cleanup()
+
+	now := time.Now()
+	fundRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Test Fund", "RU000TEST001", "", "Test UK", "", false, false, nil, "", "")
+	
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
+		WithArgs(uint(1), 1).
+		WillReturnRows(fundRows)
+	
+	emptyRows := sqlmock.NewRows([]string{"id", "fund_id"})
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "fund_documents"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectCommit()
+
+	router.POST("/api/funds/:id/documents", handler.UploadDocument)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("file", "data.xlsx")
+	part.Write([]byte("excel content"))
+	writer.Close()
+
+	req := httptest.NewRequest("POST", "/api/funds/1/documents", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestFundHandler_UploadDocument_AutoDetectText(t *testing.T) {
+	handler, router, mock, cleanup := setupTestFundHandler(t)
+	defer cleanup()
+
+	now := time.Now()
+	fundRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Test Fund", "RU000TEST001", "", "Test UK", "", false, false, nil, "", "")
+	
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
+		WithArgs(uint(1), 1).
+		WillReturnRows(fundRows)
+	
+	emptyRows := sqlmock.NewRows([]string{"id", "fund_id"})
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "fund_documents"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectCommit()
+
+	router.POST("/api/funds/:id/documents", handler.UploadDocument)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("file", "notes.txt")
+	part.Write([]byte("plain text content"))
+	writer.Close()
+
+	req := httptest.NewRequest("POST", "/api/funds/1/documents", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestFundHandler_UploadDocument_AutoDetectOther(t *testing.T) {
+	handler, router, mock, cleanup := setupTestFundHandler(t)
+	defer cleanup()
+
+	now := time.Now()
+	fundRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Test Fund", "RU000TEST001", "", "Test UK", "", false, false, nil, "", "")
+	
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
+		WithArgs(uint(1), 1).
+		WillReturnRows(fundRows)
+	
+	emptyRows := sqlmock.NewRows([]string{"id", "fund_id"})
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "fund_documents"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectCommit()
+
+	router.POST("/api/funds/:id/documents", handler.UploadDocument)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("file", "data.csv")
+	part.Write([]byte("csv,content"))
+	writer.Close()
+
+	req := httptest.NewRequest("POST", "/api/funds/1/documents", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestFundHandler_AnalyzeFund_WithDocumentIDs(t *testing.T) {
+	handler, router, _, cleanup := setupTestFundHandler(t)
+	defer cleanup()
+
+	router.POST("/api/funds/:id/analyze", handler.AnalyzeFund)
+
+	body := map[string]interface{}{
+		"document_ids": []uint{1, 2, 3},
+	}
+	jsonBody, _ := json.Marshal(body)
+
+	req := httptest.NewRequest("POST", "/api/funds/1/analyze", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Will fail because analyzer is not configured, but that's expected
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestFundHandler_AnalyzeFund_WithoutDocumentIDs(t *testing.T) {
+	handler, router, _, cleanup := setupTestFundHandler(t)
+	defer cleanup()
+
+	router.POST("/api/funds/:id/analyze", handler.AnalyzeFund)
+
+	req := httptest.NewRequest("POST", "/api/funds/1/analyze", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Will fail because analyzer is not configured, but that's expected
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestFundHandler_AnalyzeFund_InvalidFundID(t *testing.T) {
+	handler, router, _, cleanup := setupTestFundHandler(t)
+	defer cleanup()
+
+	router.POST("/api/funds/:id/analyze", handler.AnalyzeFund)
+
+	req := httptest.NewRequest("POST", "/api/funds/invalid/analyze", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestFundHandler_DownloadDocument_InvalidDocID(t *testing.T) {
+	handler, router, _, cleanup := setupTestFundHandler(t)
+	defer cleanup()
+
+	router.GET("/api/funds/:id/documents/:docId/download", handler.DownloadDocument)
+
+	req := httptest.NewRequest("GET", "/api/funds/1/documents/invalid/download", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestFundHandler_DownloadDocument_NotFound(t *testing.T) {
+	handler, router, mock, cleanup := setupTestFundHandler(t)
+	defer cleanup()
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE "fund_documents"."id" = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+		WithArgs(uint(999), 1).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	router.GET("/api/funds/:id/documents/:docId/download", handler.DownloadDocument)
+
+	req := httptest.NewRequest("GET", "/api/funds/1/documents/999/download", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestFundHandler_DownloadDocument_Success(t *testing.T) {
+	handler, router, mock, cleanup := setupTestFundHandler(t)
+	defer cleanup()
+
+	now := time.Now()
+	rows := sqlmock.NewRows([]string{
+		"id", "created_at", "updated_at", "deleted_at", "fund_id", "file_name", "file_path", "document_type",
+		"content_hash", "source", "source_url", "upload_date", "status", "file_size", "extracted_text",
+	}).AddRow(1, now, now, nil, 1, "test.txt", "/docs/test.txt", "text",
+		"hash123", "manual", "", now, "downloaded", 100, "Test content")
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE "fund_documents"."id" = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+		WithArgs(uint(1), 1).
+		WillReturnRows(rows)
+
+	router.GET("/api/funds/:id/documents/:docId/download", handler.DownloadDocument)
+
+	req := httptest.NewRequest("GET", "/api/funds/1/documents/1/download", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Header().Get("Content-Disposition"), "test.txt")
+	assert.Equal(t, "Test content", w.Body.String())
+}
+
+func TestFundHandler_EnrichAndCreateFund_InvalidJSON(t *testing.T) {
+	handler, router, _, cleanup := setupTestFundHandler(t)
+	defer cleanup()
+
+	router.POST("/api/funds/enrich", handler.EnrichAndCreateFund)
+
+	req := httptest.NewRequest("POST", "/api/funds/enrich", bytes.NewBufferString("invalid json"))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestFundHandler_EnrichAndCreateFund_MissingInput(t *testing.T) {
+	handler, router, _, cleanup := setupTestFundHandler(t)
+	defer cleanup()
+
+	router.POST("/api/funds/enrich", handler.EnrichAndCreateFund)
+
+	body := map[string]interface{}{}
+	jsonBody, _ := json.Marshal(body)
+
+	req := httptest.NewRequest("POST", "/api/funds/enrich", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }

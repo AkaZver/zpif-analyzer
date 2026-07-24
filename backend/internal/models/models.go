@@ -122,9 +122,10 @@ type LLMSettings struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
 
-	APIKeyEncrypted string `json:"api_key_encrypted"`
-	BaseURL         string `json:"base_url"`
-	ModelName       string `json:"model_name"`
+	APIKeyEncrypted   string `json:"api_key_encrypted"`
+	BaseURL           string `json:"base_url"`
+	SearchModelName   string `json:"search_model_name"`
+	AnalysisModelName string `json:"analysis_model_name"`
 
 	ProxyEnabled  bool   `gorm:"default:false" json:"proxy_enabled"`
 	ProxyURL      string `json:"proxy_url"`

@@ -20,6 +20,7 @@ type Discoverer interface {
 
 type Analyzer interface {
 	AnalyzeLatestDocuments(ctx context.Context, fund *models.Fund) (*models.LLMAnalysis, error)
+	AnalyzeDocuments(ctx context.Context, fund *models.Fund, documentIDs []uint) (*models.LLMAnalysis, error)
 }
 
 type FundService struct {
@@ -194,13 +195,16 @@ func (s *FundService) DiscoverDocumentsForAllFunds() error {
 	return lastErr
 }
 
-func (s *FundService) AnalyzeFund(ctx context.Context, fundID uint) (*models.LLMAnalysis, error) {
+func (s *FundService) AnalyzeFund(ctx context.Context, fundID uint, documentIDs []uint) (*models.LLMAnalysis, error) {
 	if s.analyzer == nil {
 		return nil, errors.New("analyzer not configured")
 	}
 	fund, err := s.fundRepo.GetByID(fundID)
 	if err != nil {
 		return nil, err
+	}
+	if len(documentIDs) > 0 {
+		return s.analyzer.AnalyzeDocuments(ctx, fund, documentIDs)
 	}
 	return s.analyzer.AnalyzeLatestDocuments(ctx, fund)
 }
@@ -236,7 +240,7 @@ func (s *FundService) EnrichAndCreateFund(ctx context.Context, userInput string)
 		Username: settings.ProxyUsername,
 		Password: settings.ProxyPassword,
 	}
-	client := llm.NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName, proxy)
+	client := llm.NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.AnalysisModelName, proxy)
 
 	response, err := client.ChatSimple(ctx, llm.EnrichFundPrompt, userInput)
 	if err != nil {

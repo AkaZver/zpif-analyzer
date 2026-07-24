@@ -1,11 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Typography, Card, Button, Space, Form, Input, Select,
-  message, Checkbox,
+  message, Checkbox, Tooltip,
 } from 'antd';
-import { CloudDownloadOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CloudDownloadOutlined, ReloadOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { apiClient } from '../../api/client';
 import type { LLMSettings } from '../../types';
+
+interface ModelTestResult {
+  success: boolean;
+  message: string;
+}
 
 const Settings: React.FC = () => {
   const [llmSettings, setLlmSettings] = useState<LLMSettings | null>(null);
@@ -15,6 +20,10 @@ const Settings: React.FC = () => {
   const [models, setModels] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
   const [proxyEnabled, setProxyEnabled] = useState(false);
+  const [testResults, setTestResults] = useState<{
+    search: ModelTestResult | null;
+    analysis: ModelTestResult | null;
+  }>({ search: null, analysis: null });
 
   const loadLlmSettings = useCallback(async () => {
     try {
@@ -58,9 +67,13 @@ const Settings: React.FC = () => {
 
   const handleTestLlm = async () => {
     setTestingLlm(true);
+    setTestResults({ search: null, analysis: null });
     try {
       const result = await apiClient.testLLMConnection();
-      message.success(result.message);
+      setTestResults({
+        search: result.search_model,
+        analysis: result.analysis_model,
+      });
     } catch {
       message.error('Ошибка подключения к LLM');
     } finally {
@@ -75,14 +88,80 @@ const Settings: React.FC = () => {
       </Typography.Title>
 
       <Card title="Настройки LLM" className="mb-6 bg-surface-card border-0">
-        <Form form={llmForm} layout="vertical" initialValues={llmSettings || {}}>
+        <Form 
+          form={llmForm} 
+          layout="vertical" 
+          initialValues={llmSettings || {}}
+          onValuesChange={(changedValues) => {
+            if ('search_model_name' in changedValues) {
+              setTestResults(prev => ({ ...prev, search: null }));
+            }
+            if ('analysis_model_name' in changedValues) {
+              setTestResults(prev => ({ ...prev, analysis: null }));
+            }
+          }}
+        >
           <Form.Item name="api_key_encrypted" label="API Key">
             <Input.Password placeholder="sk-..." />
           </Form.Item>
           <Form.Item name="base_url" label="Base URL">
             <Input placeholder="https://api.openai.com/v1" />
           </Form.Item>
-          <Form.Item name="model_name" label="Модель">
+          <Form.Item 
+            name="search_model_name" 
+            label={
+              <span>
+                Модель для поиска
+                <Tooltip title="Используется для поиска документов в интернете">
+                  <QuestionCircleOutlined style={{ marginLeft: 4, color: '#888' }} />
+                </Tooltip>
+                {testingLlm && <LoadingOutlined style={{ marginLeft: 8 }} />}
+                {!testingLlm && testResults.search && (
+                  <Tooltip title={testResults.search.message}>
+                    {testResults.search.success ? (
+                      <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
+                    ) : (
+                      <CloseCircleOutlined style={{ color: '#ff4d4f', marginLeft: 8 }} />
+                    )}
+                  </Tooltip>
+                )}
+              </span>
+            }
+          >
+            {models.length > 0 ? (
+              <Select
+                showSearch
+                placeholder="Выберите модель"
+                options={models.map((m) => ({ value: m, label: m }))}
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+              />
+            ) : (
+              <Input placeholder="gpt-4o-mini" />
+            )}
+          </Form.Item>
+          <Form.Item 
+            name="analysis_model_name" 
+            label={
+              <span>
+                Модель для анализа
+                <Tooltip title="Используется для анализа документов и извлечения метрик">
+                  <QuestionCircleOutlined style={{ marginLeft: 4, color: '#888' }} />
+                </Tooltip>
+                {testingLlm && <LoadingOutlined style={{ marginLeft: 8 }} />}
+                {!testingLlm && testResults.analysis && (
+                  <Tooltip title={testResults.analysis.message}>
+                    {testResults.analysis.success ? (
+                      <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
+                    ) : (
+                      <CloseCircleOutlined style={{ color: '#ff4d4f', marginLeft: 8 }} />
+                    )}
+                  </Tooltip>
+                )}
+              </span>
+            }
+          >
             {models.length > 0 ? (
               <Select
                 showSearch

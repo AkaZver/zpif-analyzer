@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -101,6 +102,8 @@ func (c *Client) Chat(ctx context.Context, messages []Message) (*ChatResponse, e
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
+	log.Printf("LLM request: model=%s, prompt_tokens_estimate=%d", c.model, len(bodyJSON)/4)
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/chat/completions", bytes.NewReader(bodyJSON))
 	if err != nil {
 		return nil, err
@@ -110,13 +113,39 @@ func (c *Client) Chat(ctx context.Context, messages []Message) (*ChatResponse, e
 
 	resp, err := c.client.Do(req)
 	if err != nil {
+		if strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "deadline exceeded") {
+			return nil, fmt.Errorf("LLM request timeout: %w", err)
+		}
+		if strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "no such host") {
+			return nil, fmt.Errorf("LLM connection error: %w", err)
+		}
 		return nil, fmt.Errorf("failed to call LLM: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("LLM error: status %d, body: %s", resp.StatusCode, string(respBody))
+		respStr := string(respBody)
+		if len(respStr) > 500 {
+			respStr = respStr[:500] + "..."
+		}
+		
+		switch resp.StatusCode {
+		case 400:
+			return nil, fmt.Errorf("LLM error: invalid request (400). Response: %s", respStr)
+		case 401:
+			return nil, fmt.Errorf("LLM error: invalid API key (401)")
+		case 403:
+			return nil, fmt.Errorf("LLM error: access forbidden (403)")
+		case 404:
+			return nil, fmt.Errorf("LLM error: model not found (404). Check model name: %s", c.model)
+		case 429:
+			return nil, fmt.Errorf("LLM error: rate limit exceeded (429). Try again later")
+		case 500, 502, 503, 504:
+			return nil, fmt.Errorf("LLM server error (%d). Try again later", resp.StatusCode)
+		default:
+			return nil, fmt.Errorf("LLM error: status %d. Response: %s", resp.StatusCode, respStr)
+		}
 	}
 
 	var chatResp ChatResponse
@@ -127,6 +156,9 @@ func (c *Client) Chat(ctx context.Context, messages []Message) (*ChatResponse, e
 	if len(chatResp.Choices) == 0 {
 		return nil, fmt.Errorf("LLM returned no choices")
 	}
+
+	log.Printf("LLM response: model=%s, tokens=%d (prompt=%d, completion=%d)", 
+		c.model, chatResp.Usage.TotalTokens, chatResp.Usage.PromptTokens, chatResp.Usage.CompletionTokens)
 
 	return &chatResp, nil
 }

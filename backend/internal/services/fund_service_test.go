@@ -1,17 +1,39 @@
 package services
 
 import (
+	"context"
 	"regexp"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/zpif-analyzer/backend/internal/models"
 	"github.com/zpif-analyzer/backend/internal/repositories"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
+type MockAnalyzer struct {
+	mock.Mock
+}
+
+func (m *MockAnalyzer) AnalyzeLatestDocuments(ctx context.Context, fund *models.Fund) (*models.LLMAnalysis, error) {
+	args := m.Called(ctx, fund)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.LLMAnalysis), args.Error(1)
+}
+
+func (m *MockAnalyzer) AnalyzeDocuments(ctx context.Context, fund *models.Fund, documentIDs []uint) (*models.LLMAnalysis, error) {
+	args := m.Called(ctx, fund, documentIDs)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.LLMAnalysis), args.Error(1)
+}
 
 func setupTestService(t *testing.T) (*FundService, sqlmock.Sqlmock, func()) {
 	db, mock, err := sqlmock.New()
@@ -510,4 +532,97 @@ func TestFundService_AddAnalysis(t *testing.T) {
 	err := service.AddAnalysis(analysis)
 
 	assert.NoError(t, err)
+}
+
+func TestFundService_AnalyzeFund_AnalyzerNotConfigured(t *testing.T) {
+	service, _, cleanup := setupTestService(t)
+	defer cleanup()
+
+	// Analyzer is nil by default in setupTestService
+	result, err := service.AnalyzeFund(context.Background(), 1, []uint{1, 2, 3})
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "analyzer not configured")
+}
+
+func TestFundService_AnalyzeFund_FundNotFound(t *testing.T) {
+	service, mock, cleanup := setupTestService(t)
+	defer cleanup()
+
+	// Mock analyzer
+	analyzer := &MockAnalyzer{}
+	service.SetAnalyzer(analyzer)
+
+	// Mock fund not found
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
+		WithArgs(uint(999), 1).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	result, err := service.AnalyzeFund(context.Background(), 999, []uint{1, 2, 3})
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+}
+
+func TestFundService_AnalyzeFund_WithDocumentIDs(t *testing.T) {
+	service, mockDB, cleanup := setupTestService(t)
+	defer cleanup()
+
+	// Mock analyzer
+	analyzer := &MockAnalyzer{}
+	analyzer.On("AnalyzeDocuments", mock.Anything, mock.Anything, []uint{1, 2, 3}).
+		Return(&models.LLMAnalysis{ID: 1, FundID: 1, ModelUsed: "gpt-4"}, nil)
+	service.SetAnalyzer(analyzer)
+
+	// Mock fund exists
+	now := time.Now()
+	fundRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Test Fund", "RU000TEST001", "", "Test UK", "", false, false, nil, "", "")
+	
+	mockDB.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
+		WithArgs(uint(1), 1).
+		WillReturnRows(fundRows)
+	
+	emptyRows := sqlmock.NewRows([]string{"id", "fund_id"})
+	mockDB.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mockDB.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mockDB.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+
+	result, err := service.AnalyzeFund(context.Background(), 1, []uint{1, 2, 3})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "gpt-4", result.ModelUsed)
+}
+
+func TestFundService_AnalyzeFund_WithoutDocumentIDs(t *testing.T) {
+	service, mockDB, cleanup := setupTestService(t)
+	defer cleanup()
+
+	// Mock analyzer
+	analyzer := &MockAnalyzer{}
+	analyzer.On("AnalyzeLatestDocuments", mock.Anything, mock.Anything).
+		Return(&models.LLMAnalysis{ID: 1, FundID: 1, ModelUsed: "gpt-4"}, nil)
+	service.SetAnalyzer(analyzer)
+
+	// Mock fund exists
+	now := time.Now()
+	fundRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Test Fund", "RU000TEST001", "", "Test UK", "", false, false, nil, "", "")
+	
+	mockDB.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
+		WithArgs(uint(1), 1).
+		WillReturnRows(fundRows)
+	
+	emptyRows := sqlmock.NewRows([]string{"id", "fund_id"})
+	mockDB.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mockDB.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mockDB.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+
+	result, err := service.AnalyzeFund(context.Background(), 1, nil)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "gpt-4", result.ModelUsed)
 }

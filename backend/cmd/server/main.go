@@ -57,6 +57,9 @@ func main() {
 
 	log.Println("Database migration completed")
 
+	// Миграция LLM настроек: копирование model_name в новые поля
+	migrateLLMSettings(db)
+
 	// Создание начальных данных (seed)
 	seedInitialData(db, cfg)
 
@@ -225,4 +228,38 @@ func seedInitialData(db *gorm.DB, cfg *config.Config) {
 	}
 
 	log.Println("Initial data seeded successfully")
+}
+
+func migrateLLMSettings(db *gorm.DB) {
+	// Проверяем наличие старого поля model_name
+	if !db.Migrator().HasColumn(&models.LLMSettings{}, "model_name") {
+		return
+	}
+
+	// Получаем все записи с model_name
+	var settings []models.LLMSettings
+	if err := db.Find(&settings).Error; err != nil {
+		log.Printf("Failed to fetch LLM settings for migration: %v", err)
+		return
+	}
+
+	// Копируем model_name в новые поля если они пустые
+	for _, s := range settings {
+		needsUpdate := false
+		if s.SearchModelName == "" {
+			db.Model(&s).Update("search_model_name", db.Raw("SELECT model_name FROM llm_settings WHERE id = ?", s.ID))
+			needsUpdate = true
+		}
+		if s.AnalysisModelName == "" {
+			db.Model(&s).Update("analysis_model_name", db.Raw("SELECT model_name FROM llm_settings WHERE id = ?", s.ID))
+			needsUpdate = true
+		}
+		if needsUpdate {
+			log.Printf("Migrated LLM settings: model_name -> search_model_name, analysis_model_name")
+		}
+	}
+
+	// Удаляем старое поле
+	db.Migrator().DropColumn(&models.LLMSettings{}, "model_name")
+	log.Println("Removed deprecated model_name column")
 }

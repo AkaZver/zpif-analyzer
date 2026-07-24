@@ -34,7 +34,8 @@ func (r *LLMSettingsRepository) Upsert(settings *models.LLMSettings) error {
 	
 	existing.APIKeyEncrypted = settings.APIKeyEncrypted
 	existing.BaseURL = settings.BaseURL
-	existing.ModelName = settings.ModelName
+	existing.SearchModelName = settings.SearchModelName
+	existing.AnalysisModelName = settings.AnalysisModelName
 	existing.ProxyEnabled = settings.ProxyEnabled
 	existing.ProxyURL = settings.ProxyURL
 	existing.ProxyUsername = settings.ProxyUsername

@@ -3,12 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Typography, Card, Row, Col, Statistic, Tag, Button, Space, Table,
   message, Spin, Upload, Descriptions, List, Modal, Form, Input, Select,
-  Switch, Popconfirm, DatePicker, Segmented,
+  Switch, Popconfirm, DatePicker, Segmented, Tooltip,
 } from 'antd';
-import { ArrowLeftOutlined, SearchOutlined, UploadOutlined, ThunderboltOutlined, CheckCircleOutlined, CloseCircleOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, CloudDownloadOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, SearchOutlined, UploadOutlined, ThunderboltOutlined, CheckCircleOutlined, CloseCircleOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, CloudDownloadOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, Legend, ResponsiveContainer,
   BarChart, Bar, ReferenceLine,
 } from 'recharts';
 import { apiClient } from '../../api/client';
@@ -35,6 +35,7 @@ const FundDetails: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [fetchingMarketData, setFetchingMarketData] = useState(false);
   const [timeRange, setTimeRange] = useState<'3m' | '6m' | '1y' | '3y' | '5y' | 'all'>('1y');
+  const [selectedDocIds, setSelectedDocIds] = useState<number[]>([]);
 
   const formatNumber = (value: number | string, digits = 0) =>
     new Intl.NumberFormat('ru-RU', {
@@ -55,6 +56,7 @@ const FundDetails: React.FC = () => {
       setFund(fundData);
       setFinancials(financialsData);
       setDocuments(documentsData);
+      setSelectedDocIds(documentsData.filter(d => d.status !== 'analyzed').map(d => d.id));
       try {
         const analysisData = await apiClient.getAnalysis(fundId);
         setAnalysis(analysisData);
@@ -79,8 +81,9 @@ const FundDetails: React.FC = () => {
       await apiClient.discoverDocuments(parseInt(id));
       message.success('Автопоиск документов запущен');
       setTimeout(() => loadData(), 3000);
-    } catch {
-      message.error('Ошибка при поиске документов');
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.error || 'Ошибка при поиске документов';
+      message.error(errorMsg, 8);
     } finally {
       setDiscovering(false);
     }
@@ -102,11 +105,13 @@ const FundDetails: React.FC = () => {
     if (!id) return;
     setAnalyzing(true);
     try {
-      const result = await apiClient.analyzeFund(parseInt(id));
+      const result = await apiClient.analyzeFund(parseInt(id), selectedDocIds);
       setAnalysis(result);
       message.success('Анализ завершён');
-    } catch {
-      message.error('Ошибка при анализе');
+      await loadData();
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.error || 'Ошибка при анализе';
+      message.error(errorMsg, 8);
     } finally {
       setAnalyzing(false);
     }
@@ -309,6 +314,12 @@ const FundDetails: React.FC = () => {
     },
   ];
 
+  const renderMetricTitle = (title: string, description: string) => (
+    <Tooltip title={description}>
+      <span>{title} <QuestionCircleOutlined style={{ color: '#888' }} /></span>
+    </Tooltip>
+  );
+
   return (
     <div>
       <Button
@@ -361,18 +372,18 @@ const FundDetails: React.FC = () => {
       <Row gutter={[16, 16]} className="mb-6">
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic title="Цена пая" value={latest?.unit_price_rub || 0} suffix="₽" formatter={(value: any) => formatNumber(value, 0)} />
+            <Statistic title={renderMetricTitle("Цена пая", "Рыночная цена одного пая на бирже")} value={latest?.unit_price_rub || 0} suffix="₽" formatter={(value: any) => formatNumber(value, 0)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic title="РСП" value={latest?.nav_per_unit_rub || 0} suffix="₽" formatter={(value: any) => formatNumber(value, 0)} />
+            <Statistic title={renderMetricTitle("РСП", "Расчётная стоимость пая (NAV на пай)")} value={latest?.nav_per_unit_rub || 0} suffix="₽" formatter={(value: any) => formatNumber(value, 0)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
             <Statistic
-              title="Дисконт к РСП"
+              title={renderMetricTitle("Дисконт к РСП", "Разница между рыночной ценой и РСП в процентах")}
               value={latest?.discount_to_nav_pct || 0}
               suffix="%"
               formatter={(value: any) => formatNumber(value, 1)}
@@ -382,13 +393,13 @@ const FundDetails: React.FC = () => {
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic title="Cap Rate" value={latest?.cap_rate_pct || 0} suffix="%" formatter={(value: any) => formatNumber(value, 1)} />
+            <Statistic title={renderMetricTitle("Cap Rate", "Коэффициент капитализации (NOI / Стоимость активов)")} value={latest?.cap_rate_pct || 0} suffix="%" formatter={(value: any) => formatNumber(value, 1)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
             <Statistic 
-              title="СЧА" 
+              title={renderMetricTitle("СЧА", "Стоимость чистых активов фонда")}
               value={latest?.nav_total_mln_rub || 0} 
               suffix="млн ₽" 
               formatter={(value: any) => formatNumber(value, 2)}
@@ -397,18 +408,18 @@ const FundDetails: React.FC = () => {
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic title="P/NAV" value={latest?.p_nav || 0} formatter={(value: any) => formatNumber(value, 2)} />
+            <Statistic title={renderMetricTitle("P/NAV", "Отношение рыночной цены к NAV")} value={latest?.p_nav || 0} formatter={(value: any) => formatNumber(value, 2)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic title="P/AFFO" value={latest?.p_affo || 0} formatter={(value: any) => formatNumber(value, 2)} />
+            <Statistic title={renderMetricTitle("P/AFFO", "Отношение рыночной цены к AFFO")} value={latest?.p_affo || 0} formatter={(value: any) => formatNumber(value, 2)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
             <Statistic
-              title="Доходность выплат"
+              title={renderMetricTitle("Доходность выплат", "Годовая доходность от выплат дивидендов")}
               value={latest?.payout_yield_pct || 0}
               suffix="%"
               formatter={(value: any) => formatNumber(value, 1)}
@@ -418,12 +429,12 @@ const FundDetails: React.FC = () => {
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic title="Комиссия УК" value={latest?.management_fee_pct || 0} suffix="%" formatter={(value: any) => formatNumber(value, 1)} />
+            <Statistic title={renderMetricTitle("Комиссия УК", "Ежегодная комиссия управляющей компании")} value={latest?.management_fee_pct || 0} suffix="%" formatter={(value: any) => formatNumber(value, 1)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
           <Card className="bg-surface-card border-0">
-            <Statistic title="Объектов" value={latest?.number_of_properties || 0} formatter={(value: any) => formatNumber(value, 0)} />
+            <Statistic title={renderMetricTitle("Объектов", "Количество объектов недвижимости в портфеле")} value={latest?.number_of_properties || 0} formatter={(value: any) => formatNumber(value, 0)} />
           </Card>
         </Col>
       </Row>
@@ -454,7 +465,7 @@ const FundDetails: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#444444" />
                 <XAxis dataKey="date" stroke="#a0a0a0" interval={0} angle={-45} textAnchor="end" dy={10} />
                 <YAxis stroke="#a0a0a0" tickFormatter={(value) => new Intl.NumberFormat('ru-RU').format(value)} />
-                <Tooltip formatter={(value: any) => formatNumber(value, 2)} contentStyle={{ backgroundColor: '#333333', border: 'none' }} />
+                <ChartTooltip formatter={(value: any) => formatNumber(value, 2)} contentStyle={{ backgroundColor: '#333333', border: 'none' }} />
                 <Legend layout="horizontal" verticalAlign="top" align="center" />
                 
                 {/* Вертикальная линия "Начало торгов" */}
@@ -502,7 +513,7 @@ const FundDetails: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#444444" />
                 <XAxis dataKey="date" stroke="#a0a0a0" />
                 <YAxis stroke="#a0a0a0" tickFormatter={(value) => new Intl.NumberFormat('ru-RU').format(value)} />
-                <Tooltip 
+                <ChartTooltip 
                   formatter={(value: any) => formatNumber(value, 2)}
                   contentStyle={{ backgroundColor: '#333333', border: 'none' }}
                   cursor={{ fill: '#444444', fillOpacity: 0.3 }}
@@ -522,7 +533,7 @@ const FundDetails: React.FC = () => {
           <Button icon={<SearchOutlined />} onClick={handleDiscover} loading={discovering}>
             Найти в интернете
           </Button>
-          <Upload beforeUpload={handleUpload} showUploadList={false} accept=".pdf,.doc,.docx,.xlsx">
+          <Upload beforeUpload={handleUpload} showUploadList={false} accept=".pdf,.doc,.docx,.xlsx,.txt">
             <Button icon={<UploadOutlined />}>Загрузить вручную</Button>
           </Upload>
           <Button
@@ -530,7 +541,7 @@ const FundDetails: React.FC = () => {
             icon={<ThunderboltOutlined />}
             onClick={handleAnalyze}
             loading={analyzing}
-            disabled={documents.length === 0}
+            disabled={selectedDocIds.length === 0}
           >
             Запустить анализ
           </Button>
@@ -541,6 +552,20 @@ const FundDetails: React.FC = () => {
           rowKey="id"
           pagination={false}
           size="small"
+          rowSelection={{
+            selectedRowKeys: selectedDocIds,
+            onChange: (keys) => setSelectedDocIds(keys as number[]),
+          }}
+          onRow={(record) => ({
+            onClick: () => {
+              setSelectedDocIds(prev =>
+                prev.includes(record.id)
+                  ? prev.filter(id => id !== record.id)
+                  : [...prev, record.id]
+              );
+            },
+            style: { cursor: 'pointer' },
+          })}
         />
       </Card>
 

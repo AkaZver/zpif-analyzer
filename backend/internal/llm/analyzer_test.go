@@ -297,6 +297,28 @@ func floatPtr(f float64) *float64 {
 	return &f
 }
 
+func TestAnalyzer_AnalyzeDocuments_EmptyDocumentIDs(t *testing.T) {
+	analyzer := &Analyzer{}
+	fund := &models.Fund{ID: 1, Name: "Test Fund"}
+
+	result, err := analyzer.AnalyzeDocuments(context.Background(), fund, []uint{})
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "no documents specified")
+}
+
+func TestAnalyzer_AnalyzeDocuments_NilDocumentIDs(t *testing.T) {
+	analyzer := &Analyzer{}
+	fund := &models.Fund{ID: 1, Name: "Test Fund"}
+
+	result, err := analyzer.AnalyzeDocuments(context.Background(), fund, nil)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "no documents specified")
+}
+
 func intPtr(i int) *int {
 	return &i
 }

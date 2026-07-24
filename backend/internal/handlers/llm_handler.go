@@ -25,15 +25,16 @@ func (h *LLMHandler) GetSettings(c *gin.Context) {
 	}
 	
 	c.JSON(http.StatusOK, gin.H{
-		"id":                settings.ID,
-		"base_url":          settings.BaseURL,
-		"model_name":        settings.ModelName,
-		"api_key_encrypted": settings.APIKeyEncrypted,
-		"proxy_enabled":     settings.ProxyEnabled,
-		"proxy_url":         settings.ProxyURL,
-		"proxy_username":    settings.ProxyUsername,
-		"proxy_password":    settings.ProxyPassword,
-		"updated_at":        settings.UpdatedAt,
+		"id":                  settings.ID,
+		"base_url":            settings.BaseURL,
+		"search_model_name":   settings.SearchModelName,
+		"analysis_model_name": settings.AnalysisModelName,
+		"api_key_encrypted":   settings.APIKeyEncrypted,
+		"proxy_enabled":       settings.ProxyEnabled,
+		"proxy_url":           settings.ProxyURL,
+		"proxy_username":      settings.ProxyUsername,
+		"proxy_password":      settings.ProxyPassword,
+		"updated_at":          settings.UpdatedAt,
 	})
 }
 
@@ -55,19 +56,15 @@ func (h *LLMHandler) UpdateSettings(c *gin.Context) {
 
 // TestConnection godoc
 func (h *LLMHandler) TestConnection(c *gin.Context) {
-	err := h.llmService.TestConnection()
+	result, err := h.llmService.TestConnection()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"message": err.Error(),
+			"error": err.Error(),
 		})
 		return
 	}
 	
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Connection successful",
-	})
+	c.JSON(http.StatusOK, result)
 }
 
 // ListModels godoc

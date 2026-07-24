@@ -64,7 +64,7 @@ func (d *Discoverer) Discover(ctx context.Context, fund *models.Fund) (*Discover
 		Username: settings.ProxyUsername,
 		Password: settings.ProxyPassword,
 	}
-	llmClient := NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.ModelName, proxy)
+	llmClient := NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.SearchModelName, proxy)
 
 	prompt := buildDiscoveryPrompt(fund)
 
