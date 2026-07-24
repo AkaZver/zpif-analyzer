@@ -24,11 +24,6 @@ func (h *LLMHandler) GetSettings(c *gin.Context) {
 		return
 	}
 	
-	proxyPassword := settings.ProxyPassword
-	if proxyPassword != "" {
-		proxyPassword = "****"
-	}
-	
 	c.JSON(http.StatusOK, gin.H{
 		"id":                settings.ID,
 		"base_url":          settings.BaseURL,
@@ -37,7 +32,7 @@ func (h *LLMHandler) GetSettings(c *gin.Context) {
 		"proxy_enabled":     settings.ProxyEnabled,
 		"proxy_url":         settings.ProxyURL,
 		"proxy_username":    settings.ProxyUsername,
-		"proxy_password":    proxyPassword,
+		"proxy_password":    settings.ProxyPassword,
 		"updated_at":        settings.UpdatedAt,
 	})
 }

@@ -20,10 +20,7 @@ const Settings: React.FC = () => {
     try {
       const settings = await apiClient.getLLMSettings();
       setLlmSettings(settings);
-      llmForm.setFieldsValue({
-        ...settings,
-        proxy_password: '',
-      });
+      llmForm.setFieldsValue(settings);
       setProxyEnabled(settings.proxy_enabled || false);
     } catch {
     }

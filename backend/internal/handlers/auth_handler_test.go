@@ -298,8 +298,7 @@ func TestLLMHandler_GetSettings_WithProxy(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "proxy_enabled")
-	assert.Contains(t, w.Body.String(), "****")
-	assert.NotContains(t, w.Body.String(), "secret-password")
+	assert.Contains(t, w.Body.String(), "secret-password")
 }
 
 func TestLLMHandler_TestConnection(t *testing.T) {

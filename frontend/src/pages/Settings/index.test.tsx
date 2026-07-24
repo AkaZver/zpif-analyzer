@@ -144,7 +144,7 @@ describe('Settings', () => {
       proxy_enabled: true,
       proxy_url: 'http://proxy.example.com:8080',
       proxy_username: 'user',
-      proxy_password: '****',
+      proxy_password: 'real-password',
       created_at: '2024-01-01',
       updated_at: '2024-01-01',
     });
