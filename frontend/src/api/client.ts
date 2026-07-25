@@ -3,7 +3,7 @@ import type { AxiosInstance } from 'axios';
 import type { LoginRequest, LoginResponse, Fund, FundFinancials, FundDocument, LLMAnalysis, LLMSettings } from '../types';
 
 class ApiClient {
-  private client: AxiosInstance;
+  private readonly client: AxiosInstance;
 
   constructor() {
     this.client = axios.create({

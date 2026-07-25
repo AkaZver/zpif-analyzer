@@ -119,34 +119,26 @@ func main() {
 
 	// Funds
 	api.GET("/funds", fundHandler.GetAllFunds)
-	api.GET("/funds/:id", fundHandler.GetFundByID)
 	api.POST("/funds", fundHandler.CreateFund)
 	api.POST("/funds/enrich-and-create", fundHandler.EnrichAndCreateFund)
-	api.PUT("/funds/:id", fundHandler.UpdateFund)
-	api.DELETE("/funds/:id", fundHandler.DeleteFund)
-
-	// Fund financials
-	api.GET("/funds/:id/financials", fundHandler.GetFinancialsByFundID)
-	api.POST("/funds/:id/financials", fundHandler.AddFinancials)
-
-	// Fund documents
-	api.GET("/funds/:id/documents", fundHandler.GetDocumentsByFundID)
-	api.POST("/funds/:id/documents", fundHandler.UploadDocument)
-	api.DELETE("/funds/:id/documents/:docId", fundHandler.DeleteDocument)
-	api.GET("/funds/:id/documents/:docId/download", fundHandler.DownloadDocument)
-	api.POST("/funds/:id/discover", fundHandler.DiscoverDocuments)
-	api.GET("/funds/:id/discovery-status", fundHandler.GetDiscoveryStatus)
-
-	// Fund analysis
-	api.GET("/funds/:id/analysis", fundHandler.GetLatestAnalysis)
-	api.POST("/funds/:id/analyze", fundHandler.AnalyzeFund)
-
-	// Discover all
 	api.POST("/funds/discover-all", fundHandler.DiscoverAllDocuments)
-
-	// Market data
-	api.POST("/funds/:id/fetch-market-data", marketDataHandler.FetchMarketData)
 	api.POST("/funds/fetch-all-market-data", marketDataHandler.FetchAllMarketData)
+
+	fundByID := api.Group("/funds/:id")
+	fundByID.GET("", fundHandler.GetFundByID)
+	fundByID.PUT("", fundHandler.UpdateFund)
+	fundByID.DELETE("", fundHandler.DeleteFund)
+	fundByID.GET("/financials", fundHandler.GetFinancialsByFundID)
+	fundByID.POST("/financials", fundHandler.AddFinancials)
+	fundByID.GET("/documents", fundHandler.GetDocumentsByFundID)
+	fundByID.POST("/documents", fundHandler.UploadDocument)
+	fundByID.DELETE("/documents/:docId", fundHandler.DeleteDocument)
+	fundByID.GET("/documents/:docId/download", fundHandler.DownloadDocument)
+	fundByID.POST("/discover", fundHandler.DiscoverDocuments)
+	fundByID.GET("/discovery-status", fundHandler.GetDiscoveryStatus)
+	fundByID.GET("/analysis", fundHandler.GetLatestAnalysis)
+	fundByID.POST("/analyze", fundHandler.AnalyzeFund)
+	fundByID.POST("/fetch-market-data", marketDataHandler.FetchMarketData)
 
 	// Auth
 	api.GET("/auth/me", authHandler.GetMe)

@@ -17,19 +17,14 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/server ./cmd/server
 
 # Final stage
-FROM alpine:latest
+FROM alpine:3.21
 
 WORKDIR /app
 
-# Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata
-
-# Create non-root user
-RUN addgroup -g 1001 appgroup && \
-    adduser -u 1001 -G appgroup -D appuser
-
-# Create directories with proper permissions
-RUN mkdir -p /app/documents && chown -R appuser:appgroup /app
+RUN apk add --no-cache ca-certificates tzdata && \
+    addgroup -g 1001 appgroup && \
+    adduser -u 1001 -G appgroup -D appuser && \
+    mkdir -p /app/documents && chown -R appuser:appgroup /app
 
 # Copy binary
 COPY --from=builder /app/server .

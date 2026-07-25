@@ -17,6 +17,11 @@ import (
 
 var mskLocation = time.FixedZone("MSK", 3*3600)
 
+const (
+	defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+	headerUserAgent  = "User-Agent"
+)
+
 type InvestfundsData struct {
 	NAV           float64
 	NAVDate       time.Time
@@ -81,7 +86,7 @@ func (p *InvestfundsParser) SearchFund(query string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	req.Header.Set(headerUserAgent, defaultUserAgent)
 
 	resp, err := p.client.Do(req)
 	if err != nil {
@@ -143,7 +148,7 @@ func (p *InvestfundsParser) getChartData(fundURL, fundID, dataKey string) ([][]f
 	if err != nil {
 		return nil, fmt.Errorf("failed to create chart request: %w", err)
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	req.Header.Set(headerUserAgent, defaultUserAgent)
 	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 
 	resp, err := p.client.Do(req)
@@ -227,7 +232,7 @@ func (p *InvestfundsParser) GetFundData(fundURL string) (*InvestfundsData, error
 		}
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	req.Header.Set(headerUserAgent, defaultUserAgent)
 
 	resp, err := p.client.Do(req)
 	if err != nil {

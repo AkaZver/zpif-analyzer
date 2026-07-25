@@ -333,16 +333,10 @@ func (p *MoexParser) GetPriceHistoryWithBoard(secID, board string) ([]MoexMarket
 					if val, ok := row[i].(float64); ok && val > 0 {
 						data.Close = val
 					}
-				case "LEGALCLOSEPRICE":
-					// Fallback: используем LEGALCLOSEPRICE если CLOSE равен 0
-					if val, ok := row[i].(float64); ok && val > 0 && data.Close == 0 {
-						data.Close = val
-					}
-				case "WAPRICE":
-					// Fallback: используем WAPRICE если CLOSE и LEGALCLOSEPRICE равны 0
-					if val, ok := row[i].(float64); ok && val > 0 && data.Close == 0 {
-						data.Close = val
-					}
+			case "LEGALCLOSEPRICE", "WAPRICE":
+				if val, ok := row[i].(float64); ok && val > 0 && data.Close == 0 {
+					data.Close = val
+				}
 				case "OPEN":
 					if val, ok := row[i].(float64); ok {
 						data.Open = val

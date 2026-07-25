@@ -15,22 +15,24 @@ func NewFinancialsRepository(db *gorm.DB) *FinancialsRepository {
 	return &FinancialsRepository{db: db}
 }
 
+const orderSnapshotDateDesc = "snapshot_date DESC"
+
 func (r *FinancialsRepository) GetByFundID(fundID uint) ([]models.FundFinancials, error) {
 	var financials []models.FundFinancials
-	err := r.db.Where("fund_id = ?", fundID).Order("snapshot_date DESC").Find(&financials).Error
+	err := r.db.Where("fund_id = ?", fundID).Order(orderSnapshotDateDesc).Find(&financials).Error
 	return financials, err
 }
 
 func (r *FinancialsRepository) GetByFundIDAndDateRange(fundID uint, from, to time.Time) ([]models.FundFinancials, error) {
 	var financials []models.FundFinancials
 	err := r.db.Where("fund_id = ? AND snapshot_date BETWEEN ? AND ?", fundID, from, to).
-		Order("snapshot_date DESC").Find(&financials).Error
+		Order(orderSnapshotDateDesc).Find(&financials).Error
 	return financials, err
 }
 
 func (r *FinancialsRepository) GetLatestByFundID(fundID uint) (*models.FundFinancials, error) {
 	var financial models.FundFinancials
-	err := r.db.Where("fund_id = ?", fundID).Order("snapshot_date DESC").First(&financial).Error
+	err := r.db.Where("fund_id = ?", fundID).Order(orderSnapshotDateDesc).First(&financial).Error
 	if err != nil {
 		return nil, err
 	}

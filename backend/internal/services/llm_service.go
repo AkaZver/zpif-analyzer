@@ -46,6 +46,8 @@ func (s *LLMService) UpdateSettings(settings *models.LLMSettings) error {
 	return s.settingsRepo.Upsert(settings)
 }
 
+const msgConnectionSuccessful = "Connection successful"
+
 type ModelTestResult struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
@@ -83,8 +85,8 @@ func (s *LLMService) TestConnection() (*TestConnectionResult, error) {
 			result.SearchModel = ModelTestResult{Success: false, Message: err.Error()}
 			result.AnalysisModel = ModelTestResult{Success: false, Message: err.Error()}
 		} else {
-			result.SearchModel = ModelTestResult{Success: true, Message: "Connection successful"}
-			result.AnalysisModel = ModelTestResult{Success: true, Message: "Connection successful"}
+			result.SearchModel = ModelTestResult{Success: true, Message: msgConnectionSuccessful}
+			result.AnalysisModel = ModelTestResult{Success: true, Message: msgConnectionSuccessful}
 		}
 	} else {
 		searchClient := llm.NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.SearchModelName, proxy)
@@ -93,7 +95,7 @@ func (s *LLMService) TestConnection() (*TestConnectionResult, error) {
 		if err != nil {
 			result.SearchModel = ModelTestResult{Success: false, Message: err.Error()}
 		} else {
-			result.SearchModel = ModelTestResult{Success: true, Message: "Connection successful"}
+			result.SearchModel = ModelTestResult{Success: true, Message: msgConnectionSuccessful}
 		}
 
 		analysisClient := llm.NewClient(settings.APIKeyEncrypted, settings.BaseURL, settings.AnalysisModelName, proxy)
@@ -101,7 +103,7 @@ func (s *LLMService) TestConnection() (*TestConnectionResult, error) {
 		if err != nil {
 			result.AnalysisModel = ModelTestResult{Success: false, Message: err.Error()}
 		} else {
-			result.AnalysisModel = ModelTestResult{Success: true, Message: "Connection successful"}
+			result.AnalysisModel = ModelTestResult{Success: true, Message: msgConnectionSuccessful}
 		}
 	}
 

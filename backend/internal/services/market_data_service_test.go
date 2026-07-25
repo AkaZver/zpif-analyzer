@@ -113,7 +113,10 @@ func (m *MockFinancialsRepo) Create(financial *models.FundFinancials) error {
 
 func (m *MockFinancialsRepo) Update(financial *models.FundFinancials) error {
 	args := m.Called(financial)
-	return args.Error(0)
+	if err := args.Error(0); err != nil {
+		return err
+	}
+	return nil
 }
 
 type MockFundRepo struct {

@@ -73,7 +73,10 @@ describe('FundDetails', () => {
     expect(spinner).toBeInTheDocument();
   });
 
-  it('should load and display fund data', async () => {
+  it.each([
+    { name: 'should load and display fund data', expectedText: 'Тестовый фонд' },
+    { name: 'should show market maker tag', expectedText: 'Маркет-мейкер' },
+  ])('$name', async ({ expectedText }) => {
     render(
       <ThemeProvider>
         <MemoryRouter>
@@ -83,21 +86,7 @@ describe('FundDetails', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Тестовый фонд')).toBeInTheDocument();
-    });
-  });
-
-  it('should show market maker tag', async () => {
-    render(
-      <ThemeProvider>
-        <MemoryRouter>
-          <FundDetails />
-        </MemoryRouter>
-      </ThemeProvider>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('Маркет-мейкер')).toBeInTheDocument();
+      expect(screen.getByText(expectedText)).toBeInTheDocument();
     });
   });
 

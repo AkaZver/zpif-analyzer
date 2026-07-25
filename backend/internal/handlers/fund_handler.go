@@ -16,6 +16,8 @@ import (
 	"github.com/zpif-analyzer/backend/internal/services"
 )
 
+const errInvalidFundID = "invalid fund ID"
+
 type FundHandler struct {
 	fundService *services.FundService
 }
@@ -38,7 +40,7 @@ func (h *FundHandler) GetAllFunds(c *gin.Context) {
 func (h *FundHandler) GetFundByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fund ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidFundID})
 		return
 	}
 	
@@ -71,7 +73,7 @@ func (h *FundHandler) CreateFund(c *gin.Context) {
 func (h *FundHandler) UpdateFund(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fund ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidFundID})
 		return
 	}
 	
@@ -93,7 +95,7 @@ func (h *FundHandler) UpdateFund(c *gin.Context) {
 func (h *FundHandler) DeleteFund(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fund ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidFundID})
 		return
 	}
 	
@@ -109,7 +111,7 @@ func (h *FundHandler) DeleteFund(c *gin.Context) {
 func (h *FundHandler) GetFinancialsByFundID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fund ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidFundID})
 		return
 	}
 	
@@ -126,7 +128,7 @@ func (h *FundHandler) GetFinancialsByFundID(c *gin.Context) {
 func (h *FundHandler) AddFinancials(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fund ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidFundID})
 		return
 	}
 	
@@ -148,7 +150,7 @@ func (h *FundHandler) AddFinancials(c *gin.Context) {
 func (h *FundHandler) GetDocumentsByFundID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fund ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidFundID})
 		return
 	}
 	
@@ -200,7 +202,7 @@ func (h *FundHandler) DownloadDocument(c *gin.Context) {
 func (h *FundHandler) GetLatestAnalysis(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fund ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidFundID})
 		return
 	}
 	
@@ -217,7 +219,7 @@ func (h *FundHandler) GetLatestAnalysis(c *gin.Context) {
 func (h *FundHandler) DiscoverDocuments(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fund ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidFundID})
 		return
 	}
 
@@ -233,7 +235,7 @@ func (h *FundHandler) DiscoverDocuments(c *gin.Context) {
 func (h *FundHandler) AnalyzeFund(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fund ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidFundID})
 		return
 	}
 
@@ -254,7 +256,7 @@ func (h *FundHandler) AnalyzeFund(c *gin.Context) {
 func (h *FundHandler) UploadDocument(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fund ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidFundID})
 		return
 	}
 
@@ -335,7 +337,7 @@ func (h *FundHandler) DiscoverAllDocuments(c *gin.Context) {
 func (h *FundHandler) GetDiscoveryStatus(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fund ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": errInvalidFundID})
 		return
 	}
 

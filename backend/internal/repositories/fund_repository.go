@@ -15,6 +15,8 @@ func NewFundRepository(db *gorm.DB) *FundRepository {
 	return &FundRepository{db: db}
 }
 
+const whereFundID = "fund_id = ?"
+
 func (r *FundRepository) GetAll() ([]models.Fund, error) {
 	var funds []models.Fund
 	err := r.db.Preload("Financials").Preload("Documents").Preload("Analyses").Find(&funds).Error
@@ -49,15 +51,15 @@ func (r *FundRepository) Update(fund *models.Fund) error {
 
 func (r *FundRepository) Delete(id uint) error {
 	// Каскадное удаление связанных записей
-	if err := r.db.Where("fund_id = ?", id).Delete(&models.FundFinancials{}).Error; err != nil {
+	if err := r.db.Where(whereFundID, id).Delete(&models.FundFinancials{}).Error; err != nil {
 		return fmt.Errorf("failed to delete financials: %w", err)
 	}
 
-	if err := r.db.Where("fund_id = ?", id).Delete(&models.FundDocument{}).Error; err != nil {
+	if err := r.db.Where(whereFundID, id).Delete(&models.FundDocument{}).Error; err != nil {
 		return fmt.Errorf("failed to delete documents: %w", err)
 	}
 
-	if err := r.db.Where("fund_id = ?", id).Delete(&models.LLMAnalysis{}).Error; err != nil {
+	if err := r.db.Where(whereFundID, id).Delete(&models.LLMAnalysis{}).Error; err != nil {
 		return fmt.Errorf("failed to delete analyses: %w", err)
 	}
 

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { apiClient } from '../api/client';
 import { AuthContext } from './AuthContext';
@@ -23,10 +23,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setToken(null);
   }, []);
 
+  const value = useMemo(() => ({
+    isAuthenticated: !!token,
+    token,
+    login,
+    logout,
+  }), [token, login, logout]);
+
   return (
-    <AuthContext.Provider
-      value={{ isAuthenticated: !!token, token, login, logout }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

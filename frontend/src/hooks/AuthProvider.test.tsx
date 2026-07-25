@@ -27,7 +27,7 @@ describe('AuthProvider', () => {
     );
 
     expect(contextValue.isAuthenticated).toBe(false);
-    expect(contextValue.token).toBe(null);
+    expect(contextValue.token).toBeNull();
   });
 
   it('should provide initial auth state when token exists', () => {
@@ -106,8 +106,8 @@ describe('AuthProvider', () => {
       contextValue.logout();
     });
 
-    expect(localStorage.getItem('token')).toBe(null);
+    expect(localStorage.getItem('token')).toBeNull();
     expect(contextValue.isAuthenticated).toBe(false);
-    expect(contextValue.token).toBe(null);
+    expect(contextValue.token).toBeNull();
   });
 });

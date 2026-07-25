@@ -48,7 +48,7 @@ const FundDetails: React.FC = () => {
   const loadDocuments = useCallback(async () => {
     if (!id) return;
     try {
-      const documentsData = await apiClient.getDocuments(parseInt(id));
+      const documentsData = await apiClient.getDocuments(Number.parseInt(id));
       setDocuments(documentsData);
       setSelectedDocIds(documentsData.filter(d => d.status !== 'analyzed').map(d => d.id));
     } catch {
@@ -60,7 +60,7 @@ const FundDetails: React.FC = () => {
     if (!id) return;
     setLoading(true);
     try {
-      const fundId = parseInt(id);
+      const fundId = Number.parseInt(id);
       const [fundData, financialsData, documentsData] = await Promise.all([
         apiClient.getFund(fundId),
         apiClient.getFinancials(fundId),
@@ -91,7 +91,7 @@ const FundDetails: React.FC = () => {
     if (!id) return;
     setDiscovering(true);
     try {
-      await apiClient.discoverDocuments(parseInt(id));
+      await apiClient.discoverDocuments(Number.parseInt(id));
       message.success('Автопоиск документов запущен');
       setTimeout(() => loadDocuments(), 3000);
     } catch (error: any) {
@@ -102,14 +102,16 @@ const FundDetails: React.FC = () => {
     }
   };
 
-  const handleUpload = async (file: File) => {
-    if (!id) return false;
-    try {
-      await apiClient.uploadDocument(parseInt(id), file);
-      message.success('Документ загружен');
-      await loadDocuments();
-    } catch {
-      message.error('Ошибка при загрузке');
+  const handleUpload = (file: File): boolean => {
+    if (id) {
+      apiClient.uploadDocument(Number.parseInt(id), file)
+        .then(() => {
+          message.success('Документ загружен');
+          return loadDocuments();
+        })
+        .catch(() => {
+          message.error('Ошибка при загрузке');
+        });
     }
     return false;
   };
@@ -118,7 +120,7 @@ const FundDetails: React.FC = () => {
     if (!id) return;
     setAnalyzing(true);
     try {
-      const result = await apiClient.analyzeFund(parseInt(id), selectedDocIds);
+      const result = await apiClient.analyzeFund(Number.parseInt(id), selectedDocIds);
       setAnalysis(result);
       message.success('Анализ завершён');
       await loadData();
@@ -133,7 +135,7 @@ const FundDetails: React.FC = () => {
   const handleDeleteDocument = async (docId: number) => {
     if (!id) return;
     try {
-      await apiClient.deleteDocument(parseInt(id), docId);
+      await apiClient.deleteDocument(Number.parseInt(id), docId);
       message.success('Документ удалён');
       await loadDocuments();
     } catch {
@@ -144,7 +146,7 @@ const FundDetails: React.FC = () => {
   const handleDownloadDocument = async (docId: number, fileName: string) => {
     if (!id) return;
     try {
-      const blob = await apiClient.downloadDocument(parseInt(id), docId);
+      const blob = await apiClient.downloadDocument(Number.parseInt(id), docId);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -152,7 +154,7 @@ const FundDetails: React.FC = () => {
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      a.remove();
     } catch {
       message.error('Ошибка при скачивании');
     }
@@ -176,7 +178,7 @@ const FundDetails: React.FC = () => {
         ...values,
         fund_end_date: values.fund_end_date ? values.fund_end_date.toISOString() : null,
       };
-      await apiClient.updateFund(parseInt(id), data);
+      await apiClient.updateFund(Number.parseInt(id), data);
       message.success('Фонд обновлён');
       setEditModalVisible(false);
       await loadData();
@@ -190,7 +192,7 @@ const FundDetails: React.FC = () => {
   const handleDeleteFund = async () => {
     if (!id) return;
     try {
-      await apiClient.deleteFund(parseInt(id));
+      await apiClient.deleteFund(Number.parseInt(id));
       message.success('Фонд удалён');
       navigate('/');
     } catch {
@@ -202,7 +204,7 @@ const FundDetails: React.FC = () => {
     if (!id) return;
     setFetchingMarketData(true);
     try {
-      const result = await apiClient.fetchMarketData(parseInt(id));
+      const result = await apiClient.fetchMarketData(Number.parseInt(id));
       const msg = `Создано: ${result.records_created}, Обновлено: ${result.records_updated}`;
       if (result.moex_available && result.investfunds_available) {
         message.success(`Данные обновлены. ${msg}`);

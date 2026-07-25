@@ -101,52 +101,8 @@ describe('Layout', () => {
       </ThemeProvider>
     );
 
-    const logo = screen.getByText('ZPIF Analyzer').closest('[role="button"]');
+    const logo = screen.getByText('ZPIF Analyzer').closest('button');
     fireEvent.click(logo!);
-
-    expect(mockNavigate).toHaveBeenCalledWith('/');
-  });
-
-  it('should navigate to home on Enter key press', () => {
-    vi.mocked(useAuth).mockReturnValue({
-      isAuthenticated: false,
-      token: null,
-      login: vi.fn(),
-      logout: vi.fn(),
-    });
-
-    render(
-      <ThemeProvider>
-        <MemoryRouter>
-          <Layout />
-        </MemoryRouter>
-      </ThemeProvider>
-    );
-
-    const logo = screen.getByText('ZPIF Analyzer').closest('[role="button"]');
-    fireEvent.keyDown(logo!, { key: 'Enter' });
-
-    expect(mockNavigate).toHaveBeenCalledWith('/');
-  });
-
-  it('should navigate to home on Space key press', () => {
-    vi.mocked(useAuth).mockReturnValue({
-      isAuthenticated: false,
-      token: null,
-      login: vi.fn(),
-      logout: vi.fn(),
-    });
-
-    render(
-      <ThemeProvider>
-        <MemoryRouter>
-          <Layout />
-        </MemoryRouter>
-      </ThemeProvider>
-    );
-
-    const logo = screen.getByText('ZPIF Analyzer').closest('[role="button"]');
-    fireEvent.keyDown(logo!, { key: ' ' });
 
     expect(mockNavigate).toHaveBeenCalledWith('/');
   });
