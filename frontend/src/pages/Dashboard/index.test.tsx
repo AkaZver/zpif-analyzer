@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Dashboard from './index';
 import { apiClient } from '../../api/client';
@@ -107,6 +107,10 @@ describe('Dashboard', () => {
     vi.clearAllMocks();
     vi.mocked(apiClient.getFunds).mockResolvedValue(mockFunds);
     vi.mocked(apiClient.getFinancials).mockResolvedValue(mockFinancials);
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it('should render dashboard with funds table', async () => {
@@ -369,6 +373,337 @@ describe('Dashboard', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Сравнение ЗПИФ')).toBeInTheDocument();
+    });
+  });
+
+  it('should open add fund modal on button click', async () => {
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Добавить')).toBeInTheDocument();
+    });
+
+    const addButton = screen.getByText('Добавить');
+    fireEvent.click(addButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Добавить фонд')).toBeInTheDocument();
+    });
+  });
+
+  it('should warn when creating fund with empty input', async () => {
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Добавить')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Добавить'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Добавить фонд')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Создать'));
+
+    expect(apiClient.enrichAndCreateFund).not.toHaveBeenCalled();
+  });
+
+  it('should create fund successfully', async () => {
+    vi.mocked(apiClient.enrichAndCreateFund).mockResolvedValue({
+      id: 4,
+      name: 'Новый фонд',
+      isin: 'RU000NEW01',
+      ticker: 'NEW',
+      management_company: 'Новая УК',
+      real_estate_segment: 'склады',
+      qualified_required: false,
+      has_market_maker: false,
+      fund_end_date: null,
+      investfunds_url: '',
+      vsezpif_url: '',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    });
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Добавить')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Добавить'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Добавить фонд')).toBeInTheDocument();
+    });
+
+    const textarea = screen.getByPlaceholderText(/Введите любую известную информацию/);
+    fireEvent.change(textarea, { target: { value: 'Новый фонд RU000NEW01' } });
+
+    fireEvent.click(screen.getByText('Создать'));
+
+    await waitFor(() => {
+      expect(apiClient.enrichAndCreateFund).toHaveBeenCalledWith('Новый фонд RU000NEW01');
+    });
+  });
+
+  it('should handle create fund error', async () => {
+    vi.mocked(apiClient.enrichAndCreateFund).mockRejectedValue({
+      response: { data: { error: 'Ошибка создания' } },
+    });
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Добавить')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Добавить'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Добавить фонд')).toBeInTheDocument();
+    });
+
+    const textarea = screen.getByPlaceholderText(/Введите любую известную информацию/);
+    fireEvent.change(textarea, { target: { value: 'Невалидные данные' } });
+
+    fireEvent.click(screen.getByText('Создать'));
+
+    await waitFor(() => {
+      expect(apiClient.enrichAndCreateFund).toHaveBeenCalled();
+    });
+  });
+
+  it('should export excel successfully', async () => {
+    const mockBlob = new Blob(['test'], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    vi.mocked(apiClient.exportExcel).mockResolvedValue(mockBlob);
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Экспорт')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Экспорт'));
+
+    await waitFor(() => {
+      expect(apiClient.exportExcel).toHaveBeenCalled();
+    });
+  });
+
+  it('should handle export error', async () => {
+    vi.mocked(apiClient.exportExcel).mockRejectedValue(new Error('Export failed'));
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Экспорт')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Экспорт'));
+
+    await waitFor(() => {
+      expect(apiClient.exportExcel).toHaveBeenCalled();
+    });
+  });
+
+  it('should fetch all market data successfully', async () => {
+    vi.mocked(apiClient.fetchAllMarketData).mockResolvedValue({
+      status: 'ok',
+      records_created: 5,
+      records_updated: 10,
+      moex_available: true,
+      investfunds_available: true,
+    });
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Обновить данные')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Обновить данные'));
+
+    await waitFor(() => {
+      expect(apiClient.fetchAllMarketData).toHaveBeenCalled();
+    });
+  });
+
+  it('should handle partial market data update', async () => {
+    vi.mocked(apiClient.fetchAllMarketData).mockResolvedValue({
+      status: 'partial',
+      records_created: 3,
+      records_updated: 7,
+      moex_available: true,
+      investfunds_available: false,
+    });
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Обновить данные')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Обновить данные'));
+
+    await waitFor(() => {
+      expect(apiClient.fetchAllMarketData).toHaveBeenCalled();
+    });
+  });
+
+  it('should handle fetch market data error', async () => {
+    vi.mocked(apiClient.fetchAllMarketData).mockRejectedValue({
+      response: { data: { error: 'Ошибка загрузки' } },
+    });
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Обновить данные')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Обновить данные'));
+
+    await waitFor(() => {
+      expect(apiClient.fetchAllMarketData).toHaveBeenCalled();
+    });
+  });
+
+  it('should filter by segment', async () => {
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Альфа Фонд')).toBeInTheDocument();
+      expect(screen.getByText('Бета Фонд')).toBeInTheDocument();
+    });
+
+    const segmentPlaceholders = screen.getAllByText('Сегмент');
+    const segmentSelect = segmentPlaceholders.find(el => el.classList.contains('ant-select-placeholder'));
+    fireEvent.mouseDown(segmentSelect!.closest('.ant-select')!);
+
+    await waitFor(() => {
+      const options = screen.getAllByText('склады');
+      const option = options.find(el => el.closest('.ant-select-item-option'));
+      fireEvent.click(option!);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Бета Фонд')).toBeInTheDocument();
+      expect(screen.queryByText('Альфа Фонд')).not.toBeInTheDocument();
+    });
+  });
+
+  it('should filter by management company', async () => {
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Альфа Фонд')).toBeInTheDocument();
+      expect(screen.getByText('Бета Фонд')).toBeInTheDocument();
+    });
+
+    const companyPlaceholders = screen.getAllByText('УК');
+    const companySelect = companyPlaceholders.find(el => el.classList.contains('ant-select-placeholder'));
+    fireEvent.mouseDown(companySelect!.closest('.ant-select')!);
+
+    await waitFor(() => {
+      const options = screen.getAllByText('Альфа УК');
+      const option = options.find(el => el.closest('.ant-select-item-option'));
+      fireEvent.click(option!);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Альфа Фонд')).toBeInTheDocument();
+      expect(screen.queryByText('Бета Фонд')).not.toBeInTheDocument();
+    });
+  });
+
+  it('should filter by qualified required', async () => {
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Альфа Фонд')).toBeInTheDocument();
+      expect(screen.getByText('Бета Фонд')).toBeInTheDocument();
+    });
+
+    const checkbox = screen.getByLabelText('Только для квалов');
+    fireEvent.click(checkbox);
+
+    await waitFor(() => {
+      expect(screen.getByText('Альфа Фонд')).toBeInTheDocument();
+      expect(screen.queryByText('Бета Фонд')).not.toBeInTheDocument();
     });
   });
 });

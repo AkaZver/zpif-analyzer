@@ -314,4 +314,27 @@ describe('Layout', () => {
 
     expect(themeIndex).toBeLessThan(settingsIndex);
   });
+
+  it('should navigate to settings on settings button click', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      isAuthenticated: true,
+      token: 'test-token',
+      login: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Layout />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    const buttons = screen.getAllByRole('button');
+    const settingsButton = buttons.find(b => b.querySelector('.anticon-setting'));
+    fireEvent.click(settingsButton!);
+
+    expect(mockNavigate).toHaveBeenCalledWith('/settings');
+  });
 });
