@@ -13,6 +13,17 @@
   <a href="https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer"><img src="https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=coverage" alt="Coverage" /></a>
 </p>
 
+## Последние изменения
+
+### v1.0 (2026-07-25)
+
+- **Reliability**: Исправлен баг сортировки строк в Settings page (использование `localeCompare` для корректной алфавитной сортировки)
+- **Test Coverage**: Покрытие нового кода увеличено с 70% до 81.3%, пройдены все условия SonarCloud Quality Gate
+  - `fund_service.go`: 13.3% → 100% (EnrichAndCreateFund, GetDiscoveryStatus, DiscoverDocuments)
+  - `analyzer.go`: 14.1% → 80.5% (Analyze, AnalyzeLatestDocuments, updateFinancialsFromMetrics)
+  - `llm_service.go`: 58.7% → 82.4% (UpdateSettings с маскировкой, ListModels, TestConnection)
+- **Refactoring**: Оптимизирована загрузка документов и сортировка LLM моделей
+
 ## Возможности
 
 - **Сравнение фондов**: Таблица с ключевыми метриками (цена пая, NAV, дисконт, Cap Rate, P/NAV, доходность)
@@ -23,6 +34,54 @@
 - **LLM-анализ**: Анализ документов с извлечением метрик и оценкой рисков
 - **Экспорт**: Excel экспорт данных фондов с форматированием (рубли, проценты, числа)
 - **Настройки**: Настройка LLM интеграции с поддержкой прокси
+
+<details>
+<summary><b>Содержание</b></summary>
+
+- [Возможности](#возможности)
+- [LLM интеграция](#llm-интеграция)
+  - [Особенности обработки ответов LLM](#особенности-обработки-ответов-llm)
+  - [Часовой пояс](#часовой-пояс)
+  - [Таймауты](#таймауты)
+- [Технологии](#технологии)
+  - [Backend](#backend)
+  - [Frontend](#frontend)
+  - [Инфраструктура](#инфраструктура)
+- [Быстрый старт](#быстрый-старт)
+  - [Требования](#требования)
+  - [Запуск](#запуск)
+  - [Учётные данные по умолчанию](#учётные-данные-по-умолчанию)
+- [Переменные окружения](#переменные-окружения)
+- [API Endpoints](#api-endpoints)
+  - [Аутентификация](#аутентификация)
+  - [Фонды](#фонды)
+  - [Финансовые данные](#финансовые-данные)
+  - [Документы](#документы)
+  - [Анализ](#анализ)
+  - [LLM настройки](#llm-настройки)
+  - [Экспорт](#экспорт)
+  - [Рыночные данные](#рыночные-данные)
+- [Разработка](#разработка)
+  - [Локальный запуск без Docker](#локальный-запуск-без-docker)
+  - [Запуск тестов](#запуск-тестов)
+  - [Тестирование](#тестирование)
+- [Структура проекта](#структура-проекта)
+- [CI/CD](#cicd)
+  - [Pipeline](#pipeline)
+  - [Secrets](#secrets)
+- [Развертывание в Yandex Cloud](#развертывание-в-yandex-cloud)
+  - [Требования](#требования-1)
+  - [Первоначальная настройка VM](#первоначальная-настройка-vm)
+  - [Деплой](#деплой)
+- [Интеграция с внешними источниками данных](#интеграция-с-внешними-источниками-данных)
+  - [MOEX ISS API](#moex-iss-api)
+  - [investfunds.ru](#investfundsru)
+  - [vsezpif.ru](#vsezpifru)
+  - [Интерполяция данных](#интерполяция-данных)
+- [Лицензия](#лицензия)
+- [Авторы](#авторы)
+
+</details>
 
 ## LLM интеграция
 
@@ -54,29 +113,30 @@
 ## Технологии
 
 ### Backend
-- Go 1.26
-- Gin (HTTP router)
-- GORM (ORM)
-- PostgreSQL 16
-- JWT аутентификация
+- Go 1.26+
+- Gin 1.12+ (HTTP router)
+- GORM 1.31+ (ORM)
+- PostgreSQL 16+
+- golang-jwt 5.3+ (JWT аутентификация)
 - OpenAI API (LLM)
-- excelize (Excel)
-- goquery (парсинг HTML)
+- excelize 2.11+ (Excel)
+- goquery 1.12+ (парсинг HTML)
 - MOEX ISS API (рыночные данные)
 - investfunds.ru (РСП и выплаты)
 - vsezpif.ru (дополнительные данные фондов)
 
 ### Frontend
-- React 19 + TypeScript
-- Vite
-- Tailwind CSS
-- Ant Design
-- Recharts (графики)
-- React Router
-- vitest (тестирование)
+- React 19.2+ + TypeScript 6.0+
+- Vite 8.1+
+- Tailwind CSS 3.4+
+- Ant Design 6.5+
+- Recharts 3.10+ (графики)
+- React Router 7.18+
+- vitest 4.1+ (тестирование)
 
 ### Инфраструктура
-- Docker & Docker Compose
+- Docker & Docker Compose v2+
+- Node.js 20+
 - Nginx (reverse proxy)
 - GitHub Actions (CI/CD)
 - SonarCloud (анализ кода)
