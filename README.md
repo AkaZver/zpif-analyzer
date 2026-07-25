@@ -1,7 +1,7 @@
 <div align="center">
   <h1>ZPIF Analyzer</h1>
   <p>Сервис для анализа закрытых паевых инвестиционных фондов (ЗПИФ) недвижимости с использованием LLM</p>
-  <img src="docs/screenshot.jpg" width="600" alt="ZPIF Analyzer Dashboard" />
+  <img src="docs/robot.png" width="600" alt="ZPIF Analyzer Dashboard" />
 </div>
 
 <p align="center">
