@@ -14,10 +14,13 @@
   <a href="https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer"><img src="https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=sqale_rating" alt="Maintainability Rating" /></a>
   <a href="https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer"><img src="https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=vulnerabilities" alt="Vulnerabilities" /></a>
   <br/>
-  <a href="#"><img src="https://img.shields.io/badge/Go-1.26+-blue.svg" alt="Go Compatibility" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/React-19.2+-blue.svg" alt="React Compatibility" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/TypeScript-6.0+-blue.svg" alt="TypeScript Compatibility" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/Node.js-20+-blue.svg" alt="Node.js Compatibility" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/Go-1.26+-blue.svg?logo=go" alt="Go Compatibility" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/React-19.2+-blue.svg?logo=react" alt="React Compatibility" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/TypeScript-6.0+-blue.svg?logo=typescript" alt="TypeScript Compatibility" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/Node.js-20+-blue.svg?logo=nodedotjs" alt="Node.js Compatibility" /></a>
+  <br/>
+  <a href="#"><img src="https://img.shields.io/badge/Lines_of_Code-31.7k+-blue.svg?logo=github" alt="Lines of Code"></a>
+  <a href="#"><img src="https://img.shields.io/badge/License-Apache--2.0-blue.svg?logo=apache" alt="License"></a>
 </p>
 
 ## Возможности
