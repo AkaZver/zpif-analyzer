@@ -43,6 +43,17 @@ const FundDetails: React.FC = () => {
       maximumFractionDigits: digits,
     }).format(Number(value));
 
+  const loadDocuments = useCallback(async () => {
+    if (!id) return;
+    try {
+      const documentsData = await apiClient.getDocuments(parseInt(id));
+      setDocuments(documentsData);
+      setSelectedDocIds(documentsData.filter(d => d.status !== 'analyzed').map(d => d.id));
+    } catch {
+      message.error('Не удалось загрузить документы');
+    }
+  }, [id]);
+
   const loadData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
@@ -80,7 +91,7 @@ const FundDetails: React.FC = () => {
     try {
       await apiClient.discoverDocuments(parseInt(id));
       message.success('Автопоиск документов запущен');
-      setTimeout(() => loadData(), 3000);
+      setTimeout(() => loadDocuments(), 3000);
     } catch (error: any) {
       const errorMsg = error?.response?.data?.error || 'Ошибка при поиске документов';
       message.error(errorMsg, 8);
@@ -94,7 +105,7 @@ const FundDetails: React.FC = () => {
     try {
       await apiClient.uploadDocument(parseInt(id), file);
       message.success('Документ загружен');
-      await loadData();
+      await loadDocuments();
     } catch {
       message.error('Ошибка при загрузке');
     }
@@ -122,7 +133,7 @@ const FundDetails: React.FC = () => {
     try {
       await apiClient.deleteDocument(parseInt(id), docId);
       message.success('Документ удалён');
-      await loadData();
+      await loadDocuments();
     } catch {
       message.error('Ошибка при удалении');
     }

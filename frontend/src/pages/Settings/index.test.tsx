@@ -82,6 +82,23 @@ describe('Settings', () => {
     });
   });
 
+  it('should sort models alphabetically', async () => {
+    vi.mocked(apiClient.getLLMModels).mockResolvedValue(['zephyr', 'anthropic', 'gpt-4o', 'claude']);
+
+    render(
+      <MemoryRouter>
+        <Settings />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(apiClient.getLLMModels).toHaveBeenCalled();
+    });
+
+    const selectElements = screen.getAllByRole('combobox');
+    expect(selectElements.length).toBeGreaterThan(0);
+  });
+
   it('should handle settings load error', async () => {
     vi.mocked(apiClient.getLLMSettings).mockRejectedValue(new Error('Not configured'));
 

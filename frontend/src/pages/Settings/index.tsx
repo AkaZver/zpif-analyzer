@@ -39,7 +39,7 @@ const Settings: React.FC = () => {
     setLoadingModels(true);
     try {
       const modelsList = await apiClient.getLLMModels();
-      setModels(modelsList);
+      setModels([...modelsList].sort());
     } catch {
       setModels([]);
     } finally {
