@@ -6,23 +6,13 @@
 
 <p align="center">
   <a href="https://github.com/AkaZver/zpif-analyzer/actions/workflows/ci-cd.yml"><img src="https://github.com/AkaZver/zpif-analyzer/actions/workflows/ci-cd.yml/badge.svg" alt="CI/CD Pipeline" /></a>
+  <a href="https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer"><img src="https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=alert_status" alt="Quality Gate" /></a>
   <a href="https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer"><img src="https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=security_rating" alt="Security Rating" /></a>
   <a href="https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer"><img src="https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=reliability_rating" alt="Reliability Rating" /></a>
   <a href="https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer"><img src="https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=sqale_rating" alt="Maintainability Rating" /></a>
   <a href="https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer"><img src="https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=vulnerabilities" alt="Vulnerabilities" /></a>
   <a href="https://sonarcloud.io/summary/overall?id=AkaZver_zpif-analyzer"><img src="https://sonarcloud.io/api/project_badges/measure?project=AkaZver_zpif-analyzer&metric=coverage" alt="Coverage" /></a>
 </p>
-
-## Последние изменения
-
-### v1.0 (2026-07-25)
-
-- **Reliability**: Исправлен баг сортировки строк в Settings page (использование `localeCompare` для корректной алфавитной сортировки)
-- **Test Coverage**: Покрытие нового кода увеличено с 70% до 81.3%, пройдены все условия SonarCloud Quality Gate
-  - `fund_service.go`: 13.3% → 100% (EnrichAndCreateFund, GetDiscoveryStatus, DiscoverDocuments)
-  - `analyzer.go`: 14.1% → 80.5% (Analyze, AnalyzeLatestDocuments, updateFinancialsFromMetrics)
-  - `llm_service.go`: 58.7% → 82.4% (UpdateSettings с маскировкой, ListModels, TestConnection)
-- **Refactoring**: Оптимизирована загрузка документов и сортировка LLM моделей
 
 ## Возможности
 

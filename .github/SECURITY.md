@@ -36,34 +36,6 @@ You can expect:
 - Регулярные обновления о прогрессе
 - Упоминание в security advisory (если вы не предпочитаете остаться анонимным)
 
-## Security Best Practices / Лучшие практики безопасности
-
-### Production Deployment
-
-When deploying to production, ensure:
-
-1. **Change default credentials**: Replace default admin password (`admin`) immediately
-2. **Secure JWT secret**: Use a strong, random JWT_SECRET (minimum 32 characters)
-3. **Database security**: Use strong database passwords and restrict network access
-4. **API keys**: Store LLM API keys securely, never commit them to version control
-5. **HTTPS**: Enable SSL/TLS in production using `nginx.prod.conf`
-6. **Environment variables**: Use `.env` file or secure secret management, never hardcode secrets
-
-### Development
-
-- Never commit `.env` files or API keys to the repository
-- Use `sqlmock` and test fixtures instead of real database connections in tests
-- Run `npm run lint` and `go vet` before committing code
-- Review SonarCloud security hotspots regularly
-
-## Known Security Considerations / Известные соображения безопасности
-
-- **LLM API Keys**: Stored encrypted in database, masked in UI (`****`)
-- **JWT Tokens**: Configurable expiration, stored in browser localStorage
-- **CORS**: Configured to allow specific origins only
-- **Input Validation**: All API endpoints validate and sanitize user input
-- **SQL Injection**: Protected by GORM parameterized queries
-
 ## Languages / Языки
 
 We accept security reports in both English and Russian.
