@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Settings from './index';
 import { apiClient } from '../../api/client';
+import { ThemeProvider } from '../../hooks/ThemeProvider';
 
 vi.mock('../../api/client', () => ({
   apiClient: {
@@ -34,9 +35,11 @@ describe('Settings', () => {
 
   it('should render settings page', async () => {
     render(
-      <MemoryRouter>
-        <Settings />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Settings />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {
@@ -46,9 +49,11 @@ describe('Settings', () => {
 
   it('should load LLM settings on mount', async () => {
     render(
-      <MemoryRouter>
-        <Settings />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Settings />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {
@@ -58,9 +63,11 @@ describe('Settings', () => {
 
   it('should load models on mount', async () => {
     render(
-      <MemoryRouter>
-        <Settings />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Settings />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {
@@ -70,9 +77,11 @@ describe('Settings', () => {
 
   it('should show save and test buttons', async () => {
     render(
-      <MemoryRouter>
-        <Settings />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Settings />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {
@@ -86,9 +95,11 @@ describe('Settings', () => {
     vi.mocked(apiClient.getLLMModels).mockResolvedValue(['zephyr', 'anthropic', 'gpt-4o', 'claude']);
 
     render(
-      <MemoryRouter>
-        <Settings />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Settings />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {
@@ -103,9 +114,11 @@ describe('Settings', () => {
     vi.mocked(apiClient.getLLMSettings).mockRejectedValue(new Error('Not configured'));
 
     render(
-      <MemoryRouter>
-        <Settings />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Settings />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {
@@ -117,9 +130,11 @@ describe('Settings', () => {
     vi.mocked(apiClient.getLLMModels).mockRejectedValue(new Error('Failed'));
 
     render(
-      <MemoryRouter>
-        <Settings />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Settings />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {
@@ -129,9 +144,11 @@ describe('Settings', () => {
 
   it('should render proxy section', async () => {
     render(
-      <MemoryRouter>
-        <Settings />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Settings />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {
@@ -142,9 +159,11 @@ describe('Settings', () => {
 
   it('should have proxy fields disabled by default', async () => {
     render(
-      <MemoryRouter>
-        <Settings />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Settings />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {
@@ -169,9 +188,11 @@ describe('Settings', () => {
     });
 
     render(
-      <MemoryRouter>
-        <Settings />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Settings />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {

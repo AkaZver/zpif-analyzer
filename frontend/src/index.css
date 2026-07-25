@@ -8,13 +8,13 @@
   }
 
   body {
-    @apply bg-surface text-text-primary;
+    @apply bg-gray-50 text-gray-900 dark:bg-[#1a1a1a] dark:text-gray-100;
   }
 }
 
 @layer components {
   .card {
-    @apply bg-surface-card rounded-lg shadow-lg p-6;
+    @apply bg-white dark:bg-[#333333] rounded-lg shadow-lg p-6;
   }
 
   .btn-primary {
@@ -22,6 +22,6 @@
   }
 
   .btn-secondary {
-    @apply bg-surface-light hover:bg-surface text-text-primary font-semibold py-2 px-4 rounded transition-colors;
+    @apply bg-gray-100 hover:bg-gray-200 dark:bg-[#2a2a2a] dark:hover:bg-[#1a1a1a] text-gray-900 dark:text-gray-100 font-semibold py-2 px-4 rounded transition-colors;
   }
 }

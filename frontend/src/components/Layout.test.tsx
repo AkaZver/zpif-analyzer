@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Layout from './Layout';
 import { useAuth } from '../hooks/useAuth';
+import { ThemeProvider } from '../hooks/ThemeProvider';
 
 vi.mock('../hooks/useAuth');
 vi.mock('../assets/building-icon.svg', () => ({
@@ -23,6 +24,7 @@ vi.mock('react-router-dom', async () => {
 describe('Layout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it('should render layout with outlet', () => {
@@ -34,9 +36,11 @@ describe('Layout', () => {
     });
 
     render(
-      <MemoryRouter>
-        <Layout />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Layout />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     expect(screen.getByText('ZPIF Analyzer')).toBeInTheDocument();
@@ -52,9 +56,11 @@ describe('Layout', () => {
     });
 
     render(
-      <MemoryRouter>
-        <Layout />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Layout />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     expect(screen.getByText('Войти')).toBeInTheDocument();
@@ -69,9 +75,11 @@ describe('Layout', () => {
     });
 
     render(
-      <MemoryRouter>
-        <Layout />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Layout />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     expect(screen.queryByText('Войти')).not.toBeInTheDocument();
@@ -86,9 +94,11 @@ describe('Layout', () => {
     });
 
     render(
-      <MemoryRouter>
-        <Layout />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Layout />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     const logo = screen.getByText('ZPIF Analyzer').closest('[role="button"]');
@@ -106,9 +116,11 @@ describe('Layout', () => {
     });
 
     render(
-      <MemoryRouter>
-        <Layout />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Layout />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     const logo = screen.getByText('ZPIF Analyzer').closest('[role="button"]');
@@ -126,9 +138,11 @@ describe('Layout', () => {
     });
 
     render(
-      <MemoryRouter>
-        <Layout />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Layout />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     const logo = screen.getByText('ZPIF Analyzer').closest('[role="button"]');
@@ -146,9 +160,11 @@ describe('Layout', () => {
     });
 
     render(
-      <MemoryRouter>
-        <Layout />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Layout />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     const loginButton = screen.getByText('Войти');
@@ -167,9 +183,11 @@ describe('Layout', () => {
     });
 
     render(
-      <MemoryRouter>
-        <Layout />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Layout />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     const buttons = screen.getAllByRole('button');
@@ -178,5 +196,122 @@ describe('Layout', () => {
 
     expect(mockLogout).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith('/login');
+  });
+
+  it('should show theme toggle button when authenticated', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      isAuthenticated: true,
+      token: 'test-token',
+      login: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Layout />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    const themeButton = screen.getByLabelText('Переключить тему');
+    expect(themeButton).toBeInTheDocument();
+  });
+
+  it('should not show theme toggle button when not authenticated', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      isAuthenticated: false,
+      token: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Layout />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    const themeButton = screen.queryByLabelText('Переключить тему');
+    expect(themeButton).not.toBeInTheDocument();
+  });
+
+  it('should toggle theme when theme button is clicked', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      isAuthenticated: true,
+      token: 'test-token',
+      login: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Layout />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    const themeButton = screen.getByLabelText('Переключить тему');
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+
+    fireEvent.click(themeButton);
+
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
+  });
+
+  it('should show sun icon in dark theme and moon icon in light theme', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      isAuthenticated: true,
+      token: 'test-token',
+      login: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Layout />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    const themeButton = screen.getByLabelText('Переключить тему');
+    
+    expect(themeButton.querySelector('.anticon-sun')).toBeInTheDocument();
+    expect(themeButton.querySelector('.anticon-moon')).not.toBeInTheDocument();
+
+    fireEvent.click(themeButton);
+
+    expect(themeButton.querySelector('.anticon-moon')).toBeInTheDocument();
+    expect(themeButton.querySelector('.anticon-sun')).not.toBeInTheDocument();
+  });
+
+  it('should position theme button before settings button', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      isAuthenticated: true,
+      token: 'test-token',
+      login: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Layout />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    const buttons = screen.getAllByRole('button');
+    const themeButton = screen.getByLabelText('Переключить тему');
+    const settingsButton = buttons.find(b => b.querySelector('.anticon-setting'));
+
+    const themeIndex = buttons.indexOf(themeButton);
+    const settingsIndex = buttons.indexOf(settingsButton!);
+
+    expect(themeIndex).toBeLessThan(settingsIndex);
   });
 });

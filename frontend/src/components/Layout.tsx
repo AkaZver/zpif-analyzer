@@ -4,9 +4,12 @@ import {
   SettingOutlined,
   LogoutOutlined,
   LoginOutlined,
+  SunOutlined,
+  MoonOutlined,
 } from '@ant-design/icons';
 import { useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../hooks/useTheme';
 import buildingIcon from '../assets/building-icon.svg';
 
 const { Header, Content } = AntLayout;
@@ -14,6 +17,7 @@ const { Header, Content } = AntLayout;
 const Layout: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const handleLogout = () => {
     logout();
@@ -22,7 +26,7 @@ const Layout: React.FC = () => {
 
   return (
     <AntLayout className="min-h-screen">
-      <Header className="bg-[#2a2a2a] px-6 flex items-center justify-between h-16 border-b border-[#3a3a3a]">
+      <Header className="bg-white dark:bg-[#2a2a2a] px-6 flex items-center justify-between h-16 border-b border-gray-200 dark:border-[#3a3a3a]">
         <div
           className="inline-flex items-center cursor-pointer"
           onClick={() => navigate('/')}
@@ -39,8 +43,13 @@ const Layout: React.FC = () => {
           <div className="flex items-center gap-2">
             <Button
               type="text"
+              icon={theme === 'dark' ? <SunOutlined /> : <MoonOutlined />}
+              onClick={toggleTheme}
+              aria-label="Переключить тему"
+            />
+            <Button
+              type="text"
               icon={<SettingOutlined />}
-              className="text-text-primary"
               onClick={() => navigate('/settings')}
             />
             <Button
@@ -60,7 +69,7 @@ const Layout: React.FC = () => {
           </Button>
         )}
       </Header>
-      <Content className="bg-[#1a1a1a] min-h-[calc(100vh-64px)] overflow-auto">
+      <Content className="bg-gray-50 dark:bg-[#1a1a1a] min-h-[calc(100vh-64px)] overflow-auto">
         <div className="max-w-[1400px] mx-auto p-6">
           <Outlet />
         </div>

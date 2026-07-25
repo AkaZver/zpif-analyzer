@@ -3,6 +3,7 @@ import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import FundDetails from './index';
 import { apiClient } from '../../api/client';
+import { ThemeProvider } from '../../hooks/ThemeProvider';
 
 vi.mock('../../api/client', () => ({
   apiClient: {
@@ -61,9 +62,11 @@ describe('FundDetails', () => {
 
   it('should render loading state initially', () => {
     render(
-      <MemoryRouter>
-        <FundDetails />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <FundDetails />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     const spinner = document.querySelector('.ant-spin');
@@ -72,9 +75,11 @@ describe('FundDetails', () => {
 
   it('should load and display fund data', async () => {
     render(
-      <MemoryRouter>
-        <FundDetails />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <FundDetails />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {
@@ -84,9 +89,11 @@ describe('FundDetails', () => {
 
   it('should show market maker tag', async () => {
     render(
-      <MemoryRouter>
-        <FundDetails />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <FundDetails />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {
@@ -112,9 +119,11 @@ describe('FundDetails', () => {
     });
 
     render(
-      <MemoryRouter>
-        <FundDetails />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <FundDetails />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {
@@ -153,9 +162,11 @@ describe('FundDetails', () => {
     ]);
 
     render(
-      <MemoryRouter>
-        <FundDetails />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <FundDetails />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {
@@ -168,9 +179,11 @@ describe('FundDetails', () => {
     vi.mocked(apiClient.getFund).mockRejectedValue(new Error('Not found'));
 
     render(
-      <MemoryRouter>
-        <FundDetails />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <FundDetails />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {
@@ -180,9 +193,11 @@ describe('FundDetails', () => {
 
   it('should display documents section', async () => {
     render(
-      <MemoryRouter>
-        <FundDetails />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <FundDetails />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {
@@ -192,9 +207,11 @@ describe('FundDetails', () => {
 
   it('should navigate back on back button click', async () => {
     render(
-      <MemoryRouter>
-        <FundDetails />
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <FundDetails />
+        </MemoryRouter>
+      </ThemeProvider>
     );
 
     await waitFor(() => {

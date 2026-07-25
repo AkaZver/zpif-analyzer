@@ -13,19 +13,9 @@ export default {
           light: '#9b7ed8',
           dark: '#5d507e',
         },
-        surface: {
-          DEFAULT: '#1a1a1a',
-          light: '#2a2a2a',
-          card: '#333333',
-        },
         accent: {
           DEFAULT: '#e94560',
           light: '#ff6b6b',
-        },
-        text: {
-          primary: '#e0e0e0',
-          secondary: '#a0a0a0',
-          muted: '#6c6c6c',
         },
       },
       fontFamily: {

@@ -19,10 +19,12 @@ import {
   getTradingStartFormatted,
   groupFinancialsByMonth,
 } from '../../utils/chartDataTransformers';
+import { useTheme } from '../../hooks/useTheme';
 
 const FundDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [fund, setFund] = useState<Fund | null>(null);
   const [financials, setFinancials] = useState<FundFinancials[]>([]);
   const [documents, setDocuments] = useState<FundDocument[]>([]);
@@ -382,17 +384,17 @@ const FundDetails: React.FC = () => {
       </Typography.Title>
       <Row gutter={[16, 16]} className="mb-6">
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-surface-card border-0">
+          <Card className="bg-white dark:bg-[#333333] border-0">
             <Statistic title={renderMetricTitle("Цена пая", "Рыночная цена одного пая на бирже")} value={latest?.unit_price_rub || 0} suffix="₽" formatter={(value: any) => formatNumber(value, 0)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-surface-card border-0">
+          <Card className="bg-white dark:bg-[#333333] border-0">
             <Statistic title={renderMetricTitle("РСП", "Расчётная стоимость пая (NAV на пай)")} value={latest?.nav_per_unit_rub || 0} suffix="₽" formatter={(value: any) => formatNumber(value, 0)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-surface-card border-0">
+          <Card className="bg-white dark:bg-[#333333] border-0">
             <Statistic
               title={renderMetricTitle("Дисконт к РСП", "Разница между рыночной ценой и РСП в процентах")}
               value={latest?.discount_to_nav_pct || 0}
@@ -403,12 +405,12 @@ const FundDetails: React.FC = () => {
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-surface-card border-0">
+          <Card className="bg-white dark:bg-[#333333] border-0">
             <Statistic title={renderMetricTitle("Cap Rate", "Коэффициент капитализации (NOI / Стоимость активов)")} value={latest?.cap_rate_pct || 0} suffix="%" formatter={(value: any) => formatNumber(value, 1)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-surface-card border-0">
+          <Card className="bg-white dark:bg-[#333333] border-0">
             <Statistic 
               title={renderMetricTitle("СЧА", "Стоимость чистых активов фонда")}
               value={latest?.nav_total_mln_rub || 0} 
@@ -418,17 +420,17 @@ const FundDetails: React.FC = () => {
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-surface-card border-0">
+          <Card className="bg-white dark:bg-[#333333] border-0">
             <Statistic title={renderMetricTitle("P/NAV", "Отношение рыночной цены к NAV")} value={latest?.p_nav || 0} formatter={(value: any) => formatNumber(value, 2)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-surface-card border-0">
+          <Card className="bg-white dark:bg-[#333333] border-0">
             <Statistic title={renderMetricTitle("P/AFFO", "Отношение рыночной цены к AFFO")} value={latest?.p_affo || 0} formatter={(value: any) => formatNumber(value, 2)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-surface-card border-0">
+          <Card className="bg-white dark:bg-[#333333] border-0">
             <Statistic
               title={renderMetricTitle("Доходность выплат", "Годовая доходность от выплат дивидендов")}
               value={latest?.payout_yield_pct || 0}
@@ -439,12 +441,12 @@ const FundDetails: React.FC = () => {
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-surface-card border-0">
+          <Card className="bg-white dark:bg-[#333333] border-0">
             <Statistic title={renderMetricTitle("Комиссия УК", "Ежегодная комиссия управляющей компании")} value={latest?.management_fee_pct || 0} suffix="%" formatter={(value: any) => formatNumber(value, 1)} />
           </Card>
         </Col>
         <Col xs={12} sm={8} md={6}>
-          <Card className="bg-surface-card border-0">
+          <Card className="bg-white dark:bg-[#333333] border-0">
             <Statistic title={renderMetricTitle("Объектов", "Количество объектов недвижимости в портфеле")} value={latest?.number_of_properties || 0} formatter={(value: any) => formatNumber(value, 0)} />
           </Card>
         </Col>
@@ -470,25 +472,24 @@ const FundDetails: React.FC = () => {
           <Typography.Title level={4} className="text-text-primary mb-4">
             Динамика цены и РСП
           </Typography.Title>
-          <Card className="bg-surface-card border-0 mb-6">
+          <Card className="bg-white dark:bg-[#333333] border-0 mb-6">
             <ResponsiveContainer width="100%" height={350}>
               <LineChart data={priceChartData} margin={{ bottom: 30 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#444444" />
-                <XAxis dataKey="date" stroke="#a0a0a0" interval={0} angle={-45} textAnchor="end" dy={10} />
-                <YAxis stroke="#a0a0a0" tickFormatter={(value) => new Intl.NumberFormat('ru-RU').format(value)} />
-                <ChartTooltip formatter={(value: any) => formatNumber(value, 2)} contentStyle={{ backgroundColor: '#333333', border: 'none' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#444444' : '#e0e0e0'} />
+                <XAxis dataKey="date" stroke={theme === 'dark' ? '#a0a0a0' : '#666666'} interval={0} angle={-45} textAnchor="end" dy={10} />
+                <YAxis stroke={theme === 'dark' ? '#a0a0a0' : '#666666'} tickFormatter={(value) => new Intl.NumberFormat('ru-RU').format(value)} />
+                <ChartTooltip formatter={(value: any) => formatNumber(value, 2)} contentStyle={{ backgroundColor: theme === 'dark' ? '#333333' : '#ffffff', border: 'none' }} />
                 <Legend layout="horizontal" verticalAlign="top" align="center" />
                 
-                {/* Вертикальная линия "Начало торгов" */}
                 {tradingStartFormatted && priceChartData.some(d => d.date === tradingStartFormatted) && (
                   <ReferenceLine 
                     x={tradingStartFormatted} 
-                    stroke="#888888" 
+                    stroke={theme === 'dark' ? '#888888' : '#999999'} 
                     strokeDasharray="3 3"
                     label={{ 
                       value: 'Начало торгов', 
                       position: priceChartData.findIndex(d => d.date === tradingStartFormatted) < priceChartData.length / 2 ? 'right' : 'left',
-                      fill: '#a0a0a0',
+                      fill: theme === 'dark' ? '#a0a0a0' : '#666666',
                       fontSize: 12,
                     }}
                   />
@@ -518,16 +519,16 @@ const FundDetails: React.FC = () => {
           <Typography.Title level={4} className="text-text-primary mb-4">
             История выплат
           </Typography.Title>
-          <Card className="bg-surface-card border-0 mb-6">
+          <Card className="bg-white dark:bg-[#333333] border-0 mb-6">
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={payoutChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#444444" />
-                <XAxis dataKey="date" stroke="#a0a0a0" />
-                <YAxis stroke="#a0a0a0" tickFormatter={(value) => new Intl.NumberFormat('ru-RU').format(value)} />
+                <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#444444' : '#e0e0e0'} />
+                <XAxis dataKey="date" stroke={theme === 'dark' ? '#a0a0a0' : '#666666'} />
+                <YAxis stroke={theme === 'dark' ? '#a0a0a0' : '#666666'} tickFormatter={(value) => new Intl.NumberFormat('ru-RU').format(value)} />
                 <ChartTooltip 
                   formatter={(value: any) => formatNumber(value, 2)}
-                  contentStyle={{ backgroundColor: '#333333', border: 'none' }}
-                  cursor={{ fill: '#444444', fillOpacity: 0.3 }}
+                  contentStyle={{ backgroundColor: theme === 'dark' ? '#333333' : '#ffffff', border: 'none' }}
+                  cursor={{ fill: theme === 'dark' ? '#444444' : '#f0f0f0', fillOpacity: 0.3 }}
                 />
                 <Bar dataKey="Выплата" fill="#7c5cbf" />
               </BarChart>
@@ -539,7 +540,7 @@ const FundDetails: React.FC = () => {
       <Typography.Title level={4} className="text-text-primary mb-4">
         Документы
       </Typography.Title>
-      <Card className="bg-surface-card border-0 mb-6">
+      <Card className="bg-white dark:bg-[#333333] border-0 mb-6">
         <Space className="mb-4">
           <Button icon={<SearchOutlined />} onClick={handleDiscover} loading={discovering}>
             Найти в интернете
@@ -585,7 +586,7 @@ const FundDetails: React.FC = () => {
           <Typography.Title level={4} className="text-text-primary mb-4">
             LLM-анализ
           </Typography.Title>
-          <Card className="bg-surface-card border-0">
+          <Card className="bg-white dark:bg-[#333333] border-0">
             <Descriptions bordered size="small" column={1} className="mb-4">
               <Descriptions.Item label="Модель">{analysis.model_used}</Descriptions.Item>
               <Descriptions.Item label="Дата">

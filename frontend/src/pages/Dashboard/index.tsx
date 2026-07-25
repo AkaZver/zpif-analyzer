@@ -131,6 +131,7 @@ const Dashboard: React.FC = () => {
       dataIndex: 'name',
       key: 'name',
       sorter: (a, b) => a.name.localeCompare(b.name),
+      defaultSortOrder: 'ascend',
       fixed: 'left',
       width: 180,
     },
@@ -139,6 +140,7 @@ const Dashboard: React.FC = () => {
       dataIndex: 'isin',
       key: 'isin',
       width: 140,
+      sorter: (a, b) => a.isin.localeCompare(b.isin),
       render: (isin: string, record: FundWithFinancials) => {
         if (record.ticker) {
           return (
@@ -152,12 +154,19 @@ const Dashboard: React.FC = () => {
         return isin;
       },
     },
-    { title: 'УК', dataIndex: 'management_company', key: 'management_company', width: 150 },
+    {
+      title: 'УК',
+      dataIndex: 'management_company',
+      key: 'management_company',
+      width: 150,
+      sorter: (a, b) => (a.management_company || '').localeCompare(b.management_company || ''),
+    },
     {
       title: 'Сегмент',
       dataIndex: 'real_estate_segment',
       key: 'real_estate_segment',
       width: 100,
+      sorter: (a, b) => (a.real_estate_segment || '').localeCompare(b.real_estate_segment || ''),
       render: (v: string) => v || '—',
     },
     {
@@ -178,6 +187,7 @@ const Dashboard: React.FC = () => {
       render: (_, r) => r.latest_financials?.nav_per_unit_rub
         ? new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(r.latest_financials.nav_per_unit_rub)
         : '—',
+      sorter: (a, b) => (a.latest_financials?.nav_per_unit_rub || 0) - (b.latest_financials?.nav_per_unit_rub || 0),
     },
     {
       title: 'Дисконт',
@@ -198,6 +208,7 @@ const Dashboard: React.FC = () => {
       dataIndex: 'qualified_required',
       key: 'qualified',
       width: 60,
+      sorter: (a, b) => Number(a.qualified_required) - Number(b.qualified_required),
       render: (v: boolean) => <Tag color={v ? 'red' : 'green'}>{v ? 'Да' : 'Нет'}</Tag>,
     },
   ];
@@ -221,7 +232,7 @@ const Dashboard: React.FC = () => {
         </Space>
       </div>
 
-      <Card className="mb-4 bg-surface-card border-0">
+      <Card className="mb-4 bg-white dark:bg-[#333333] border-0">
         <Space wrap>
           <Select
             placeholder="Сегмент"
@@ -263,7 +274,7 @@ const Dashboard: React.FC = () => {
             onClick: () => navigate(`/funds/${record.id}`),
             style: { cursor: 'pointer' },
           })}
-          className="bg-surface-card rounded-lg"
+          className="bg-white dark:bg-[#333333] rounded-lg"
         />
       )}
 

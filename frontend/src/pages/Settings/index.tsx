@@ -87,7 +87,7 @@ const Settings: React.FC = () => {
         Настройки
       </Typography.Title>
 
-      <Card title="Настройки LLM" className="mb-6 bg-surface-card border-0">
+      <Card title="Настройки LLM" className="mb-6 bg-white dark:bg-[#333333] border-0">
         <Form 
           form={llmForm} 
           layout="vertical" 
