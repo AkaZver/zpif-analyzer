@@ -18,9 +18,11 @@
   <a href="#"><img src="https://img.shields.io/badge/React-19.2+-blue.svg?logo=react" alt="React Compatibility" /></a>
   <a href="#"><img src="https://img.shields.io/badge/TypeScript-6.0+-blue.svg?logo=typescript" alt="TypeScript Compatibility" /></a>
   <a href="#"><img src="https://img.shields.io/badge/Node.js-20+-blue.svg?logo=nodedotjs" alt="Node.js Compatibility" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/Vite-8.1+-blue.svg?logo=vite" alt="Vite Compatibility" /></a>
   <br/>
   <a href="#"><img src="https://img.shields.io/badge/Lines_of_Code-31.7k+-blue.svg?logo=github" alt="Lines of Code"></a>
   <a href="#"><img src="https://img.shields.io/badge/License-Apache--2.0-blue.svg?logo=apache" alt="License"></a>
+  <a href="#"><img src="https://img.shields.io/badge/Qwen-3.7-blue.svg?logo=qwen" alt="LLM"></a>
 </p>
 
 ## Возможности
@@ -454,3 +456,4 @@ Apache License 2.0 - см. файл [LICENSE](LICENSE)
 ## Авторы
 
 - [AkaZver](https://github.com/AkaZver)
+- [Qwen3.7](https://qwen.ai/home)
