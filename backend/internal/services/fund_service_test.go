@@ -2,6 +2,9 @@ package services
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"regexp"
 	"testing"
 	"time"
@@ -9,6 +12,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/zpif-analyzer/backend/internal/llm"
 	"github.com/zpif-analyzer/backend/internal/models"
 	"github.com/zpif-analyzer/backend/internal/repositories"
 	"gorm.io/driver/postgres"
@@ -33,6 +37,23 @@ func (m *MockAnalyzer) AnalyzeDocuments(ctx context.Context, fund *models.Fund, 
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*models.LLMAnalysis), args.Error(1)
+}
+
+type MockDiscoverer struct {
+	mock.Mock
+}
+
+func (m *MockDiscoverer) Discover(ctx context.Context, fund *models.Fund) (*llm.DiscoveryStatus, error) {
+	args := m.Called(ctx, fund)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*llm.DiscoveryStatus), args.Error(1)
+}
+
+func (m *MockDiscoverer) GetStatus(fundID uint) *llm.DiscoveryStatus {
+	args := m.Called(fundID)
+	return args.Get(0).(*llm.DiscoveryStatus)
 }
 
 func setupTestService(t *testing.T) (*FundService, sqlmock.Sqlmock, func()) {
@@ -625,4 +646,531 @@ func TestFundService_AnalyzeFund_WithoutDocumentIDs(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "gpt-4", result.ModelUsed)
+}
+
+func TestFundService_GetDocumentByID_Success(t *testing.T) {
+	service, mock, cleanup := setupTestService(t)
+	defer cleanup()
+
+	now := time.Now()
+	rows := sqlmock.NewRows([]string{
+		"id", "created_at", "updated_at", "deleted_at", "fund_id", "file_name", "file_path", "document_type",
+		"content_hash", "source", "source_url", "upload_date", "status",
+	}).AddRow(1, now, now, nil, 1, "report.pdf", "/docs/report.pdf", "appraisal",
+		"abc123", "auto", "", now, "downloaded")
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE "fund_documents"."id" =`)).
+		WithArgs(uint(1), 1).
+		WillReturnRows(rows)
+
+	doc, err := service.GetDocumentByID(1)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, doc)
+	assert.Equal(t, "report.pdf", doc.FileName)
+}
+
+func TestFundService_GetDocumentByID_NotFound(t *testing.T) {
+	service, mock, cleanup := setupTestService(t)
+	defer cleanup()
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE "fund_documents"."id" =`)).
+		WithArgs(uint(999), 1).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	doc, err := service.GetDocumentByID(999)
+
+	assert.Error(t, err)
+	assert.Nil(t, doc)
+}
+
+func TestFundService_GetDiscoveryStatus_NilDiscoverer(t *testing.T) {
+	service, _, cleanup := setupTestService(t)
+	defer cleanup()
+
+	status := service.GetDiscoveryStatus(1)
+
+	assert.Equal(t, "idle", status["status"])
+	assert.Equal(t, uint(1), status["fund_id"])
+}
+
+func TestFundService_GetDiscoveryStatus_WithDiscoverer(t *testing.T) {
+	service, _, cleanup := setupTestService(t)
+	defer cleanup()
+
+	discoverer := &MockDiscoverer{}
+	discoverer.On("GetStatus", uint(1)).Return(&llm.DiscoveryStatus{
+		FundID: 1,
+		Status: "completed",
+	})
+	service.SetDiscoverer(discoverer)
+
+	status := service.GetDiscoveryStatus(1)
+
+	assert.Equal(t, "completed", status["status"])
+	assert.Equal(t, uint(1), status["fund_id"])
+}
+
+func TestFundService_SetDiscoverer(t *testing.T) {
+	service, _, cleanup := setupTestService(t)
+	defer cleanup()
+
+	assert.Nil(t, service.discoverer)
+
+	discoverer := &MockDiscoverer{}
+	service.SetDiscoverer(discoverer)
+
+	assert.NotNil(t, service.discoverer)
+}
+
+func TestFundService_SetAnalyzer(t *testing.T) {
+	service, _, cleanup := setupTestService(t)
+	defer cleanup()
+
+	assert.Nil(t, service.analyzer)
+
+	analyzer := &MockAnalyzer{}
+	service.SetAnalyzer(analyzer)
+
+	assert.NotNil(t, service.analyzer)
+}
+
+func TestFundService_SetLLMSettingsRepo(t *testing.T) {
+	service, _, cleanup := setupTestService(t)
+	defer cleanup()
+
+	assert.Nil(t, service.llmSettingsRepo)
+
+	db, _, _ := sqlmock.New()
+	gormDB, _ := gorm.Open(postgres.New(postgres.Config{
+		Conn:                 db,
+		PreferSimpleProtocol: true,
+	}), &gorm.Config{})
+
+	repo := repositories.NewLLMSettingsRepository(gormDB)
+	service.SetLLMSettingsRepo(repo)
+
+	assert.NotNil(t, service.llmSettingsRepo)
+}
+
+func TestFundService_DiscoverDocumentsForFund_WithDiscoverer_FundNotFound(t *testing.T) {
+	service, mock, cleanup := setupTestService(t)
+	defer cleanup()
+
+	discoverer := &MockDiscoverer{}
+	service.SetDiscoverer(discoverer)
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
+		WithArgs(uint(999), 1).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	err := service.DiscoverDocumentsForFund(context.Background(), 999)
+
+	assert.Error(t, err)
+}
+
+func TestFundService_DiscoverDocumentsForFund_WithDiscoverer_Success(t *testing.T) {
+	service, mockDB, cleanup := setupTestService(t)
+	defer cleanup()
+
+	discoverer := &MockDiscoverer{}
+	discoverer.On("Discover", mock.Anything, mock.Anything).Return(&llm.DiscoveryStatus{
+		FundID: 1,
+		Status: "completed",
+	}, nil)
+	service.SetDiscoverer(discoverer)
+
+	now := time.Now()
+	fundRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Test Fund", "RU000TEST001", "", "Test UK", "", false, false, nil, "", "")
+
+	mockDB.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."id" =`)).
+		WithArgs(uint(1), 1).
+		WillReturnRows(fundRows)
+	emptyRows := sqlmock.NewRows([]string{"id", "fund_id"})
+	mockDB.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mockDB.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mockDB.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+
+	err := service.DiscoverDocumentsForFund(context.Background(), 1)
+
+	assert.NoError(t, err)
+}
+
+func TestFundService_DiscoverDocumentsForAllFunds_WithDiscoverer(t *testing.T) {
+	service, mockDB, cleanup := setupTestService(t)
+	defer cleanup()
+
+	discoverer := &MockDiscoverer{}
+	discoverer.On("Discover", mock.Anything, mock.Anything).Return(&llm.DiscoveryStatus{
+		FundID: 1,
+		Status: "completed",
+	}, nil)
+	service.SetDiscoverer(discoverer)
+
+	now := time.Now()
+	rows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Fund 1", "RU000A1022Z1", "", "UK", "", false, false, nil, "", "").
+		AddRow(2, now, now, nil, "Fund 2", "RU000A1022Z2", "", "UK", "", false, false, nil, "", "")
+
+	mockDB.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."deleted_at" IS NULL`)).WillReturnRows(rows)
+	emptyRows := sqlmock.NewRows([]string{"id", "fund_id"})
+	mockDB.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mockDB.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+	mockDB.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
+
+	err := service.DiscoverDocumentsForAllFunds()
+
+	assert.NoError(t, err)
+}
+
+func TestFundService_EnrichAndCreateFund_LLMSettingsNil(t *testing.T) {
+	service, _, cleanup := setupTestService(t)
+	defer cleanup()
+
+	fund, err := service.EnrichAndCreateFund(context.Background(), "Парус ОЗН")
+
+	assert.Error(t, err)
+	assert.Nil(t, fund)
+	assert.Contains(t, err.Error(), "LLM settings not configured")
+}
+
+func TestFundService_EnrichAndCreateFund_SettingsError(t *testing.T) {
+	service, _, cleanup := setupTestService(t)
+	defer cleanup()
+
+	db, mockDB, _ := sqlmock.New()
+	gormDB, _ := gorm.Open(postgres.New(postgres.Config{
+		Conn:                 db,
+		PreferSimpleProtocol: true,
+	}), &gorm.Config{})
+	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
+	service.SetLLMSettingsRepo(settingsRepo)
+
+	mockDB.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+		WithArgs(1).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	fund, err := service.EnrichAndCreateFund(context.Background(), "Парус ОЗН")
+
+	assert.Error(t, err)
+	assert.Nil(t, fund)
+	assert.Contains(t, err.Error(), "failed to load LLM settings")
+}
+
+func TestFundService_EnrichAndCreateFund_APIKeyEmpty(t *testing.T) {
+	service, _, cleanup := setupTestService(t)
+	defer cleanup()
+
+	db, mockDB, _ := sqlmock.New()
+	gormDB, _ := gorm.Open(postgres.New(postgres.Config{
+		Conn:                 db,
+		PreferSimpleProtocol: true,
+	}), &gorm.Config{})
+	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
+	service.SetLLMSettingsRepo(settingsRepo)
+
+	now := time.Now()
+	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
+		AddRow(1, now, now, nil, "", "http://localhost", "model", "model", false, "", "", "")
+
+	mockDB.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+		WithArgs(1).
+		WillReturnRows(settingsRows)
+
+	fund, err := service.EnrichAndCreateFund(context.Background(), "Парус ОЗН")
+
+	assert.Error(t, err)
+	assert.Nil(t, fund)
+	assert.Contains(t, err.Error(), "LLM API key not configured")
+}
+
+func TestFundService_EnrichAndCreateFund_LLMCallFails(t *testing.T) {
+	service, _, cleanup := setupTestService(t)
+	defer cleanup()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal Server Error"))
+	}))
+	defer server.Close()
+
+	db, mockDB, _ := sqlmock.New()
+	gormDB, _ := gorm.Open(postgres.New(postgres.Config{
+		Conn:                 db,
+		PreferSimpleProtocol: true,
+	}), &gorm.Config{})
+	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
+	service.SetLLMSettingsRepo(settingsRepo)
+
+	now := time.Now()
+	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
+		AddRow(1, now, now, nil, "test-key", server.URL, "model", "model", false, "", "", "")
+
+	mockDB.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+		WithArgs(1).
+		WillReturnRows(settingsRows)
+
+	fund, err := service.EnrichAndCreateFund(context.Background(), "Парус ОЗН")
+
+	assert.Error(t, err)
+	assert.Nil(t, fund)
+	assert.Contains(t, err.Error(), "LLM call failed")
+}
+
+func TestFundService_EnrichAndCreateFund_Success(t *testing.T) {
+	service, mock, cleanup := setupTestService(t)
+	defer cleanup()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		response := map[string]interface{}{
+			"choices": []map[string]interface{}{
+				{
+					"index": 0,
+					"message": map[string]interface{}{
+						"role":    "assistant",
+						"content": `{"name":"ЗПИФ Парус","isin":"RU000A1022Z1","ticker":"PARUS","management_company":"Парус УК","real_estate_segment":"склады","qualified_required":false,"has_market_maker":true,"fund_end_date":null}`,
+					},
+					"finish_reason": "stop",
+				},
+			},
+		}
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	db, mockDB, _ := sqlmock.New()
+	gormDB, _ := gorm.Open(postgres.New(postgres.Config{
+		Conn:                 db,
+		PreferSimpleProtocol: true,
+	}), &gorm.Config{})
+	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
+	service.SetLLMSettingsRepo(settingsRepo)
+
+	now := time.Now()
+	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
+		AddRow(1, now, now, nil, "test-key", server.URL, "model", "model", false, "", "", "")
+
+	mockDB.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+		WithArgs(1).
+		WillReturnRows(settingsRows)
+
+	mock.ExpectQuery(`isin = .+ AND "funds"\."deleted_at" IS NULL`).
+		WithArgs("RU000A1022Z1", 1).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`INSERT INTO "funds"`).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(5))
+	mock.ExpectCommit()
+
+	fund, err := service.EnrichAndCreateFund(context.Background(), "Парус ОЗН")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, fund)
+	assert.Equal(t, "ЗПИФ Парус", fund.Name)
+	assert.Equal(t, "RU000A1022Z1", fund.ISIN)
+}
+
+func TestFundService_EnrichAndCreateFund_PendingISIN(t *testing.T) {
+	service, mock, cleanup := setupTestService(t)
+	defer cleanup()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		response := map[string]interface{}{
+			"choices": []map[string]interface{}{
+				{
+					"index": 0,
+					"message": map[string]interface{}{
+						"role":    "assistant",
+						"content": `{"name":"Неизвестный фонд","isin":"UNKNOWN","ticker":"","management_company":"УК","real_estate_segment":"","qualified_required":false,"has_market_maker":false,"fund_end_date":null}`,
+					},
+					"finish_reason": "stop",
+				},
+			},
+		}
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	db, mockDB, _ := sqlmock.New()
+	gormDB, _ := gorm.Open(postgres.New(postgres.Config{
+		Conn:                 db,
+		PreferSimpleProtocol: true,
+	}), &gorm.Config{})
+	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
+	service.SetLLMSettingsRepo(settingsRepo)
+
+	now := time.Now()
+	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
+		AddRow(1, now, now, nil, "test-key", server.URL, "model", "model", false, "", "", "")
+
+	mockDB.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+		WithArgs(1).
+		WillReturnRows(settingsRows)
+
+	mock.ExpectQuery(`isin = .+ AND "funds"\."deleted_at" IS NULL`).
+		WithArgs(sqlmock.AnyArg(), 1).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`INSERT INTO "funds"`).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(6))
+	mock.ExpectCommit()
+
+	fund, err := service.EnrichAndCreateFund(context.Background(), "Неизвестный фонд")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, fund)
+	assert.Contains(t, fund.ISIN, "PENDING-")
+}
+
+func TestFundService_EnrichAndCreateFund_WithFundEndDate(t *testing.T) {
+	service, mock, cleanup := setupTestService(t)
+	defer cleanup()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		response := map[string]interface{}{
+			"choices": []map[string]interface{}{
+				{
+					"index": 0,
+					"message": map[string]interface{}{
+						"role":    "assistant",
+						"content": `{"name":"Фонд с датой","isin":"RU000A102N77","ticker":"","management_company":"УК","real_estate_segment":"офисы","qualified_required":true,"has_market_maker":false,"fund_end_date":"2030-12-31"}`,
+					},
+					"finish_reason": "stop",
+				},
+			},
+		}
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	db, mockDB, _ := sqlmock.New()
+	gormDB, _ := gorm.Open(postgres.New(postgres.Config{
+		Conn:                 db,
+		PreferSimpleProtocol: true,
+	}), &gorm.Config{})
+	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
+	service.SetLLMSettingsRepo(settingsRepo)
+
+	now := time.Now()
+	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
+		AddRow(1, now, now, nil, "test-key", server.URL, "model", "model", false, "", "", "")
+
+	mockDB.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+		WithArgs(1).
+		WillReturnRows(settingsRows)
+
+	mock.ExpectQuery(`isin = .+ AND "funds"\."deleted_at" IS NULL`).
+		WithArgs("RU000A102N77", 1).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`INSERT INTO "funds"`).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(7))
+	mock.ExpectCommit()
+
+	fund, err := service.EnrichAndCreateFund(context.Background(), "Фонд с датой")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, fund)
+	assert.NotNil(t, fund.FundEndDate)
+	assert.Equal(t, 2030, fund.FundEndDate.Year())
+	assert.Equal(t, time.December, fund.FundEndDate.Month())
+}
+
+func TestFundService_EnrichAndCreateFund_InvalidJSON(t *testing.T) {
+	service, _, cleanup := setupTestService(t)
+	defer cleanup()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		response := map[string]interface{}{
+			"choices": []map[string]interface{}{
+				{
+					"index": 0,
+					"message": map[string]interface{}{
+						"role":    "assistant",
+						"content": "not valid json at all",
+					},
+					"finish_reason": "stop",
+				},
+			},
+		}
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	db, mockDB, _ := sqlmock.New()
+	gormDB, _ := gorm.Open(postgres.New(postgres.Config{
+		Conn:                 db,
+		PreferSimpleProtocol: true,
+	}), &gorm.Config{})
+	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
+	service.SetLLMSettingsRepo(settingsRepo)
+
+	now := time.Now()
+	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
+		AddRow(1, now, now, nil, "test-key", server.URL, "model", "model", false, "", "", "")
+
+	mockDB.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+		WithArgs(1).
+		WillReturnRows(settingsRows)
+
+	fund, err := service.EnrichAndCreateFund(context.Background(), "Тест")
+
+	assert.Error(t, err)
+	assert.Nil(t, fund)
+	assert.Contains(t, err.Error(), "failed to parse LLM response")
+}
+
+func TestFundService_EnrichAndCreateFund_CreateFundFails(t *testing.T) {
+	service, mock, cleanup := setupTestService(t)
+	defer cleanup()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		response := map[string]interface{}{
+			"choices": []map[string]interface{}{
+				{
+					"index": 0,
+					"message": map[string]interface{}{
+						"role":    "assistant",
+						"content": `{"name":"Дубликат","isin":"RU000A1022Z1","ticker":"","management_company":"УК","real_estate_segment":"","qualified_required":false,"has_market_maker":false,"fund_end_date":null}`,
+					},
+					"finish_reason": "stop",
+				},
+			},
+		}
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	db, mockDB, _ := sqlmock.New()
+	gormDB, _ := gorm.Open(postgres.New(postgres.Config{
+		Conn:                 db,
+		PreferSimpleProtocol: true,
+	}), &gorm.Config{})
+	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
+	service.SetLLMSettingsRepo(settingsRepo)
+
+	now := time.Now()
+	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
+		AddRow(1, now, now, nil, "test-key", server.URL, "model", "model", false, "", "", "")
+
+	mockDB.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+		WithArgs(1).
+		WillReturnRows(settingsRows)
+
+	existingFundRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
+		AddRow(1, now, now, nil, "Existing", "RU000A1022Z1", "", "UK", "", false, false, nil, "", "")
+
+	mock.ExpectQuery(`isin = .+ AND "funds"\."deleted_at" IS NULL`).
+		WithArgs("RU000A1022Z1", 1).
+		WillReturnRows(existingFundRows)
+
+	fund, err := service.EnrichAndCreateFund(context.Background(), "Дубликат")
+
+	assert.Error(t, err)
+	assert.Nil(t, fund)
+	assert.Contains(t, err.Error(), "already exists")
 }
