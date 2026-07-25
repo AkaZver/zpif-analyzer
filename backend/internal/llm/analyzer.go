@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/zpif-analyzer/backend/internal/models"
@@ -251,7 +250,7 @@ func (a *Analyzer) extractMetrics(ctx context.Context, llmClient *Client, docTex
 	if err != nil {
 		return nil, err
 	}
-	cleaned := extractJSONObject(resp)
+	cleaned := ExtractJSON(resp)
 	if cleaned == "" {
 		log.Printf("Extract metrics: no JSON found in response")
 		return &MetricsExtraction{}, nil
@@ -272,7 +271,7 @@ func (a *Analyzer) generateAnalysis(ctx context.Context, llmClient *Client, docT
 	if err != nil {
 		return nil, err
 	}
-	cleaned := extractJSONObject(resp)
+	cleaned := ExtractJSON(resp)
 	if cleaned == "" {
 		log.Printf("Generate analysis: no JSON found in response, using raw text")
 		return &AnalysisResult{
@@ -350,18 +349,6 @@ func (a *Analyzer) updateFinancialsFromMetrics(fundID uint, metrics *MetricsExtr
 
 	latest.ID = 0
 	return a.financialsRepo.Create(latest)
-}
-
-func extractJSONObject(s string) string {
-	start := strings.Index(s, "{")
-	if start == -1 {
-		return ""
-	}
-	end := strings.LastIndex(s, "}")
-	if end == -1 || end <= start {
-		return ""
-	}
-	return s[start : end+1]
 }
 
 func IsPDF(data []byte) bool {

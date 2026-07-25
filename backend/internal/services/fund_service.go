@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
+	"log"
 	"time"
 
 	"github.com/zpif-analyzer/backend/internal/llm"
@@ -166,7 +166,7 @@ func (s *FundService) AddAnalysis(analysis *models.LLMAnalysis) error {
 	return s.analysisRepo.Create(analysis)
 }
 
-func (s *FundService) DiscoverDocumentsForFund(fundID uint) error {
+func (s *FundService) DiscoverDocumentsForFund(ctx context.Context, fundID uint) error {
 	if s.discoverer == nil {
 		return errors.New("document discovery not configured")
 	}
@@ -174,7 +174,9 @@ func (s *FundService) DiscoverDocumentsForFund(fundID uint) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.discoverer.Discover(context.Background(), fund)
+	ctx, cancel := context.WithTimeout(ctx, 180*time.Second)
+	defer cancel()
+	_, err = s.discoverer.Discover(ctx, fund)
 	return err
 }
 
@@ -247,7 +249,8 @@ func (s *FundService) EnrichAndCreateFund(ctx context.Context, userInput string)
 		return nil, fmt.Errorf("LLM call failed: %w", err)
 	}
 
-	jsonStr := extractJSON(response)
+	jsonStr := llm.ExtractJSON(response)
+	jsonStr = llm.SanitizeJSON(jsonStr)
 
 	var enrichedData struct {
 		Name              string  `json:"name"`
@@ -261,6 +264,7 @@ func (s *FundService) EnrichAndCreateFund(ctx context.Context, userInput string)
 	}
 
 	if err := json.Unmarshal([]byte(jsonStr), &enrichedData); err != nil {
+		log.Printf("LLM enrich fund: failed to parse JSON. Raw response: %s, extracted: %s", response, jsonStr)
 		return nil, fmt.Errorf("failed to parse LLM response: %w", err)
 	}
 
@@ -289,14 +293,4 @@ func (s *FundService) EnrichAndCreateFund(ctx context.Context, userInput string)
 	}
 
 	return fund, nil
-}
-
-func extractJSON(s string) string {
-	s = strings.TrimSpace(s)
-	start := strings.Index(s, "{")
-	end := strings.LastIndex(s, "}")
-	if start != -1 && end != -1 && end > start {
-		return s[start : end+1]
-	}
-	return s
 }

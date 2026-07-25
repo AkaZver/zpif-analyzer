@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -23,6 +24,12 @@ func TestNewClient_Defaults(t *testing.T) {
 	assert.NotNil(t, client)
 	assert.Equal(t, "https://api.openai.com/v1", client.baseURL)
 	assert.Equal(t, "gpt-4o-mini", client.model)
+}
+
+func TestNewClient_Timeout(t *testing.T) {
+	client := NewClient("test-key", "https://api.openai.com/v1", "gpt-4o-mini", nil)
+	assert.NotNil(t, client)
+	assert.Equal(t, 180*time.Second, client.client.Timeout)
 }
 
 func TestClient_Chat_EmptyAPIKey(t *testing.T) {

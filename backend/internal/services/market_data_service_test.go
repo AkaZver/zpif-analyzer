@@ -545,3 +545,57 @@ func TestMarketDataService_FetchMarketDataForAllFunds_GetAllError(t *testing.T) 
 	assert.Error(t, err)
 	assert.Nil(t, result)
 }
+
+func TestMarketDataService_FetchMarketDataForFund_InvestfundsUnitPriceFallback(t *testing.T) {
+	fundRepo := new(MockFundRepo)
+	financialsRepo := new(MockFinancialsRepo)
+	moexParser := new(MockMoexParser)
+	investfundsParser := new(MockInvestfundsParser)
+	vsezpifParser := new(MockVsezpifParser)
+
+	fund := &models.Fund{ID: 1, Name: "Test Fund", ISIN: "RU000TEST"}
+	fundRepo.On("GetByID", uint(1)).Return(fund, nil)
+
+	moexParser.On("SearchSecurity", "RU000TEST").Return(nil, errors.New("not found"))
+
+	navDate := time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC)
+	investfundsData := &parsers.InvestfundsData{
+		NAV: 1050.50,
+		NAVHistory: []parsers.NAVData{
+			{Date: navDate, UnitPrice: 1050.50, NAV: 1050.50, SCA: 5000000},
+		},
+	}
+	investfundsParser.On("SearchFund", "RU000TEST").Return("http://test.ru", nil)
+	investfundsParser.On("GetFundData", "http://test.ru").Return(investfundsData, nil)
+
+	vsezpifParser.On("SearchFund", "RU000TEST", "", "Test Fund").Return("", nil, errors.New("not found"))
+
+	financialsRepo.On("GetByFundIDAndDate", uint(1), mock.Anything).Return(nil, errors.New("not found"))
+
+	var capturedFinancial *models.FundFinancials
+	financialsRepo.On("Create", mock.AnythingOfType("*models.FundFinancials")).Run(func(args mock.Arguments) {
+		capturedFinancial = args.Get(0).(*models.FundFinancials)
+	}).Return(nil)
+
+	financialsRepo.On("GetByFundID", uint(1)).Return([]models.FundFinancials{}, nil)
+	financialsRepo.On("GetLatestByFundID", uint(1)).Return(nil, errors.New("not found"))
+
+	fundRepo.On("Update", mock.AnythingOfType("*models.Fund")).Return(nil)
+
+	service := &MarketDataService{
+		moexParser:        moexParser,
+		investfundsParser: investfundsParser,
+		vsezpifParser:     vsezpifParser,
+		financialsRepo:    financialsRepo,
+		fundRepo:          fundRepo,
+	}
+
+	result, err := service.FetchMarketDataForFund(context.Background(), 1)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.True(t, result.InvestfundsAvailable)
+	assert.NotNil(t, capturedFinancial)
+	assert.Equal(t, 1050.50, capturedFinancial.UnitPriceRub)
+	assert.Equal(t, 1050.50, capturedFinancial.NavPerUnitRub)
+}

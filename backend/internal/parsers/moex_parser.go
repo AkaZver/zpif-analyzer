@@ -258,8 +258,8 @@ func (p *MoexParser) SearchSecurity(query string) (*MoexSecurity, error) {
 				market, _ = row[marketIdx].(string)
 			}
 
-			// Берём только board'ы с market = "shares" (основные торговые board'ы)
-			if market == "shares" && boardID != "" {
+		// Берём board'ы с market = "shares" или "sharesndm" (основные торговые board'ы и ОТС)
+		if (market == "shares" || market == "sharesndm") && boardID != "" {
 				boards = append(boards, boardID)
 			}
 		}

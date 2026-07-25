@@ -209,7 +209,7 @@ func TestFundService_DiscoverDocumentsForFund(t *testing.T) {
 	service, _, cleanup := setupTestService(t)
 	defer cleanup()
 
-	err := service.DiscoverDocumentsForFund(1)
+	err := service.DiscoverDocumentsForFund(context.Background(), 1)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "document discovery not configured")

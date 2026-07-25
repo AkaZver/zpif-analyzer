@@ -74,13 +74,19 @@ func (d *Discoverer) Discover(ctx context.Context, fund *models.Fund) (*Discover
 		return status, fmt.Errorf("LLM search failed: %w", err)
 	}
 
+	moscowTZ, err := time.LoadLocation("Europe/Moscow")
+	if err != nil {
+		moscowTZ = time.UTC
+	}
+	now := time.Now().In(moscowTZ)
+
 	document := &models.FundDocument{
 		FundID:        fund.ID,
-		FileName:      fmt.Sprintf("llm-search-%s.txt", time.Now().Format("2006-01-02-15-04-05")),
+		FileName:      fmt.Sprintf("llm-search-%s.txt", now.Format("2006-01-02-15-04-05")),
 		DocumentType:  "search",
-		ContentHash:   fmt.Sprintf("llm-%s-%d", fund.ISIN, time.Now().Unix()),
+		ContentHash:   fmt.Sprintf("llm-%s-%d", fund.ISIN, now.Unix()),
 		Source:        "auto",
-		UploadDate:    time.Now(),
+		UploadDate:    now,
 		Status:        "downloaded",
 		FileSize:      int64(len(response)),
 		ExtractedText: response,

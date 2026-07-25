@@ -25,25 +25,105 @@ func TestNewAnalyzer(t *testing.T) {
 	assert.Equal(t, settingsRepo, analyzer.settingsRepo)
 }
 
-func TestExtractJSONObject_ValidObject(t *testing.T) {
+func TestExtractJSON_ValidObject(t *testing.T) {
 	input := `Some text before {"key":"value"} and after`
-	result := extractJSONObject(input)
+	result := ExtractJSON(input)
 
 	assert.Equal(t, `{"key":"value"}`, result)
 }
 
-func TestExtractJSONObject_NoObject(t *testing.T) {
+func TestExtractJSON_NoObject(t *testing.T) {
 	input := `No JSON object here`
-	result := extractJSONObject(input)
+	result := ExtractJSON(input)
 
-	assert.Empty(t, result)
+	assert.Equal(t, input, result)
 }
 
-func TestExtractJSONObject_IncompleteObject(t *testing.T) {
+func TestExtractJSON_IncompleteObject(t *testing.T) {
 	input := `{"key":"value"`
-	result := extractJSONObject(input)
+	result := ExtractJSON(input)
 
-	assert.Empty(t, result)
+	assert.Equal(t, input, result)
+}
+
+func TestExtractJSON_MarkdownCodeBlock(t *testing.T) {
+	input := "```json\n{\"key\":\"value\"}\n```"
+	result := ExtractJSON(input)
+
+	assert.Equal(t, `{"key":"value"}`, result)
+}
+
+func TestExtractJSON_MarkdownCodeBlockWithText(t *testing.T) {
+	input := "Вот результат:\n```json\n{\"name\":\"Фонд\"}\n```\nГотово!"
+	result := ExtractJSON(input)
+
+	assert.Equal(t, `{"name":"Фонд"}`, result)
+}
+
+func TestExtractJSON_RussianTextAround(t *testing.T) {
+	input := `Вот данные фонда: {"name":"ЗПИФ Склады","isin":"RU000A1022Z1"} Это всё.`
+	result := ExtractJSON(input)
+
+	assert.Equal(t, `{"name":"ЗПИФ Склады","isin":"RU000A1022Z1"}`, result)
+}
+
+func TestExtractJSON_SmartQuotes(t *testing.T) {
+	input := "{\"name\":\"ЗПИФ «ПАРУС»\",\"value\":\"\u201ctest\u201d\"}"
+	result := ExtractJSON(input)
+
+	assert.Contains(t, result, "«ПАРУС»")
+	assert.Contains(t, result, "'test'")
+	assert.NotContains(t, result, "\u201c")
+	assert.NotContains(t, result, "\u201d")
+}
+
+func TestExtractJSON_BOM(t *testing.T) {
+	input := "\xef\xbb\xbf{\"key\":\"value\"}"
+	result := ExtractJSON(input)
+
+	assert.Equal(t, `{"key":"value"}`, result)
+}
+
+func TestExtractJSON_NestedObjects(t *testing.T) {
+	input := `{"outer":{"inner":"value"},"array":[1,2,3]}`
+	result := ExtractJSON(input)
+
+	assert.Equal(t, input, result)
+}
+
+func TestExtractJSON_EscapedQuotes(t *testing.T) {
+	input := `{"text":"He said \"hello\" to me"}`
+	result := ExtractJSON(input)
+
+	assert.Equal(t, input, result)
+}
+
+func TestSanitizeJSON_UnescapedQuotes(t *testing.T) {
+	input := `{"name":"ЗПИФ недвижимости "ПАРУС-Двинцев""}`
+	result := SanitizeJSON(input)
+
+	assert.Equal(t, `{"name":"ЗПИФ недвижимости 'ПАРУС-Двинцев'"}`, result)
+}
+
+func TestSanitizeJSON_ValidJSON(t *testing.T) {
+	input := `{"name":"Test","value":123}`
+	result := SanitizeJSON(input)
+
+	assert.Equal(t, input, result)
+}
+
+func TestSanitizeJSON_EscapedQuotes(t *testing.T) {
+	input := `{"text":"He said \"hello\""}`
+	result := SanitizeJSON(input)
+
+	assert.Equal(t, input, result)
+}
+
+func TestSanitizeJSON_MultipleUnescapedQuotes(t *testing.T) {
+	input := `{"name":"Фонд "Альфа" и "Бета""}`
+	result := SanitizeJSON(input)
+
+	assert.Equal(t, `{"name":"Фонд 'Альфа' и 'Бета'"}`, result)
 }
 
 func TestIsPDF_ValidPDF(t *testing.T) {

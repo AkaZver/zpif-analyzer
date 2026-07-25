@@ -258,9 +258,12 @@ func (s *MarketDataService) FetchMarketDataForFund(ctx context.Context, fundID u
 				existing.NavPerUnitRub = navData.NAV
 				existing.NavTotalMlnRub = navData.SCA / 1_000_000
 				
-				// НЕ устанавливаем UnitPrice из investfunds — это не рыночная цена
+				// Fallback: используем цену пая из investfunds, если нет данных MOEX
+				if existing.UnitPriceRub == 0 && navData.UnitPrice > 0 {
+					existing.UnitPriceRub = navData.UnitPrice
+				}
 				
-				// Пересчитываем дисконт, если есть цена из MOEX
+				// Пересчитываем дисконт, если есть цена
 				if existing.UnitPriceRub > 0 && navData.NAV > 0 {
 					existing.DiscountToNavPct = ((existing.UnitPriceRub - navData.NAV) / navData.NAV) * 100
 				}
@@ -270,13 +273,13 @@ func (s *MarketDataService) FetchMarketDataForFund(ctx context.Context, fundID u
 					result.RecordsUpdated++
 				}
 			} else {
-				// Создаём новую запись с NAV и СЧА (без цены)
+				// Создаём новую запись с NAV, СЧА и ценой пая из investfunds
 				financials := &models.FundFinancials{
 					FundID:         fundID,
 					SnapshotDate:   navData.Date,
-					UnitPriceRub:   0,               // НЕ устанавливать
-					NavPerUnitRub:  navData.NAV,     // РСП
-					NavTotalMlnRub: navData.SCA / 1_000_000,  // СЧА
+					UnitPriceRub:   navData.UnitPrice,
+					NavPerUnitRub:  navData.NAV,
+					NavTotalMlnRub: navData.SCA / 1_000_000,
 				}
 				if err := s.financialsRepo.Create(financials); err != nil {
 					log.Printf("Failed to create NAV for date %s: %v", navData.Date, err)

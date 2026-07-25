@@ -476,7 +476,7 @@ const FundDetails: React.FC = () => {
                     strokeDasharray="3 3"
                     label={{ 
                       value: 'Начало торгов', 
-                      position: 'top',
+                      position: priceChartData.findIndex(d => d.date === tradingStartFormatted) < priceChartData.length / 2 ? 'right' : 'left',
                       fill: '#a0a0a0',
                       fontSize: 12,
                     }}

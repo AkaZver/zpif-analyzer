@@ -52,7 +52,7 @@ func NewClient(apiKey, baseURL, model string, proxy *ProxyConfig) *Client {
 		baseURL: strings.TrimSuffix(baseURL, "/"),
 		model:   model,
 		client: &http.Client{
-			Timeout:   120 * time.Second,
+			Timeout:   180 * time.Second,
 			Transport: transport,
 		},
 	}
@@ -224,4 +224,116 @@ func (c *Client) ListModels(ctx context.Context) ([]string, error) {
 
 func (c *Client) GetModel() string {
 	return c.model
+}
+
+func ExtractJSON(s string) string {
+	s = strings.TrimPrefix(s, "\xef\xbb\xbf")
+	s = strings.TrimSpace(s)
+
+	if idx := strings.Index(s, "```"); idx != -1 {
+		rest := s[idx+3:]
+		if nl := strings.IndexByte(rest, '\n'); nl != -1 {
+			rest = rest[nl+1:]
+		}
+		if end := strings.Index(rest, "```"); end != -1 {
+			candidate := strings.TrimSpace(rest[:end])
+			if strings.HasPrefix(candidate, "{") {
+				s = candidate
+			}
+		}
+	}
+
+	replacer := strings.NewReplacer(
+		"\u201c", "'",
+		"\u201d", "'",
+		"\u2018", "'",
+		"\u2019", "'",
+	)
+	s = replacer.Replace(s)
+
+	start := strings.IndexByte(s, '{')
+	if start == -1 {
+		return s
+	}
+
+	depth := 0
+	inString := false
+	escaped := false
+
+	for i := start; i < len(s); i++ {
+		ch := s[i]
+		if escaped {
+			escaped = false
+			continue
+		}
+		if ch == '\\' && inString {
+			escaped = true
+			continue
+		}
+		if ch == '"' {
+			inString = !inString
+			continue
+		}
+		if inString {
+			continue
+		}
+		if ch == '{' {
+			depth++
+		} else if ch == '}' {
+			depth--
+			if depth == 0 {
+				return s[start : i+1]
+			}
+		}
+	}
+
+	end := strings.LastIndexByte(s, '}')
+	if end > start {
+		return s[start : end+1]
+	}
+	return s
+}
+
+func SanitizeJSON(s string) string {
+	var result strings.Builder
+	result.Grow(len(s))
+
+	inString := false
+	escaped := false
+
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+
+		if escaped {
+			result.WriteByte(ch)
+			escaped = false
+			continue
+		}
+
+		if ch == '\\' && inString {
+			result.WriteByte(ch)
+			escaped = true
+			continue
+		}
+
+		if ch == '"' {
+			if !inString {
+				inString = true
+				result.WriteByte(ch)
+			} else {
+				rest := strings.TrimSpace(s[i+1:])
+				if len(rest) == 0 || rest[0] == ':' || rest[0] == ',' || rest[0] == '}' || rest[0] == ']' {
+					inString = false
+					result.WriteByte(ch)
+				} else {
+					result.WriteByte('\'')
+				}
+			}
+			continue
+		}
+
+		result.WriteByte(ch)
+	}
+
+	return result.String()
 }

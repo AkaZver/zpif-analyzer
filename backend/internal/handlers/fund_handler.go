@@ -221,7 +221,7 @@ func (h *FundHandler) DiscoverDocuments(c *gin.Context) {
 		return
 	}
 
-	if err := h.fundService.DiscoverDocumentsForFund(uint(id)); err != nil {
+	if err := h.fundService.DiscoverDocumentsForFund(c.Request.Context(), uint(id)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

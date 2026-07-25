@@ -145,6 +145,10 @@ func TestInvestfundsParser_SearchFund_HTTPError(t *testing.T) {
 
 func TestInvestfundsParser_GetFundData(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("action") == "chartData" {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		html := `<html><body>
 			<table class="table_part">
 				<tbody>
@@ -178,6 +182,7 @@ func TestInvestfundsParser_GetFundData(t *testing.T) {
 	assert.Len(t, data.NAVHistory, 2)
 	assert.Len(t, data.PayoutHistory, 2)
 
+	assert.Equal(t, 1050.50, data.NAVHistory[0].UnitPrice)
 	assert.Equal(t, 80.0, data.PayoutHistory[0].Amount)
 	assert.Equal(t, 8.5, data.PayoutHistory[0].YieldPercent)
 }
@@ -287,4 +292,100 @@ func TestIsISINFormat(t *testing.T) {
 		result := isISINFormat(tt.input)
 		assert.Equal(t, tt.expected, result, "input: %s", tt.input)
 	}
+}
+
+func TestExtractFundID(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"https://investfunds.ru/funds/12693/", "12693"},
+		{"https://investfunds.ru/funds/9869/", "9869"},
+		{"/funds/123/", "123"},
+		{"https://investfunds.ru/funds/123", "123"},
+		{"https://investfunds.ru/other/page/", ""},
+		{"", ""},
+	}
+
+	for _, tt := range tests {
+		result := extractFundID(tt.input)
+		assert.Equal(t, tt.expected, result, "input: %s", tt.input)
+	}
+}
+
+func TestInvestfundsParser_GetFundData_JSONAPI(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("action") == "chartData" {
+			w.Header().Set("Content-Type", "application/json")
+			dataKey := r.URL.Query().Get("data_key")
+			if dataKey == "pay" {
+				jsonResp := `[{"data":[[1705276800000,1050.50],[1705190400000,1045.00]],"name":"Test Fund"}]`
+				w.Write([]byte(jsonResp))
+			} else if dataKey == "sca" {
+				jsonResp := `[{"data":[[1705276800000,5000000],[1705190400000,4950000]],"name":"Test Fund"}]`
+				w.Write([]byte(jsonResp))
+			}
+			return
+		}
+		html := `<html><body>
+			<table class="dividends_table">
+				<tbody>
+					<tr><td>1</td><td>15.01.2024</td><td>3</td><td>80.00</td><td>8.5</td></tr>
+				</tbody>
+			</table>
+		</body></html>`
+		w.Write([]byte(html))
+	}))
+	defer server.Close()
+
+	parser := &InvestfundsParser{
+		client:  server.Client(),
+		baseURL: server.URL,
+	}
+
+	data, err := parser.GetFundData(server.URL + "/funds/123/")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, data)
+	assert.Len(t, data.NAVHistory, 2)
+	assert.Equal(t, 1050.50, data.NAV)
+	assert.Equal(t, 1050.50, data.NAVHistory[0].UnitPrice)
+	assert.Equal(t, 1050.50, data.NAVHistory[0].NAV)
+	assert.Equal(t, 5000000.0, data.NAVHistory[0].SCA)
+	assert.Len(t, data.PayoutHistory, 1)
+	assert.Equal(t, 80.0, data.PayoutHistory[0].Amount)
+	
+	expectedDate := time.Date(2024, 1, 15, 0, 0, 0, 0, mskLocation)
+	assert.Equal(t, expectedDate, data.NAVHistory[0].Date)
+}
+
+func TestInvestfundsParser_GetFundData_JSONAPIFails_FallbackToHTML(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("action") == "chartData" {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		html := `<html><body>
+			<table class="table_part">
+				<tbody>
+					<tr><td>15.01.2024</td><td>1,050.50</td><td>5,000,000</td></tr>
+				</tbody>
+			</table>
+		</body></html>`
+		w.Write([]byte(html))
+	}))
+	defer server.Close()
+
+	parser := &InvestfundsParser{
+		client:  server.Client(),
+		baseURL: server.URL,
+	}
+
+	data, err := parser.GetFundData(server.URL + "/funds/123/")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, data)
+	assert.Len(t, data.NAVHistory, 1)
+	assert.Equal(t, 1050.50, data.NAVHistory[0].UnitPrice)
+	assert.Equal(t, 1050.50, data.NAVHistory[0].NAV)
 }
