@@ -39,7 +39,7 @@ const Settings: React.FC = () => {
     setLoadingModels(true);
     try {
       const modelsList = await apiClient.getLLMModels();
-      setModels([...modelsList].sort());
+      setModels([...modelsList].sort((a, b) => a.localeCompare(b)));
     } catch {
       setModels([]);
     } finally {
