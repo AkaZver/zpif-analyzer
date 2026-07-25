@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import FundDetails from './index';
 import { apiClient } from '../../api/client';
@@ -206,6 +206,110 @@ describe('FundDetails', () => {
     await waitFor(() => {
       const backButton = screen.getByText('Назад к сравнению');
       expect(backButton).toBeInTheDocument();
+    });
+  });
+
+  it('should delete fund when confirmed', async () => {
+    vi.mocked(apiClient.deleteFund).mockResolvedValue();
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <FundDetails />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Тестовый фонд')).toBeInTheDocument();
+    });
+
+    const deleteButton = screen.getByText('Удалить');
+    fireEvent.click(deleteButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Да')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Да'));
+
+    await waitFor(() => {
+      expect(apiClient.deleteFund).toHaveBeenCalledWith(1);
+      expect(mockNavigate).toHaveBeenCalledWith('/');
+    });
+  });
+
+  it('should fetch market data when button clicked', async () => {
+    vi.mocked(apiClient.fetchMarketData).mockResolvedValue({
+      status: 'success',
+      fund_id: 1,
+      records_created: 5,
+      records_updated: 3,
+      moex_available: true,
+      investfunds_available: true,
+    });
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <FundDetails />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Тестовый фонд')).toBeInTheDocument();
+    });
+
+    const fetchButton = screen.getByText('Обновить данные');
+    fireEvent.click(fetchButton);
+
+    await waitFor(() => {
+      expect(apiClient.fetchMarketData).toHaveBeenCalledWith(1);
+    });
+  });
+
+  it('should delete document when delete button clicked', async () => {
+    vi.mocked(apiClient.getDocuments).mockResolvedValue([
+      {
+        id: 123,
+        fund_id: 1,
+        file_name: 'test.pdf',
+        file_path: '/path/to/test.pdf',
+        document_type: 'pdf',
+        content_hash: 'hash123',
+        source: 'manual',
+        source_url: '',
+        upload_date: '2024-01-01T00:00:00Z',
+        status: 'analyzed',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      },
+    ]);
+    vi.mocked(apiClient.deleteDocument).mockResolvedValue();
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <FundDetails />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('test.pdf')).toBeInTheDocument();
+    });
+
+    const table = document.querySelector('.ant-table-tbody');
+    expect(table).toBeInTheDocument();
+    
+    const actionButtons = table!.querySelectorAll('button');
+    expect(actionButtons.length).toBeGreaterThanOrEqual(2);
+    
+    fireEvent.click(actionButtons[1]);
+
+    await waitFor(() => {
+      expect(apiClient.deleteDocument).toHaveBeenCalledWith(1, 123);
     });
   });
 });

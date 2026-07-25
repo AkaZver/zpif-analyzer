@@ -643,10 +643,11 @@ describe('Dashboard', () => {
     fireEvent.mouseDown(segmentSelect!.closest('.ant-select')!);
 
     await waitFor(() => {
-      const options = screen.getAllByText('склады');
-      const option = options.find(el => el.closest('.ant-select-item-option'));
-      fireEvent.click(option!);
+      expect(screen.getAllByText('склады').length).toBeGreaterThan(0);
     });
+    const options = screen.getAllByText('склады');
+    const option = options.find(el => el.closest('.ant-select-item-option'));
+    fireEvent.click(option!);
 
     await waitFor(() => {
       expect(screen.getByText('Бета Фонд')).toBeInTheDocument();
@@ -673,10 +674,11 @@ describe('Dashboard', () => {
     fireEvent.mouseDown(companySelect!.closest('.ant-select')!);
 
     await waitFor(() => {
-      const options = screen.getAllByText('Альфа УК');
-      const option = options.find(el => el.closest('.ant-select-item-option'));
-      fireEvent.click(option!);
+      expect(screen.getAllByText('Альфа УК').length).toBeGreaterThan(0);
     });
+    const options = screen.getAllByText('Альфа УК');
+    const option = options.find(el => el.closest('.ant-select-item-option'));
+    fireEvent.click(option!);
 
     await waitFor(() => {
       expect(screen.getByText('Альфа Фонд')).toBeInTheDocument();
