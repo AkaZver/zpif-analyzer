@@ -40,8 +40,8 @@ type FundFinancials struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
 
-	FundID       uint      `gorm:"index;not null" json:"fund_id"`
-	SnapshotDate time.Time `gorm:"not null" json:"snapshot_date"`
+	FundID       uint      `gorm:"index:idx_fund_snapshot,unique;not null" json:"fund_id"`
+	SnapshotDate time.Time `gorm:"index:idx_fund_snapshot,unique;not null" json:"snapshot_date"`
 
 	// Цены и стоимость
 	UnitPriceRub     float64 `json:"unit_price_rub"`
@@ -80,14 +80,14 @@ type FundDocument struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
 
-	FundID         uint   `gorm:"index;not null" json:"fund_id"`
+	FundID         uint   `gorm:"index:idx_fund_upload;not null" json:"fund_id"`
 	FileName       string `json:"file_name"`
 	FilePath       string `json:"file_path"`
 	DocumentType   string `json:"document_type"`
 	ContentHash    string `json:"content_hash"`
 	Source         string `json:"source"`
 	SourceURL      string `json:"source_url"`
-	UploadDate     time.Time `json:"upload_date"`
+	UploadDate     time.Time `gorm:"index:idx_fund_upload" json:"upload_date"`
 	Status         string    `json:"status"`
 	FileSize       int64     `json:"file_size"`
 	ExtractedText  string    `gorm:"type:text" json:"extracted_text"`
@@ -98,11 +98,11 @@ type FundDocument struct {
 
 type LLMAnalysis struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
-	CreatedAt time.Time      `json:"created_at"`
+	CreatedAt time.Time      `gorm:"index:idx_fund_created" json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
 
-	FundID           uint   `gorm:"index;not null" json:"fund_id"`
+	FundID           uint   `gorm:"index:idx_fund_created;not null" json:"fund_id"`
 	DocumentID       uint   `json:"document_id"`
 	ModelUsed        string `json:"model_used"`
 	RawResponse      string `gorm:"type:text" json:"raw_response"`

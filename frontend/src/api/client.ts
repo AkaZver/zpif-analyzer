@@ -52,6 +52,11 @@ class ApiClient {
     return response.data;
   }
 
+  async getFundsWithFinancials(): Promise<Fund[]> {
+    const response = await this.client.get<Fund[]>('/funds-with-financials');
+    return response.data;
+  }
+
   async getFund(id: number): Promise<Fund> {
     const response = await this.client.get<Fund>(`/funds/${id}`);
     return response.data;

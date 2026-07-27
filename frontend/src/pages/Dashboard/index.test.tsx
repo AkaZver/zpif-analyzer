@@ -8,6 +8,7 @@ import { ThemeProvider } from '../../hooks/ThemeProvider';
 vi.mock('../../api/client', () => ({
   apiClient: {
     getFunds: vi.fn(),
+    getFundsWithFinancials: vi.fn(),
     getFinancials: vi.fn(),
     exportExcel: vi.fn(),
     enrichAndCreateFund: vi.fn(),
@@ -105,7 +106,12 @@ const mockFinancials = [
 describe('Dashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    const mockFundsWithFinancials = mockFunds.map((fund, index) => ({
+      ...fund,
+      financials: index === 0 ? mockFinancials : [],
+    }));
     vi.mocked(apiClient.getFunds).mockResolvedValue(mockFunds);
+    vi.mocked(apiClient.getFundsWithFinancials).mockResolvedValue(mockFundsWithFinancials);
     vi.mocked(apiClient.getFinancials).mockResolvedValue(mockFinancials);
   });
 
@@ -140,6 +146,22 @@ describe('Dashboard', () => {
       expect(screen.getByText('Альфа Фонд')).toBeInTheDocument();
       expect(screen.getByText('Бета Фонд')).toBeInTheDocument();
       expect(screen.getByText('Гамма Фонд')).toBeInTheDocument();
+    });
+  });
+
+  it('should call getFundsWithFinancials instead of getFunds + N getFinancials', async () => {
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(apiClient.getFundsWithFinancials).toHaveBeenCalledTimes(1);
+      expect(apiClient.getFunds).not.toHaveBeenCalled();
+      expect(apiClient.getFinancials).not.toHaveBeenCalled();
     });
   });
 
@@ -230,8 +252,7 @@ describe('Dashboard', () => {
     });
 
     const ukHeaders = screen.getAllByText('УК');
-    const ukHeader = ukHeaders.find(el => el.classList.contains('ant-table-column-title'));
-    fireEvent.click(ukHeader!);
+    fireEvent.click(ukHeaders[0]);
 
     await waitFor(() => {
       const rows = screen.getAllByRole('row');
@@ -260,8 +281,7 @@ describe('Dashboard', () => {
     });
 
     const segmentHeaders = screen.getAllByText('Сегмент');
-    const segmentHeader = segmentHeaders.find(el => el.classList.contains('ant-table-column-title'));
-    fireEvent.click(segmentHeader!);
+    fireEvent.click(segmentHeaders[0]);
 
     await waitFor(() => {
       expect(screen.getByText('Альфа Фонд')).toBeInTheDocument();

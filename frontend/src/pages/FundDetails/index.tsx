@@ -61,21 +61,17 @@ const FundDetails: React.FC = () => {
     setLoading(true);
     try {
       const fundId = Number.parseInt(id);
-      const [fundData, financialsData, documentsData] = await Promise.all([
+      const [fundData, financialsData, documentsData, analysisData] = await Promise.all([
         apiClient.getFund(fundId),
         apiClient.getFinancials(fundId),
         apiClient.getDocuments(fundId),
+        apiClient.getAnalysis(fundId).catch(() => null),
       ]);
       setFund(fundData);
       setFinancials(financialsData);
       setDocuments(documentsData);
       setSelectedDocIds(documentsData.filter(d => d.status !== 'analyzed').map(d => d.id));
-      try {
-        const analysisData = await apiClient.getAnalysis(fundId);
-        setAnalysis(analysisData);
-      } catch {
-        setAnalysis(null);
-      }
+      setAnalysis(analysisData);
     } catch {
       message.error('Не удалось загрузить данные фонда');
     } finally {

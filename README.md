@@ -20,7 +20,7 @@
   <a href="#"><img src="https://img.shields.io/badge/Node.js-20+-blue.svg?logo=nodedotjs" alt="Node.js Compatibility" /></a>
   <a href="#"><img src="https://img.shields.io/badge/Vite-8.1+-blue.svg?logo=vite" alt="Vite Compatibility" /></a>
   <br/>
-  <a href="#"><img src="https://img.shields.io/badge/Lines_of_Code-31.7k+-blue.svg?logo=github" alt="Lines of Code"></a>
+  <a href="#"><img src="https://img.shields.io/badge/Lines_of_Code-21.4k+-blue.svg?logo=github" alt="Lines of Code"></a>
   <a href="#"><img src="https://img.shields.io/badge/License-Apache--2.0-blue.svg?logo=apache" alt="License"></a>
   <a href="#"><img src="https://img.shields.io/badge/Qwen-3.7-blue.svg?logo=qwen" alt="LLM"></a>
 </p>

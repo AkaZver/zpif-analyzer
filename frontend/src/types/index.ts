@@ -12,6 +12,7 @@ export interface Fund {
   vsezpif_url: string;
   created_at: string;
   updated_at: string;
+  financials?: FundFinancials[];
 }
 
 export interface FundFinancials {

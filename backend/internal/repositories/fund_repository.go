@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/zpif-analyzer/backend/internal/models"
 	"gorm.io/gorm"
@@ -21,6 +22,46 @@ func (r *FundRepository) GetAll() ([]models.Fund, error) {
 	var funds []models.Fund
 	err := r.db.Preload("Financials").Preload("Documents").Preload("Analyses").Find(&funds).Error
 	return funds, err
+}
+
+func (r *FundRepository) GetAllWithLatestFinancials() ([]models.Fund, error) {
+	var funds []models.Fund
+	err := r.db.Find(&funds).Error
+	if err != nil {
+		return nil, err
+	}
+
+	if len(funds) == 0 {
+		return funds, nil
+	}
+
+	fundIDs := make([]uint, len(funds))
+	for i, f := range funds {
+		fundIDs[i] = f.ID
+	}
+
+	var latestFinancials []models.FundFinancials
+	today := time.Now()
+	today = time.Date(today.Year(), today.Month(), today.Day(), 23, 59, 59, 0, today.Location())
+	err = r.db.
+		Where("id IN (SELECT DISTINCT ON (fund_id) id FROM fund_financials WHERE fund_id IN ? AND deleted_at IS NULL AND snapshot_date <= ? ORDER BY fund_id, snapshot_date DESC)", fundIDs, today).
+		Find(&latestFinancials).Error
+	if err != nil {
+		return nil, err
+	}
+
+	finMap := make(map[uint]*models.FundFinancials)
+	for i := range latestFinancials {
+		finMap[latestFinancials[i].FundID] = &latestFinancials[i]
+	}
+
+	for i := range funds {
+		if fin, ok := finMap[funds[i].ID]; ok {
+			funds[i].Financials = []models.FundFinancials{*fin}
+		}
+	}
+
+	return funds, nil
 }
 
 func (r *FundRepository) GetByID(id uint) (*models.Fund, error) {

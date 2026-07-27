@@ -36,6 +36,16 @@ func (h *FundHandler) GetAllFunds(c *gin.Context) {
 	c.JSON(http.StatusOK, funds)
 }
 
+// GetAllFundsWithLatestFinancials godoc
+func (h *FundHandler) GetAllFundsWithLatestFinancials(c *gin.Context) {
+	funds, err := h.fundService.GetAllFundsWithLatestFinancials()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, funds)
+}
+
 // GetFundByID godoc
 func (h *FundHandler) GetFundByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)

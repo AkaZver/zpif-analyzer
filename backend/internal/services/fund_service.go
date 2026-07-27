@@ -63,6 +63,10 @@ func (s *FundService) GetAllFunds() ([]models.Fund, error) {
 	return s.fundRepo.GetAll()
 }
 
+func (s *FundService) GetAllFundsWithLatestFinancials() ([]models.Fund, error) {
+	return s.fundRepo.GetAllWithLatestFinancials()
+}
+
 func (s *FundService) GetFundByID(id uint) (*models.Fund, error) {
 	fund, err := s.fundRepo.GetByID(id)
 	if err != nil {

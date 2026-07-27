@@ -97,6 +97,31 @@ describe('ApiClient', () => {
     expect(result).toEqual(mockResponse.data);
   });
 
+  it('should have getFundsWithFinancials method', async () => {
+    const { apiClient } = await import('../api/client');
+    expect(typeof apiClient.getFundsWithFinancials).toBe('function');
+  });
+
+  it('should call getFundsWithFinancials', async () => {
+    const { apiClient } = await import('../api/client');
+    const mockResponse = { data: [{ id: 1, name: 'Test Fund', financials: [{ id: 1, fund_id: 1 }] }] };
+    mockAxiosInstance.get.mockResolvedValue(mockResponse);
+
+    const result = await apiClient.getFundsWithFinancials();
+
+    expect(mockAxiosInstance.get).toHaveBeenCalledWith('/funds-with-financials');
+    expect(result).toEqual(mockResponse.data);
+  });
+
+  it('should handle getFundsWithFinancials error', async () => {
+    const { apiClient } = await import('../api/client');
+    const mockError = new Error('Network error');
+    mockAxiosInstance.get.mockRejectedValue(mockError);
+
+    await expect(apiClient.getFundsWithFinancials()).rejects.toThrow('Network error');
+    expect(mockAxiosInstance.get).toHaveBeenCalledWith('/funds-with-financials');
+  });
+
   it('should call getFund with correct ID', async () => {
     const { apiClient } = await import('../api/client');
     const mockResponse = { data: { id: 1, name: 'Test Fund' } };

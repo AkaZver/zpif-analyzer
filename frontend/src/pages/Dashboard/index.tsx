@@ -29,20 +29,11 @@ const Dashboard: React.FC = () => {
   const loadFunds = async () => {
     setLoading(true);
     try {
-      const fundsData = await apiClient.getFunds();
-      const fundsWithFinancials: FundWithFinancials[] = await Promise.all(
-        fundsData.map(async (fund) => {
-          try {
-            const financials = await apiClient.getFinancials(fund.id);
-            return {
-              ...fund,
-              latest_financials: financials.length > 0 ? financials[0] : null,
-            };
-          } catch {
-            return { ...fund, latest_financials: null };
-          }
-        })
-      );
+      const fundsData = await apiClient.getFundsWithFinancials();
+      const fundsWithFinancials: FundWithFinancials[] = fundsData.map((fund) => ({
+        ...fund,
+        latest_financials: fund.financials && fund.financials.length > 0 ? fund.financials[0] : null,
+      }));
       setFunds(fundsWithFinancials);
     } catch {
       message.error('Не удалось загрузить фонды');
@@ -127,19 +118,21 @@ const Dashboard: React.FC = () => {
 
   const columns: ColumnsType<FundWithFinancials> = [
     {
-      title: 'Название',
+      title: () => <span style={{ textAlign: 'center', display: 'block' }}>Название</span>,
       dataIndex: 'name',
       key: 'name',
       sorter: (a, b) => a.name.localeCompare(b.name),
       defaultSortOrder: 'ascend',
       fixed: 'left',
       width: 180,
+      align: 'center',
     },
     {
-      title: 'ISIN',
+      title: () => <span style={{ textAlign: 'center', display: 'block' }}>ISIN</span>,
       dataIndex: 'isin',
       key: 'isin',
       width: 140,
+      align: 'center',
       sorter: (a, b) => a.isin.localeCompare(b.isin),
       render: (isin: string, record: FundWithFinancials) => {
         if (record.ticker) {
@@ -155,22 +148,24 @@ const Dashboard: React.FC = () => {
       },
     },
     {
-      title: 'УК',
+      title: () => <span style={{ textAlign: 'center', display: 'block' }}>УК</span>,
       dataIndex: 'management_company',
       key: 'management_company',
       width: 150,
+      align: 'center',
       sorter: (a, b) => (a.management_company || '').localeCompare(b.management_company || ''),
     },
     {
-      title: 'Сегмент',
+      title: () => <span style={{ textAlign: 'center', display: 'block' }}>Сегмент</span>,
       dataIndex: 'real_estate_segment',
       key: 'real_estate_segment',
-      width: 100,
+      width: 140,
+      align: 'center',
       sorter: (a, b) => (a.real_estate_segment || '').localeCompare(b.real_estate_segment || ''),
       render: (v: string) => v || '—',
     },
     {
-      title: 'Цена пая',
+      title: () => <span style={{ textAlign: 'center', display: 'block' }}>Цена пая</span>,
       key: 'unit_price',
       width: 120,
       align: 'right',
@@ -180,7 +175,7 @@ const Dashboard: React.FC = () => {
       sorter: (a, b) => (a.latest_financials?.unit_price_rub || 0) - (b.latest_financials?.unit_price_rub || 0),
     },
     {
-      title: 'РСП',
+      title: () => <span style={{ textAlign: 'center', display: 'block' }}>РСП</span>,
       key: 'nav',
       width: 120,
       align: 'right',
@@ -190,24 +185,27 @@ const Dashboard: React.FC = () => {
       sorter: (a, b) => (a.latest_financials?.nav_per_unit_rub || 0) - (b.latest_financials?.nav_per_unit_rub || 0),
     },
     {
-      title: 'Дисконт',
+      title: () => <span style={{ textAlign: 'center', display: 'block' }}>Дисконт</span>,
       key: 'discount',
-      width: 90,
+      width: 100,
+      align: 'right',
       render: (_, r) => r.latest_financials ? renderDiscountCell(r.latest_financials.discount_to_nav_pct) : '—',
       sorter: (a, b) => (a.latest_financials?.discount_to_nav_pct || 0) - (b.latest_financials?.discount_to_nav_pct || 0),
     },
     {
-      title: 'Доходность выплат',
+      title: () => <span style={{ textAlign: 'center', display: 'block' }}>Доходность выплат</span>,
       key: 'payout_yield',
-      width: 130,
+      width: 150,
+      align: 'right',
       render: (_, r) => r.latest_financials ? renderPctCell(r.latest_financials.payout_yield_pct) : '—',
       sorter: (a, b) => (a.latest_financials?.payout_yield_pct || 0) - (b.latest_financials?.payout_yield_pct || 0),
     },
     {
-      title: 'Квал',
+      title: () => <span style={{ textAlign: 'center', display: 'block' }}>Квал</span>,
       dataIndex: 'qualified_required',
       key: 'qualified',
-      width: 60,
+      width: 80,
+      align: 'center',
       sorter: (a, b) => Number(a.qualified_required) - Number(b.qualified_required),
       render: (v: boolean) => <Tag color={v ? 'red' : 'green'}>{v ? 'Да' : 'Нет'}</Tag>,
     },

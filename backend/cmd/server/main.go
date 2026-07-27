@@ -119,6 +119,7 @@ func main() {
 
 	// Funds
 	api.GET("/funds", fundHandler.GetAllFunds)
+	api.GET("/funds-with-financials", fundHandler.GetAllFundsWithLatestFinancials)
 	api.POST("/funds", fundHandler.CreateFund)
 	api.POST("/funds/enrich-and-create", fundHandler.EnrichAndCreateFund)
 	api.POST("/funds/discover-all", fundHandler.DiscoverAllDocuments)

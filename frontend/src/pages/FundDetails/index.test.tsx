@@ -90,6 +90,62 @@ describe('FundDetails', () => {
     });
   });
 
+  it('should call getAnalysis in parallel with other API calls', async () => {
+    const callOrder: string[] = [];
+    
+    vi.mocked(apiClient.getFund).mockImplementation(async () => {
+      callOrder.push('getFund');
+      return {
+        id: 1,
+        name: 'Тестовый фонд',
+        isin: 'RU000TEST01',
+        ticker: 'TEST',
+        management_company: 'Тест УК',
+        real_estate_segment: 'склады',
+        qualified_required: false,
+        has_market_maker: true,
+        fund_end_date: null,
+        investfunds_url: '',
+        vsezpif_url: '',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      };
+    });
+    
+    vi.mocked(apiClient.getFinancials).mockImplementation(async () => {
+      callOrder.push('getFinancials');
+      return [];
+    });
+    
+    vi.mocked(apiClient.getDocuments).mockImplementation(async () => {
+      callOrder.push('getDocuments');
+      return [];
+    });
+    
+    vi.mocked(apiClient.getAnalysis).mockImplementation(async () => {
+      callOrder.push('getAnalysis');
+      throw new Error('No analysis');
+    });
+
+    render(
+      <ThemeProvider>
+        <MemoryRouter>
+          <FundDetails />
+        </MemoryRouter>
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(apiClient.getFund).toHaveBeenCalled();
+      expect(apiClient.getFinancials).toHaveBeenCalled();
+      expect(apiClient.getDocuments).toHaveBeenCalled();
+      expect(apiClient.getAnalysis).toHaveBeenCalled();
+    });
+
+    expect(callOrder).toContain('getAnalysis');
+    expect(callOrder.indexOf('getAnalysis')).toBeLessThan(callOrder.length);
+  });
+
   it('should show qualified tag when required', async () => {
     vi.mocked(apiClient.getFund).mockResolvedValue({
       id: 1,

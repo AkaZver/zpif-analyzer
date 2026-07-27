@@ -692,8 +692,8 @@ func TestAnalyzer_Analyze_Success(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_financials" WHERE fund_id = $1 AND "fund_financials"."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"."id" LIMIT $2`)).
-		WithArgs(uint(1), 1).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
+		WithArgs(uint(1), sqlmock.AnyArg(), 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
 	mock.ExpectBegin()
@@ -821,8 +821,8 @@ func TestAnalyzer_AnalyzeLatestDocuments_AllAnalyzed(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_financials" WHERE fund_id = $1 AND "fund_financials"."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"."id" LIMIT $2`)).
-		WithArgs(uint(1), 1).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
+		WithArgs(uint(1), sqlmock.AnyArg(), 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
 	mock.ExpectBegin()
@@ -871,8 +871,8 @@ func TestAnalyzer_UpdateFinancialsFromMetrics_NoExisting(t *testing.T) {
 
 	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_financials" WHERE fund_id = $1 AND "fund_financials"."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"."id" LIMIT $2`)).
-		WithArgs(uint(1), 1).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
+		WithArgs(uint(1), sqlmock.AnyArg(), 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
 	mock.ExpectBegin()
@@ -915,8 +915,8 @@ func TestAnalyzer_UpdateFinancialsFromMetrics_FullMetrics(t *testing.T) {
 	}).AddRow(1, now, now, nil, 1, snapshotDate, 900.0, 950.0, 4000.0, -5.0,
 		8.0, 0.9, 11.0, 7.0, 70.0, 7.0, 6.0, "quarterly", "medium", 2.5, 1.0, 4.0, 2, "Old Tenant")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_financials" WHERE fund_id = $1 AND "fund_financials"."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"."id" LIMIT $2`)).
-		WithArgs(uint(1), 1).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
+		WithArgs(uint(1), sqlmock.AnyArg(), 1).
 		WillReturnRows(existingRows)
 
 	mock.ExpectBegin()
@@ -1045,8 +1045,8 @@ func TestAnalyzer_AnalyzeDocuments_Success(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_financials" WHERE fund_id = $1 AND "fund_financials"."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"."id" LIMIT $2`)).
-		WithArgs(uint(1), 1).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
+		WithArgs(uint(1), sqlmock.AnyArg(), 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
 	mock.ExpectBegin()
