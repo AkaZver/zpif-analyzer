@@ -249,7 +249,7 @@ func TestFundService_DeleteFund(t *testing.T) {
 	defer cleanup()
 
 	mock.ExpectBegin()
-	mock.ExpectExec(`DELETE FROM "fund_financials" WHERE fund_id =`).
+	mock.ExpectExec(`DELETE FROM "llm_analyses" WHERE fund_id =`).
 		WithArgs(uint(1)).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit()
@@ -261,7 +261,7 @@ func TestFundService_DeleteFund(t *testing.T) {
 	mock.ExpectCommit()
 
 	mock.ExpectBegin()
-	mock.ExpectExec(`DELETE FROM "llm_analyses" WHERE fund_id =`).
+	mock.ExpectExec(`DELETE FROM "fund_financials" WHERE fund_id =`).
 		WithArgs(uint(1)).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit()

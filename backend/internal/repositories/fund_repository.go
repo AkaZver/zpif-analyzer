@@ -91,19 +91,22 @@ func (r *FundRepository) Update(fund *models.Fund) error {
 }
 
 func (r *FundRepository) Delete(id uint) error {
-	// Hard delete связанных записей
-	if err := r.db.Where(whereFundID, id).Delete(&models.FundFinancials{}).Error; err != nil {
-		return fmt.Errorf("failed to delete financials: %w", err)
-	}
-
-	if err := r.db.Where(whereFundID, id).Delete(&models.FundDocument{}).Error; err != nil {
-		return fmt.Errorf("failed to delete documents: %w", err)
-	}
-
+	// Hard delete связанных записей (порядок важен из-за foreign key constraints)
+	// 1. Сначала analyses (ссылаются на documents через document_id)
 	if err := r.db.Where(whereFundID, id).Delete(&models.LLMAnalysis{}).Error; err != nil {
 		return fmt.Errorf("failed to delete analyses: %w", err)
 	}
 
-	// Hard delete фонда
+	// 2. Потом documents
+	if err := r.db.Where(whereFundID, id).Delete(&models.FundDocument{}).Error; err != nil {
+		return fmt.Errorf("failed to delete documents: %w", err)
+	}
+
+	// 3. Потом financials
+	if err := r.db.Where(whereFundID, id).Delete(&models.FundFinancials{}).Error; err != nil {
+		return fmt.Errorf("failed to delete financials: %w", err)
+	}
+
+	// 4. Hard delete фонда
 	return r.db.Delete(&models.Fund{}, id).Error
 }
