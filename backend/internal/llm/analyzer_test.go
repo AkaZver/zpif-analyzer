@@ -21,10 +21,9 @@ func TestNewAnalyzer(t *testing.T) {
 	settingsRepo := &repositories.LLMSettingsRepository{}
 	documentRepo := &repositories.DocumentRepository{}
 	analysisRepo := &repositories.AnalysisRepository{}
-	financialsRepo := &repositories.FinancialsRepository{}
 	fundRepo := &repositories.FundRepository{}
 
-	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
+	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, fundRepo)
 
 	assert.NotNil(t, analyzer)
 	assert.Equal(t, settingsRepo, analyzer.settingsRepo)
@@ -522,10 +521,9 @@ func TestAnalyzer_Analyze_SettingsError(t *testing.T) {
 	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
 	documentRepo := repositories.NewDocumentRepository(gormDB)
 	analysisRepo := repositories.NewAnalysisRepository(gormDB)
-	financialsRepo := repositories.NewFinancialsRepository(gormDB)
 	fundRepo := repositories.NewFundRepository(gormDB)
 
-	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
+	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, fundRepo)
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
@@ -546,10 +544,9 @@ func TestAnalyzer_Analyze_DocumentNotFound(t *testing.T) {
 	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
 	documentRepo := repositories.NewDocumentRepository(gormDB)
 	analysisRepo := repositories.NewAnalysisRepository(gormDB)
-	financialsRepo := repositories.NewFinancialsRepository(gormDB)
 	fundRepo := repositories.NewFundRepository(gormDB)
 
-	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
+	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, fundRepo)
 
 	now := time.Now()
 	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
@@ -578,10 +575,9 @@ func TestAnalyzer_Analyze_EmptyDocument(t *testing.T) {
 	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
 	documentRepo := repositories.NewDocumentRepository(gormDB)
 	analysisRepo := repositories.NewAnalysisRepository(gormDB)
-	financialsRepo := repositories.NewFinancialsRepository(gormDB)
 	fundRepo := repositories.NewFundRepository(gormDB)
 
-	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
+	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, fundRepo)
 
 	now := time.Now()
 	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
@@ -665,10 +661,9 @@ func TestAnalyzer_Analyze_Success(t *testing.T) {
 	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
 	documentRepo := repositories.NewDocumentRepository(gormDB)
 	analysisRepo := repositories.NewAnalysisRepository(gormDB)
-	financialsRepo := repositories.NewFinancialsRepository(gormDB)
 	fundRepo := repositories.NewFundRepository(gormDB)
 
-	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
+	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, fundRepo)
 
 	now := time.Now()
 	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
@@ -692,15 +687,6 @@ func TestAnalyzer_Analyze_Success(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = .+ AND snapshot_date <= .+ ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
-		WithArgs(uint(1), sqlmock.AnyArg(), 1).
-		WillReturnError(gorm.ErrRecordNotFound)
-
-	mock.ExpectBegin()
-	mock.ExpectQuery(`INSERT INTO "fund_financials"`).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-	mock.ExpectCommit()
-
 	mock.ExpectBegin()
 	mock.ExpectExec(`UPDATE "fund_documents" SET`).
 		WillReturnResult(sqlmock.NewResult(0, 1))
@@ -721,10 +707,9 @@ func TestAnalyzer_AnalyzeLatestDocuments_NoDocs(t *testing.T) {
 	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
 	documentRepo := repositories.NewDocumentRepository(gormDB)
 	analysisRepo := repositories.NewAnalysisRepository(gormDB)
-	financialsRepo := repositories.NewFinancialsRepository(gormDB)
 	fundRepo := repositories.NewFundRepository(gormDB)
 
-	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
+	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, fundRepo)
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE fund_id = $1 ORDER BY upload_date DESC`)).
 		WithArgs(uint(1)).
@@ -784,10 +769,9 @@ func TestAnalyzer_AnalyzeLatestDocuments_AllAnalyzed(t *testing.T) {
 	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
 	documentRepo := repositories.NewDocumentRepository(gormDB)
 	analysisRepo := repositories.NewAnalysisRepository(gormDB)
-	financialsRepo := repositories.NewFinancialsRepository(gormDB)
 	fundRepo := repositories.NewFundRepository(gormDB)
 
-	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
+	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, fundRepo)
 
 	now := time.Now()
 
@@ -821,15 +805,6 @@ func TestAnalyzer_AnalyzeLatestDocuments_AllAnalyzed(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = .+ AND snapshot_date <= .+ ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
-		WithArgs(uint(1), sqlmock.AnyArg(), 1).
-		WillReturnError(gorm.ErrRecordNotFound)
-
-	mock.ExpectBegin()
-	mock.ExpectQuery(`INSERT INTO "fund_financials"`).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-	mock.ExpectCommit()
-
 	mock.ExpectBegin()
 	mock.ExpectExec(`UPDATE "fund_documents" SET`).
 		WillReturnResult(sqlmock.NewResult(0, 1))
@@ -840,110 +815,6 @@ func TestAnalyzer_AnalyzeLatestDocuments_AllAnalyzed(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-}
-
-func TestAnalyzer_UpdateFinancialsFromMetrics_NilMetrics(t *testing.T) {
-	gormDB, _, cleanup := setupAnalyzerTestDB(t)
-	defer cleanup()
-
-	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
-	documentRepo := repositories.NewDocumentRepository(gormDB)
-	analysisRepo := repositories.NewAnalysisRepository(gormDB)
-	financialsRepo := repositories.NewFinancialsRepository(gormDB)
-	fundRepo := repositories.NewFundRepository(gormDB)
-
-	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
-
-	err := analyzer.updateFinancialsFromMetrics(1, nil)
-
-	assert.NoError(t, err)
-}
-
-func TestAnalyzer_UpdateFinancialsFromMetrics_NoExisting(t *testing.T) {
-	gormDB, mock, cleanup := setupAnalyzerTestDB(t)
-	defer cleanup()
-
-	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
-	documentRepo := repositories.NewDocumentRepository(gormDB)
-	analysisRepo := repositories.NewAnalysisRepository(gormDB)
-	financialsRepo := repositories.NewFinancialsRepository(gormDB)
-	fundRepo := repositories.NewFundRepository(gormDB)
-
-	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
-
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = .+ AND snapshot_date <= .+ ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
-		WithArgs(uint(1), sqlmock.AnyArg(), 1).
-		WillReturnError(gorm.ErrRecordNotFound)
-
-	mock.ExpectBegin()
-	mock.ExpectQuery(`INSERT INTO "fund_financials"`).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-	mock.ExpectCommit()
-
-	metrics := &MetricsExtraction{
-		UnitPriceRub: floatPtr(1000.0),
-		CapRatePct:   floatPtr(8.5),
-	}
-
-	err := analyzer.updateFinancialsFromMetrics(1, metrics)
-
-	assert.NoError(t, err)
-}
-
-func TestAnalyzer_UpdateFinancialsFromMetrics_FullMetrics(t *testing.T) {
-	gormDB, mock, cleanup := setupAnalyzerTestDB(t)
-	defer cleanup()
-
-	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
-	documentRepo := repositories.NewDocumentRepository(gormDB)
-	analysisRepo := repositories.NewAnalysisRepository(gormDB)
-	financialsRepo := repositories.NewFinancialsRepository(gormDB)
-	fundRepo := repositories.NewFundRepository(gormDB)
-
-	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
-
-	now := time.Now()
-	snapshotDate := time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC)
-	existingRows := sqlmock.NewRows([]string{
-		"id", "created_at", "updated_at", "deleted_at", "fund_id", "snapshot_date",
-		"unit_price_rub", "nav_per_unit_rub", "nav_total_mln_rub", "discount_to_nav_pct",
-		"cap_rate_pct", "p_nav", "p_affo", "noi_yield_pct",
-		"annual_payout_rub", "payout_yield_pct", "payout_yield_after_tax_pct",
-		"payout_frequency", "payout_stability", "rent_indexation_pct",
-		"management_fee_pct", "trading_volume_mln_rub",
-		"number_of_properties", "main_tenants",
-	}).AddRow(1, now, now, nil, 1, snapshotDate, 900.0, 950.0, 4000.0, -5.0,
-		8.0, 0.9, 11.0, 7.0, 70.0, 7.0, 6.0, "quarterly", "medium", 2.5, 1.0, 4.0, 2, "Old Tenant")
-
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = .+ AND snapshot_date <= .+ ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
-		WithArgs(uint(1), sqlmock.AnyArg(), 1).
-		WillReturnRows(existingRows)
-
-	mock.ExpectBegin()
-	mock.ExpectQuery(`INSERT INTO "fund_financials"`).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2))
-	mock.ExpectCommit()
-
-	metrics := &MetricsExtraction{
-		UnitPriceRub:        floatPtr(1000.0),
-		NavPerUnitRub:       floatPtr(1050.0),
-		NavTotalMlnRub:      floatPtr(5000.0),
-		DiscountToNavPct:    floatPtr(-4.76),
-		CapRatePct:          floatPtr(8.5),
-		PNav:                floatPtr(0.95),
-		PAFFO:               floatPtr(12.0),
-		NoiYieldPct:         floatPtr(7.2),
-		AnnualPayoutRub:     floatPtr(80.0),
-		PayoutYieldPct:      floatPtr(8.0),
-		PayoutFrequency:     "monthly",
-		ManagementFeePct:    floatPtr(1.5),
-		TradingVolumeMlnRub: floatPtr(5.0),
-		NumberOfProperties:  intPtr(3),
-	}
-
-	err := analyzer.updateFinancialsFromMetrics(1, metrics)
-
-	assert.NoError(t, err)
 }
 
 func TestExtractTextFromPDF(t *testing.T) {
@@ -1009,10 +880,9 @@ func TestAnalyzer_AnalyzeDocuments_Success(t *testing.T) {
 	settingsRepo := repositories.NewLLMSettingsRepository(gormDB)
 	documentRepo := repositories.NewDocumentRepository(gormDB)
 	analysisRepo := repositories.NewAnalysisRepository(gormDB)
-	financialsRepo := repositories.NewFinancialsRepository(gormDB)
 	fundRepo := repositories.NewFundRepository(gormDB)
 
-	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
+	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, fundRepo)
 
 	now := time.Now()
 	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
@@ -1042,15 +912,6 @@ func TestAnalyzer_AnalyzeDocuments_Success(t *testing.T) {
 
 	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO "llm_analyses"`).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-	mock.ExpectCommit()
-
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = .+ AND snapshot_date <= .+ ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
-		WithArgs(uint(1), sqlmock.AnyArg(), 1).
-		WillReturnError(gorm.ErrRecordNotFound)
-
-	mock.ExpectBegin()
-	mock.ExpectQuery(`INSERT INTO "fund_financials"`).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 

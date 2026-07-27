@@ -5,33 +5,29 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/zpif-analyzer/backend/internal/models"
 	"github.com/zpif-analyzer/backend/internal/repositories"
 )
 
 type Analyzer struct {
-	settingsRepo    *repositories.LLMSettingsRepository
-	documentRepo    *repositories.DocumentRepository
-	analysisRepo    *repositories.AnalysisRepository
-	financialsRepo   *repositories.FinancialsRepository
-	fundRepo        *repositories.FundRepository
+	settingsRepo  *repositories.LLMSettingsRepository
+	documentRepo  *repositories.DocumentRepository
+	analysisRepo  *repositories.AnalysisRepository
+	fundRepo      *repositories.FundRepository
 }
 
 func NewAnalyzer(
 	settingsRepo *repositories.LLMSettingsRepository,
 	documentRepo *repositories.DocumentRepository,
 	analysisRepo *repositories.AnalysisRepository,
-	financialsRepo *repositories.FinancialsRepository,
 	fundRepo *repositories.FundRepository,
 ) *Analyzer {
 	return &Analyzer{
-		settingsRepo:   settingsRepo,
-		documentRepo:   documentRepo,
-		analysisRepo:   analysisRepo,
-		financialsRepo: financialsRepo,
-		fundRepo:       fundRepo,
+		settingsRepo: settingsRepo,
+		documentRepo: documentRepo,
+		analysisRepo: analysisRepo,
+		fundRepo:     fundRepo,
 	}
 }
 
@@ -115,10 +111,6 @@ func (a *Analyzer) Analyze(ctx context.Context, fund *models.Fund, documentID ui
 
 	if err := a.analysisRepo.Create(record); err != nil {
 		return nil, fmt.Errorf("failed to save analysis: %w", err)
-	}
-
-	if err := a.updateFinancialsFromMetrics(fund.ID, metrics); err != nil {
-		return record, fmt.Errorf("analysis saved, but financials update failed: %v", err)
 	}
 
 	if err := a.documentRepo.UpdateStatus(document.ID, "analyzed"); err != nil {
@@ -221,10 +213,6 @@ func (a *Analyzer) AnalyzeDocuments(ctx context.Context, fund *models.Fund, docu
 		return nil, fmt.Errorf("failed to save analysis: %w", err)
 	}
 
-	if err := a.updateFinancialsFromMetrics(fund.ID, metrics); err != nil {
-		return record, fmt.Errorf("analysis saved, but financials update failed: %v", err)
-	}
-
 	for _, docID := range processedDocIDs {
 		if err := a.documentRepo.UpdateStatus(docID, "analyzed"); err != nil {
 			return record, fmt.Errorf("analysis saved, but status update failed for doc %d: %v", docID, err)
@@ -291,66 +279,6 @@ func (a *Analyzer) generateAnalysis(ctx context.Context, llmClient *Client, docT
 	}
 	log.Printf("Generate analysis: successfully generated analysis for fund=%s", fund.Name)
 	return &result, nil
-}
-
-func (a *Analyzer) updateFinancialsFromMetrics(fundID uint, metrics *MetricsExtraction) error {
-	if metrics == nil {
-		return nil
-	}
-
-	latest, _ := a.financialsRepo.GetLatestByFundID(fundID)
-	if latest == nil {
-		latest = &models.FundFinancials{}
-	}
-
-	latest.FundID = fundID
-	latest.SnapshotDate = time.Now()
-
-	if metrics.UnitPriceRub != nil {
-		latest.UnitPriceRub = *metrics.UnitPriceRub
-	}
-	if metrics.NavPerUnitRub != nil {
-		latest.NavPerUnitRub = *metrics.NavPerUnitRub
-	}
-	if metrics.NavTotalMlnRub != nil {
-		latest.NavTotalMlnRub = *metrics.NavTotalMlnRub
-	}
-	if metrics.DiscountToNavPct != nil {
-		latest.DiscountToNavPct = *metrics.DiscountToNavPct
-	}
-	if metrics.CapRatePct != nil {
-		latest.CapRatePct = *metrics.CapRatePct
-	}
-	if metrics.PNav != nil {
-		latest.PNav = *metrics.PNav
-	}
-	if metrics.PAFFO != nil {
-		latest.PAFFO = *metrics.PAFFO
-	}
-	if metrics.NoiYieldPct != nil {
-		latest.NoiYieldPct = *metrics.NoiYieldPct
-	}
-	if metrics.AnnualPayoutRub != nil {
-		latest.AnnualPayoutRub = *metrics.AnnualPayoutRub
-	}
-	if metrics.PayoutYieldPct != nil {
-		latest.PayoutYieldPct = *metrics.PayoutYieldPct
-	}
-	if metrics.PayoutFrequency != "" {
-		latest.PayoutFrequency = metrics.PayoutFrequency
-	}
-	if metrics.ManagementFeePct != nil {
-		latest.ManagementFeePct = *metrics.ManagementFeePct
-	}
-	if metrics.TradingVolumeMlnRub != nil {
-		latest.TradingVolumeMlnRub = *metrics.TradingVolumeMlnRub
-	}
-	if metrics.NumberOfProperties != nil {
-		latest.NumberOfProperties = *metrics.NumberOfProperties
-	}
-
-	latest.ID = 0
-	return a.financialsRepo.Create(latest)
 }
 
 func IsPDF(data []byte) bool {

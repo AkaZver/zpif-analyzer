@@ -88,7 +88,7 @@ func main() {
 	// Инициализация LLM компонентов (настройки берутся из БД при каждом вызове)
 	discoverer := llm.NewDiscoverer(llmSettingsRepo, documentRepo, fundRepo)
 	fundService.SetDiscoverer(discoverer)
-	analyzer := llm.NewAnalyzer(llmSettingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
+	analyzer := llm.NewAnalyzer(llmSettingsRepo, documentRepo, analysisRepo, fundRepo)
 	fundService.SetAnalyzer(analyzer)
 	log.Println("LLM components initialized")
 
