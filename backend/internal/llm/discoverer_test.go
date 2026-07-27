@@ -129,13 +129,13 @@ func TestDiscoverer_Discover_Success(t *testing.T) {
 	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
 		AddRow(1, now, now, nil, "test-key", server.URL, "test-model", "test-model", false, "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(settingsRows)
 
 	mock.ExpectBegin()
 	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "fund_documents"`)).
-		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
@@ -197,7 +197,7 @@ func TestDiscoverer_Discover_LLMError(t *testing.T) {
 	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
 		AddRow(1, now, now, nil, "test-key", server.URL, "test-model", "test-model", false, "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(settingsRows)
 

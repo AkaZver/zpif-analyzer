@@ -44,7 +44,7 @@ func TestExcelService_ExportToExcel_Empty(t *testing.T) {
 	service, mock, cleanup := setupTestExcelService(t)
 	defer cleanup()
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."deleted_at" IS NULL`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds"`)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}))
 
 	data, err := service.ExportToExcel()
@@ -62,7 +62,7 @@ func TestExcelService_ExportToExcel_WithFunds(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "investfunds_url", "vsezpif_url"}).
 		AddRow(1, now, now, nil, "Парус ОЗН", "RU000A1022Z1", "PARUS", "Парус", "склады", false, true, nil, "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."deleted_at" IS NULL`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds"`)).
 		WillReturnRows(rows)
 
 	// Mock preloads - use generic pattern for all three preloads

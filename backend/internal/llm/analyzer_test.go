@@ -527,7 +527,7 @@ func TestAnalyzer_Analyze_SettingsError(t *testing.T) {
 
 	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -555,7 +555,7 @@ func TestAnalyzer_Analyze_DocumentNotFound(t *testing.T) {
 	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
 		AddRow(1, now, now, nil, "test-key", "http://localhost", "model", "model", false, "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(settingsRows)
 
@@ -587,7 +587,7 @@ func TestAnalyzer_Analyze_EmptyDocument(t *testing.T) {
 	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
 		AddRow(1, now, now, nil, "test-key", "http://localhost", "model", "model", false, "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(settingsRows)
 
@@ -674,7 +674,7 @@ func TestAnalyzer_Analyze_Success(t *testing.T) {
 	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
 		AddRow(1, now, now, nil, "test-key", server.URL, "model", "model", false, "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(settingsRows)
 
@@ -692,7 +692,7 @@ func TestAnalyzer_Analyze_Success(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = .+ AND snapshot_date <= .+ ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
 		WithArgs(uint(1), sqlmock.AnyArg(), 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -726,7 +726,7 @@ func TestAnalyzer_AnalyzeLatestDocuments_NoDocs(t *testing.T) {
 
 	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE fund_id = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY upload_date DESC`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE fund_id = $1 ORDER BY upload_date DESC`)).
 		WithArgs(uint(1)).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
@@ -796,14 +796,14 @@ func TestAnalyzer_AnalyzeLatestDocuments_AllAnalyzed(t *testing.T) {
 		"content_hash", "source", "source_url", "upload_date", "status", "file_size", "extracted_text",
 	}).AddRow(1, now, now, nil, 1, "analyzed.pdf", "", "appraisal", "hash", "auto", "", now, "analyzed", 100, "Analyzed document content")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE fund_id = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY upload_date DESC`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE fund_id = $1 ORDER BY upload_date DESC`)).
 		WithArgs(uint(1)).
 		WillReturnRows(docRows)
 
 	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
 		AddRow(1, now, now, nil, "test-key", server.URL, "model", "model", false, "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(settingsRows)
 
@@ -821,7 +821,7 @@ func TestAnalyzer_AnalyzeLatestDocuments_AllAnalyzed(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = .+ AND snapshot_date <= .+ ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
 		WithArgs(uint(1), sqlmock.AnyArg(), 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -871,7 +871,7 @@ func TestAnalyzer_UpdateFinancialsFromMetrics_NoExisting(t *testing.T) {
 
 	analyzer := NewAnalyzer(settingsRepo, documentRepo, analysisRepo, financialsRepo, fundRepo)
 
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = .+ AND snapshot_date <= .+ ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
 		WithArgs(uint(1), sqlmock.AnyArg(), 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -915,7 +915,7 @@ func TestAnalyzer_UpdateFinancialsFromMetrics_FullMetrics(t *testing.T) {
 	}).AddRow(1, now, now, nil, 1, snapshotDate, 900.0, 950.0, 4000.0, -5.0,
 		8.0, 0.9, 11.0, 7.0, 70.0, 7.0, 6.0, "quarterly", "medium", 2.5, 1.0, 4.0, 2, "Old Tenant")
 
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = .+ AND snapshot_date <= .+ ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
 		WithArgs(uint(1), sqlmock.AnyArg(), 1).
 		WillReturnRows(existingRows)
 
@@ -1018,7 +1018,7 @@ func TestAnalyzer_AnalyzeDocuments_Success(t *testing.T) {
 	settingsRows := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name", "proxy_enabled", "proxy_url", "proxy_username", "proxy_password"}).
 		AddRow(1, now, now, nil, "test-key", server.URL, "model", "model", false, "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(settingsRows)
 
@@ -1045,7 +1045,7 @@ func TestAnalyzer_AnalyzeDocuments_Success(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = .+ AND snapshot_date <= .+ ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
 		WithArgs(uint(1), sqlmock.AnyArg(), 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 

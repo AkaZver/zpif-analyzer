@@ -44,7 +44,7 @@ func (r *FundRepository) GetAllWithLatestFinancials() ([]models.Fund, error) {
 	today := time.Now()
 	today = time.Date(today.Year(), today.Month(), today.Day(), 23, 59, 59, 0, today.Location())
 	err = r.db.
-		Where("id IN (SELECT DISTINCT ON (fund_id) id FROM fund_financials WHERE fund_id IN ? AND deleted_at IS NULL AND snapshot_date <= ? ORDER BY fund_id, snapshot_date DESC)", fundIDs, today).
+		Where("id IN (SELECT DISTINCT ON (fund_id) id FROM fund_financials WHERE fund_id IN ? AND snapshot_date <= ? ORDER BY fund_id, snapshot_date DESC)", fundIDs, today).
 		Find(&latestFinancials).Error
 	if err != nil {
 		return nil, err
@@ -91,7 +91,7 @@ func (r *FundRepository) Update(fund *models.Fund) error {
 }
 
 func (r *FundRepository) Delete(id uint) error {
-	// Каскадное удаление связанных записей
+	// Hard delete связанных записей
 	if err := r.db.Where(whereFundID, id).Delete(&models.FundFinancials{}).Error; err != nil {
 		return fmt.Errorf("failed to delete financials: %w", err)
 	}
@@ -105,5 +105,5 @@ func (r *FundRepository) Delete(id uint) error {
 	}
 
 	// Hard delete фонда
-	return r.db.Unscoped().Delete(&models.Fund{}, id).Error
+	return r.db.Delete(&models.Fund{}, id).Error
 }

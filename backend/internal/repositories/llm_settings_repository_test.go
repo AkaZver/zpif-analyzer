@@ -22,7 +22,7 @@ func TestLLMSettingsRepository_Get(t *testing.T) {
 		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name",
 	}).AddRow(1, now, now, nil, "encrypted_key", "https://api.openai.com/v1", "gpt-4", "gpt-4")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(rows)
 
@@ -41,7 +41,7 @@ func TestLLMSettingsRepository_Get_NotFound(t *testing.T) {
 
 	repo := NewLLMSettingsRepository(gormDB)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -64,7 +64,7 @@ func TestLLMSettingsRepository_Upsert_Create(t *testing.T) {
 		AnalysisModelName: "gpt-4",
 	}
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -96,7 +96,7 @@ func TestLLMSettingsRepository_Upsert_Update(t *testing.T) {
 		"id", "created_at", "updated_at", "deleted_at", "api_key_encrypted", "base_url", "search_model_name", "analysis_model_name",
 	}).AddRow(1, now, now, nil, "old_key", "https://api.openai.com/v1", "gpt-4", "gpt-4")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(rows)
 

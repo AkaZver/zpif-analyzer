@@ -2,15 +2,12 @@ package models
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type Fund struct {
-	ID                uint           `gorm:"primaryKey" json:"id"`
-	CreatedAt         time.Time      `json:"created_at"`
-	UpdatedAt         time.Time      `json:"updated_at"`
-	DeletedAt         gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+	ID                uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 
 	// Основная информация
 	Name               string `gorm:"uniqueIndex;not null" json:"name"`
@@ -35,10 +32,9 @@ type Fund struct {
 }
 
 type FundFinancials struct {
-	ID        uint           `gorm:"primaryKey" json:"id"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 
 	FundID       uint      `gorm:"index:idx_fund_snapshot,unique;not null" json:"fund_id"`
 	SnapshotDate time.Time `gorm:"index:idx_fund_snapshot,unique;not null" json:"snapshot_date"`
@@ -75,18 +71,17 @@ type FundFinancials struct {
 }
 
 type FundDocument struct {
-	ID        uint           `gorm:"primaryKey" json:"id"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 
-	FundID         uint   `gorm:"index:idx_fund_upload;not null" json:"fund_id"`
-	FileName       string `json:"file_name"`
-	FilePath       string `json:"file_path"`
-	DocumentType   string `json:"document_type"`
-	ContentHash    string `json:"content_hash"`
-	Source         string `json:"source"`
-	SourceURL      string `json:"source_url"`
+	FundID         uint      `gorm:"index:idx_fund_upload;not null" json:"fund_id"`
+	FileName       string    `json:"file_name"`
+	FilePath       string    `json:"file_path"`
+	DocumentType   string    `json:"document_type"`
+	ContentHash    string    `json:"content_hash"`
+	Source         string    `json:"source"`
+	SourceURL      string    `json:"source_url"`
 	UploadDate     time.Time `gorm:"index:idx_fund_upload" json:"upload_date"`
 	Status         string    `json:"status"`
 	FileSize       int64     `json:"file_size"`
@@ -97,10 +92,9 @@ type FundDocument struct {
 }
 
 type LLMAnalysis struct {
-	ID        uint           `gorm:"primaryKey" json:"id"`
-	CreatedAt time.Time      `gorm:"index:idx_fund_created" json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt time.Time `gorm:"index:idx_fund_created" json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 
 	FundID           uint   `gorm:"index:idx_fund_created;not null" json:"fund_id"`
 	DocumentID       uint   `json:"document_id"`
@@ -117,10 +111,9 @@ type LLMAnalysis struct {
 }
 
 type LLMSettings struct {
-	ID        uint           `gorm:"primaryKey" json:"id"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 
 	APIKeyEncrypted   string `json:"api_key_encrypted"`
 	BaseURL           string `json:"base_url"`
@@ -134,10 +127,9 @@ type LLMSettings struct {
 }
 
 type User struct {
-	ID           uint           `gorm:"primaryKey" json:"id"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 
 	Username     string `gorm:"uniqueIndex;not null" json:"username"`
 	PasswordHash string `gorm:"not null" json:"-"`

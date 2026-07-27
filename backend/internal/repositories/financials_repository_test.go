@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"regexp"
 	"testing"
 	"time"
 
@@ -33,7 +32,7 @@ func TestFinancialsRepository_GetByFundID(t *testing.T) {
 		1.5, 5.0,
 		3, "Ozon")
 
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC`).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = .+ AND snapshot_date <= .+ ORDER BY snapshot_date DESC`).
 		WithArgs(uint(1), sqlmock.AnyArg()).
 		WillReturnRows(rows)
 
@@ -69,7 +68,7 @@ func TestFinancialsRepository_GetLatestByFundID(t *testing.T) {
 		1.5, 5.0,
 		3, "Ozon")
 
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = .+ AND snapshot_date <= .+ ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
 		WithArgs(uint(1), sqlmock.AnyArg(), 1).
 		WillReturnRows(rows)
 
@@ -139,8 +138,8 @@ func TestFinancialsRepository_Delete(t *testing.T) {
 	repo := NewFinancialsRepository(gormDB)
 
 	mock.ExpectBegin()
-	mock.ExpectExec(regexp.QuoteMeta(`UPDATE "fund_financials" SET "deleted_at"=$1 WHERE "fund_financials"."id" = $2 AND "fund_financials"."deleted_at" IS NULL`)).
-		WithArgs(sqlmock.AnyArg(), uint(1)).
+	mock.ExpectExec(`DELETE FROM "fund_financials" WHERE "fund_financials"\."id" =`).
+		WithArgs(uint(1)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
@@ -209,7 +208,7 @@ func TestFinancialsRepository_GetByFundID_FiltersFutureDates(t *testing.T) {
 		1.5, 5.0,
 		3, "Ozon")
 
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC`).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = .+ AND snapshot_date <= .+ ORDER BY snapshot_date DESC`).
 		WithArgs(uint(1), sqlmock.AnyArg()).
 		WillReturnRows(rows)
 
@@ -243,7 +242,7 @@ func TestFinancialsRepository_GetLatestByFundID_FiltersFutureDates(t *testing.T)
 		1.5, 5.0,
 		3, "Ozon")
 
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = .+ AND snapshot_date <= .+ ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
 		WithArgs(uint(1), sqlmock.AnyArg(), 1).
 		WillReturnRows(rows)
 

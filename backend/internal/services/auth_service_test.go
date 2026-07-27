@@ -49,7 +49,7 @@ func TestAuthService_Authenticate_Success(t *testing.T) {
 		"id", "created_at", "updated_at", "deleted_at", "username", "password_hash", "email", "is_active",
 	}).AddRow(1, now, now, nil, "admin", string(hashedPassword), "admin@test.com", true)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 ORDER BY "users"."id" LIMIT $2`)).
 		WithArgs("admin", 1).
 		WillReturnRows(rows)
 
@@ -71,7 +71,7 @@ func TestAuthService_Authenticate_WrongPassword(t *testing.T) {
 		"id", "created_at", "updated_at", "deleted_at", "username", "password_hash", "email", "is_active",
 	}).AddRow(1, now, now, nil, "admin", string(hashedPassword), "admin@test.com", true)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 ORDER BY "users"."id" LIMIT $2`)).
 		WithArgs("admin", 1).
 		WillReturnRows(rows)
 
@@ -86,7 +86,7 @@ func TestAuthService_Authenticate_UserNotFound(t *testing.T) {
 	service, mock, cleanup := setupTestAuthService(t)
 	defer cleanup()
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 ORDER BY "users"."id" LIMIT $2`)).
 		WithArgs("nonexistent", 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -108,7 +108,7 @@ func TestAuthService_Authenticate_DisabledAccount(t *testing.T) {
 		"id", "created_at", "updated_at", "deleted_at", "username", "password_hash", "email", "is_active",
 	}).AddRow(1, now, now, nil, "admin", string(hashedPassword), "admin@test.com", false)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 ORDER BY "users"."id" LIMIT $2`)).
 		WithArgs("admin", 1).
 		WillReturnRows(rows)
 
@@ -123,7 +123,7 @@ func TestAuthService_CreateUser_Success(t *testing.T) {
 	service, mock, cleanup := setupTestAuthService(t)
 	defer cleanup()
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 ORDER BY "users"."id" LIMIT $2`)).
 		WithArgs("newuser", 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -149,7 +149,7 @@ func TestAuthService_CreateUser_DuplicateUsername(t *testing.T) {
 		"id", "created_at", "updated_at", "deleted_at", "username", "password_hash", "email", "is_active",
 	}).AddRow(1, now, now, nil, "existing", "hash", "existing@test.com", true)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 ORDER BY "users"."id" LIMIT $2`)).
 		WithArgs("existing", 1).
 		WillReturnRows(rows)
 
@@ -169,7 +169,7 @@ func TestAuthService_GetUserByID(t *testing.T) {
 		"id", "created_at", "updated_at", "deleted_at", "username", "password_hash", "email", "is_active",
 	}).AddRow(1, now, now, nil, "admin", "hash", "admin@test.com", true)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE "users"."id" = $1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE "users"."id" = $1 ORDER BY "users"."id" LIMIT $2`)).
 		WithArgs(uint(1), 1).
 		WillReturnRows(rows)
 

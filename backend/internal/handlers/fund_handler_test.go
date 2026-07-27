@@ -62,7 +62,7 @@ func TestFundHandler_GetAllFunds(t *testing.T) {
 		AddRow(1, now, now, nil, "Парус ОЗН", "RU000A1022Z1", "", "Парус", "склады", false, true, nil, "", "").
 		AddRow(2, now, now, nil, "Акцент 5", "RU000A10DQF7", "", "Акцент", "офисы", true, false, nil, "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."deleted_at" IS NULL`)).WillReturnRows(rows)
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds"`)).WillReturnRows(rows)
 	emptyRows := sqlmock.NewRows([]string{"id", "fund_id"})
 	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
 	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
@@ -94,7 +94,7 @@ func TestFundHandler_GetAllFundsWithLatestFinancials_Success(t *testing.T) {
 		AddRow(1, now, now, nil, "Парус ОЗН", "RU000A1022Z1", "", "Парус", "склады", false, true, nil, "", "").
 		AddRow(2, now, now, nil, "Акцент 5", "RU000A10DQF7", "", "Акцент", "офисы", true, false, nil, "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."deleted_at" IS NULL`)).WillReturnRows(fundRows)
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds"`)).WillReturnRows(fundRows)
 
 	financialRows := sqlmock.NewRows([]string{
 		"id", "created_at", "updated_at", "deleted_at", "fund_id", "snapshot_date",
@@ -110,7 +110,7 @@ func TestFundHandler_GetAllFundsWithLatestFinancials_Success(t *testing.T) {
 		AddRow(2, now, now, nil, 2, snapshotDate, 900.0, 950.0, 4000.0, -5.26,
 			7.5, 0.90, 11.0, 6.5, 70.0, 7.0, 6.09, "quarterly", "medium", 2.5, 1.2, 4.0, 2, "Wildberries")
 
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(id IN \(SELECT DISTINCT ON \(fund_id\) id FROM fund_financials WHERE fund_id IN`).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE id IN \(SELECT DISTINCT ON \(fund_id\) id FROM fund_financials WHERE fund_id IN`).
 		WillReturnRows(financialRows)
 
 	router.GET("/api/funds-with-financials", handler.GetAllFundsWithLatestFinancials)
@@ -132,7 +132,7 @@ func TestFundHandler_GetAllFundsWithLatestFinancials_ServiceError(t *testing.T) 
 	handler, router, mock, cleanup := setupTestFundHandler(t)
 	defer cleanup()
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."deleted_at" IS NULL`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds"`)).
 		WillReturnError(gorm.ErrInvalidDB)
 
 	router.GET("/api/funds-with-financials", handler.GetAllFundsWithLatestFinancials)
@@ -209,7 +209,7 @@ func TestFundHandler_CreateFund(t *testing.T) {
 	handler, router, mock, cleanup := setupTestFundHandler(t)
 	defer cleanup()
 
-	mock.ExpectQuery(`isin = .+ AND "funds"\."deleted_at" IS NULL`).
+	mock.ExpectQuery(`isin = .+`).
 		WithArgs("RU000NEW001", 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -259,20 +259,20 @@ func TestFundHandler_DeleteFund(t *testing.T) {
 	defer cleanup()
 
 	mock.ExpectBegin()
-	mock.ExpectExec(`UPDATE "fund_financials" SET "deleted_at"=`).
-		WithArgs(sqlmock.AnyArg(), uint(1)).
+	mock.ExpectExec(`DELETE FROM "fund_financials" WHERE fund_id =`).
+		WithArgs(uint(1)).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit()
 
 	mock.ExpectBegin()
-	mock.ExpectExec(`UPDATE "fund_documents" SET "deleted_at"=`).
-		WithArgs(sqlmock.AnyArg(), uint(1)).
+	mock.ExpectExec(`DELETE FROM "fund_documents" WHERE fund_id =`).
+		WithArgs(uint(1)).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit()
 
 	mock.ExpectBegin()
-	mock.ExpectExec(`UPDATE "llm_analyses" SET "deleted_at"=`).
-		WithArgs(sqlmock.AnyArg(), uint(1)).
+	mock.ExpectExec(`DELETE FROM "llm_analyses" WHERE fund_id =`).
+		WithArgs(uint(1)).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit()
 
@@ -434,7 +434,7 @@ func TestFundHandler_GetFinancialsByFundID(t *testing.T) {
 		1.5, 5.0,
 		3, "Ozon")
 
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC`).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = .+ AND snapshot_date <= .+ ORDER BY snapshot_date DESC`).
 		WithArgs(uint(1), sqlmock.AnyArg()).
 		WillReturnRows(rows)
 
@@ -523,7 +523,7 @@ func TestFundHandler_GetDocumentsByFundID(t *testing.T) {
 	}).AddRow(1, now, now, nil, 1, "report.pdf", "/docs/report.pdf", "appraisal",
 		"abc123", "auto", "https://example.com", now, "downloaded")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE fund_id = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY upload_date DESC`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE fund_id = $1 ORDER BY upload_date DESC`)).
 		WithArgs(uint(1)).
 		WillReturnRows(rows)
 
@@ -559,7 +559,7 @@ func TestFundHandler_GetLatestAnalysis(t *testing.T) {
 		"analysis_summary", "risk_assessment", "pros_cons", "extracted_metrics",
 	}).AddRow(1, now, now, nil, 1, 1, "gpt-4", "raw", "summary", "low risk", "pros: good", "{}")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_analyses" WHERE fund_id = $1 AND "llm_analyses"."deleted_at" IS NULL ORDER BY created_at DESC,"llm_analyses"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_analyses" WHERE fund_id = $1 ORDER BY created_at DESC,"llm_analyses"."id" LIMIT $2`)).
 		WithArgs(uint(1), 1).
 		WillReturnRows(rows)
 
@@ -589,7 +589,7 @@ func TestFundHandler_GetLatestAnalysis_NotFound(t *testing.T) {
 	handler, router, mock, cleanup := setupTestFundHandler(t)
 	defer cleanup()
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_analyses" WHERE fund_id = $1 AND "llm_analyses"."deleted_at" IS NULL ORDER BY created_at DESC,"llm_analyses"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_analyses" WHERE fund_id = $1 ORDER BY created_at DESC,"llm_analyses"."id" LIMIT $2`)).
 		WithArgs(uint(999), 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -620,8 +620,8 @@ func TestFundHandler_DeleteDocument_Success(t *testing.T) {
 	defer cleanup()
 
 	mock.ExpectBegin()
-	mock.ExpectExec(regexp.QuoteMeta(`UPDATE "fund_documents" SET "deleted_at"=$1 WHERE "fund_documents"."id" = $2 AND "fund_documents"."deleted_at" IS NULL`)).
-		WithArgs(sqlmock.AnyArg(), uint(5)).
+	mock.ExpectExec(`DELETE FROM "fund_documents" WHERE "fund_documents"\."id" =`).
+		WithArgs(uint(5)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
@@ -673,7 +673,7 @@ func TestFundHandler_GetFinancialsByFundID_ServiceError(t *testing.T) {
 	handler, router, mock, cleanup := setupTestFundHandler(t)
 	defer cleanup()
 
-	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC`).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE fund_id = .+ AND snapshot_date <= .+ ORDER BY snapshot_date DESC`).
 		WithArgs(uint(1), sqlmock.AnyArg()).
 		WillReturnError(gorm.ErrInvalidDB)
 
@@ -690,7 +690,7 @@ func TestFundHandler_GetDocumentsByFundID_ServiceError(t *testing.T) {
 	handler, router, mock, cleanup := setupTestFundHandler(t)
 	defer cleanup()
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE fund_id = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY upload_date DESC`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE fund_id = $1 ORDER BY upload_date DESC`)).
 		WithArgs(uint(1)).
 		WillReturnError(gorm.ErrInvalidDB)
 
@@ -722,7 +722,7 @@ func TestFundHandler_UploadDocument_WithExplicitType(t *testing.T) {
 	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
 
 	// Mock for AddDocument - check for duplicate
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 ORDER BY "fund_documents"."id" LIMIT $2`)).
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -767,7 +767,7 @@ func TestFundHandler_UploadDocument_AutoDetectPDF(t *testing.T) {
 	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
 	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 ORDER BY "fund_documents"."id" LIMIT $2`)).
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -809,7 +809,7 @@ func TestFundHandler_UploadDocument_AutoDetectWord(t *testing.T) {
 	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
 	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 ORDER BY "fund_documents"."id" LIMIT $2`)).
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -851,7 +851,7 @@ func TestFundHandler_UploadDocument_AutoDetectExcel(t *testing.T) {
 	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
 	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 ORDER BY "fund_documents"."id" LIMIT $2`)).
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -893,7 +893,7 @@ func TestFundHandler_UploadDocument_AutoDetectText(t *testing.T) {
 	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
 	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 ORDER BY "fund_documents"."id" LIMIT $2`)).
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -935,7 +935,7 @@ func TestFundHandler_UploadDocument_AutoDetectOther(t *testing.T) {
 	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
 	mock.ExpectQuery(`SELECT \* FROM ".+" WHERE ".+"\."fund_id" (IN|=)`).WillReturnRows(emptyRows)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 ORDER BY "fund_documents"."id" LIMIT $2`)).
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -1024,7 +1024,7 @@ func TestFundHandler_DownloadDocument_NotFound(t *testing.T) {
 	handler, router, mock, cleanup := setupTestFundHandler(t)
 	defer cleanup()
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE "fund_documents"."id" = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE "fund_documents"."id" = $1 ORDER BY "fund_documents"."id" LIMIT $2`)).
 		WithArgs(uint(999), 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -1048,7 +1048,7 @@ func TestFundHandler_DownloadDocument_Success(t *testing.T) {
 	}).AddRow(1, now, now, nil, 1, "test.txt", "/docs/test.txt", "text",
 		"hash123", "manual", "", now, "downloaded", 100, "Test content")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE "fund_documents"."id" = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE "fund_documents"."id" = $1 ORDER BY "fund_documents"."id" LIMIT $2`)).
 		WithArgs(uint(1), 1).
 		WillReturnRows(rows)
 

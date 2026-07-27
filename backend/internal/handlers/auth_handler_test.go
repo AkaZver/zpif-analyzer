@@ -75,7 +75,7 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 		"id", "created_at", "updated_at", "deleted_at", "username", "password_hash", "email", "is_active",
 	}).AddRow(1, now, now, nil, "admin", string(hashedPassword), "admin@test.com", true)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 ORDER BY "users"."id" LIMIT $2`)).
 		WithArgs("admin", 1).
 		WillReturnRows(rows)
 
@@ -107,7 +107,7 @@ func TestAuthHandler_GetMe_Success(t *testing.T) {
 		"id", "created_at", "updated_at", "deleted_at", "username", "password_hash", "email", "is_active",
 	}).AddRow(1, now, now, nil, "admin", string(hashedPassword), "admin@test.com", true)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 ORDER BY "users"."id" LIMIT $2`)).
 		WithArgs("admin", 1).
 		WillReturnRows(loginRows)
 
@@ -131,7 +131,7 @@ func TestAuthHandler_GetMe_Success(t *testing.T) {
 		"id", "created_at", "updated_at", "deleted_at", "username", "password_hash", "email", "is_active",
 	}).AddRow(1, now, now, nil, "admin", "hash", "admin@test.com", true)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE "users"."id" = $1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE "users"."id" = $1 ORDER BY "users"."id" LIMIT $2`)).
 		WithArgs(uint(1), 1).
 		WillReturnRows(userRows)
 
@@ -320,7 +320,7 @@ func TestLLMHandler_TestConnection(t *testing.T) {
 	}).AddRow(1, now, now, nil, "test-api-key", "https://api.openai.com/v1", "gpt-4o-mini", "gpt-4o-mini",
 		false, "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(rows)
 
@@ -352,7 +352,7 @@ func TestExcelHandler_ExportExcel(t *testing.T) {
 	handler := NewExcelHandler(excelService)
 
 	// Mock empty funds list
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."deleted_at" IS NULL`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds"`)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "isin", "ticker", "management_company", "real_estate_segment", "qualified_required", "has_market_maker", "fund_end_date", "created_at", "updated_at", "deleted_at"}))
 
 	gin.SetMode(gin.TestMode)
@@ -457,7 +457,7 @@ func TestFundHandler_GetAllFunds_ServiceError(t *testing.T) {
 	handler, router, mock, cleanup := setupTestFundHandler(t)
 	defer cleanup()
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds" WHERE "funds"."deleted_at" IS NULL`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "funds"`)).
 		WillReturnError(gorm.ErrInvalidDB)
 
 	router.GET("/api/funds", handler.GetAllFunds)
@@ -488,8 +488,26 @@ func TestFundHandler_DeleteFund_ServiceError(t *testing.T) {
 	defer cleanup()
 
 	mock.ExpectBegin()
-	mock.ExpectExec(`UPDATE "funds" SET "deleted_at"=`).
-		WithArgs(sqlmock.AnyArg(), uint(1)).
+	mock.ExpectExec(`DELETE FROM "fund_financials" WHERE fund_id =`).
+		WithArgs(uint(1)).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectCommit()
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`DELETE FROM "fund_documents" WHERE fund_id =`).
+		WithArgs(uint(1)).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectCommit()
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`DELETE FROM "llm_analyses" WHERE fund_id =`).
+		WithArgs(uint(1)).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectCommit()
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`DELETE FROM "funds" WHERE "funds"\."id" =`).
+		WithArgs(uint(1)).
 		WillReturnError(gorm.ErrInvalidDB)
 	mock.ExpectRollback()
 

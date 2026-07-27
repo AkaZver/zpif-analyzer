@@ -23,7 +23,7 @@ func TestAnalysisRepository_GetLatestByFundID(t *testing.T) {
 		"analysis_summary", "risk_assessment", "pros_cons", "extracted_metrics",
 	}).AddRow(1, now, now, nil, 1, 1, "gpt-4", "raw", "summary", "low risk", "pros: good", "{}")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_analyses" WHERE fund_id = $1 AND "llm_analyses"."deleted_at" IS NULL ORDER BY created_at DESC,"llm_analyses"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_analyses" WHERE fund_id = $1 ORDER BY created_at DESC,"llm_analyses"."id" LIMIT $2`)).
 		WithArgs(1, 1).
 		WillReturnRows(rows)
 
@@ -42,7 +42,7 @@ func TestAnalysisRepository_GetLatestByFundID_NotFound(t *testing.T) {
 
 	repo := NewAnalysisRepository(gormDB)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_analyses" WHERE fund_id = $1 AND "llm_analyses"."deleted_at" IS NULL ORDER BY created_at DESC,"llm_analyses"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_analyses" WHERE fund_id = $1 ORDER BY created_at DESC,"llm_analyses"."id" LIMIT $2`)).
 		WithArgs(999, 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -65,7 +65,7 @@ func TestAnalysisRepository_GetByFundID(t *testing.T) {
 	}).AddRow(1, now, now, nil, 1, 1, "gpt-4", "raw1", "summary1", "low", "pros1", "{}").
 		AddRow(2, now, now, nil, 1, 2, "gpt-4", "raw2", "summary2", "medium", "pros2", "{}")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_analyses" WHERE fund_id = $1 AND "llm_analyses"."deleted_at" IS NULL ORDER BY created_at DESC`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_analyses" WHERE fund_id = $1 ORDER BY created_at DESC`)).
 		WithArgs(uint(1)).
 		WillReturnRows(rows)
 
@@ -111,7 +111,7 @@ func TestAnalysisRepository_GetByID(t *testing.T) {
 		"analysis_summary", "risk_assessment", "pros_cons", "extracted_metrics",
 	}).AddRow(1, now, now, nil, 1, 1, "gpt-4", "raw", "summary", "low", "pros", "{}")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_analyses" WHERE "llm_analyses"."id" = $1 AND "llm_analyses"."deleted_at" IS NULL ORDER BY "llm_analyses"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_analyses" WHERE "llm_analyses"."id" = $1 ORDER BY "llm_analyses"."id" LIMIT $2`)).
 		WithArgs(uint(1), 1).
 		WillReturnRows(rows)
 
@@ -128,7 +128,7 @@ func TestAnalysisRepository_GetByID_NotFound(t *testing.T) {
 
 	repo := NewAnalysisRepository(gormDB)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_analyses" WHERE "llm_analyses"."id" = $1 AND "llm_analyses"."deleted_at" IS NULL ORDER BY "llm_analyses"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_analyses" WHERE "llm_analyses"."id" = $1 ORDER BY "llm_analyses"."id" LIMIT $2`)).
 		WithArgs(uint(999), 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 

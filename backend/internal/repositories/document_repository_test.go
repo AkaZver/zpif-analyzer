@@ -23,7 +23,7 @@ func TestDocumentRepository_GetByFundID(t *testing.T) {
 	}).AddRow(1, now, now, nil, 1, "report.pdf", "/docs/report.pdf", "appraisal",
 		"abc123", "auto", "https://example.com", now, "downloaded")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE fund_id = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY upload_date DESC`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE fund_id = $1 ORDER BY upload_date DESC`)).
 		WithArgs(1).
 		WillReturnRows(rows)
 
@@ -48,7 +48,7 @@ func TestDocumentRepository_GetByID(t *testing.T) {
 	}).AddRow(1, now, now, nil, 1, "report.pdf", "/docs/report.pdf", "appraisal",
 		"abc123", "manual", "", now, "analyzed")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE "fund_documents"."id" = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE "fund_documents"."id" = $1 ORDER BY "fund_documents"."id" LIMIT $2`)).
 		WithArgs(1, 1).
 		WillReturnRows(rows)
 
@@ -72,7 +72,7 @@ func TestDocumentRepository_GetByHash(t *testing.T) {
 	}).AddRow(1, now, now, nil, 1, "report.pdf", "/docs/report.pdf", "appraisal",
 		"abc123", "auto", "", now, "downloaded")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 AND "fund_documents"."deleted_at" IS NULL ORDER BY "fund_documents"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_documents" WHERE content_hash = $1 ORDER BY "fund_documents"."id" LIMIT $2`)).
 		WithArgs("abc123", 1).
 		WillReturnRows(rows)
 
@@ -116,7 +116,7 @@ func TestDocumentRepository_UpdateStatus(t *testing.T) {
 	repo := NewDocumentRepository(gormDB)
 
 	mock.ExpectBegin()
-	mock.ExpectExec(regexp.QuoteMeta(`UPDATE "fund_documents" SET "status"=$1,"updated_at"=$2 WHERE id = $3 AND "fund_documents"."deleted_at" IS NULL`)).
+	mock.ExpectExec(`UPDATE "fund_documents" SET "status"=.+,"updated_at"=.+ WHERE id =`).
 		WithArgs("analyzed", sqlmock.AnyArg(), 1).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
@@ -133,8 +133,8 @@ func TestDocumentRepository_Delete(t *testing.T) {
 	repo := NewDocumentRepository(gormDB)
 
 	mock.ExpectBegin()
-	mock.ExpectExec(regexp.QuoteMeta(`UPDATE "fund_documents" SET "deleted_at"=$1 WHERE "fund_documents"."id" = $2 AND "fund_documents"."deleted_at" IS NULL`)).
-		WithArgs(sqlmock.AnyArg(), 1).
+	mock.ExpectExec(`DELETE FROM "fund_documents" WHERE "fund_documents"\."id" =`).
+		WithArgs(1).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 

@@ -114,7 +114,7 @@ func TestLLMService_TestConnection(t *testing.T) {
 	}).AddRow(1, now, now, nil, "test-api-key", "https://api.openai.com/v1", "gpt-4o-mini", "gpt-4o-mini",
 		false, "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(rows)
 
@@ -137,7 +137,7 @@ func TestLLMService_TestConnection_DifferentModels(t *testing.T) {
 	}).AddRow(1, now, now, nil, "test-api-key", "https://api.openai.com/v1", "gpt-4o-mini", "gpt-4",
 		false, "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(rows)
 
@@ -189,11 +189,11 @@ func TestLLMService_UpdateSettings_MaskedAPIKey(t *testing.T) {
 		"proxy_enabled", "proxy_url", "proxy_username", "proxy_password",
 	}
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows(cols).AddRow(1, now, now, nil, "real-secret-key", "https://api.openai.com/v1", "gpt-4", "gpt-4", false, "", "", ""))
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows(cols).AddRow(1, now, now, nil, "real-secret-key", "https://api.openai.com/v1", "gpt-4", "gpt-4", false, "", "", ""))
 
@@ -225,11 +225,11 @@ func TestLLMService_UpdateSettings_MaskedProxyPassword(t *testing.T) {
 		"proxy_enabled", "proxy_url", "proxy_username", "proxy_password",
 	}
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows(cols).AddRow(1, now, now, nil, "real-key", "https://api.openai.com/v1", "gpt-4", "gpt-4", true, "http://proxy:8080", "user", "real-proxy-pass"))
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows(cols).AddRow(1, now, now, nil, "real-key", "https://api.openai.com/v1", "gpt-4", "gpt-4", true, "http://proxy:8080", "user", "real-proxy-pass"))
 
@@ -266,7 +266,7 @@ func TestLLMService_TestConnection_NoAPIKey(t *testing.T) {
 	}).AddRow(1, now, now, nil, "", "https://api.openai.com/v1", "gpt-4o-mini", "gpt-4o-mini",
 		false, "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(rows)
 
@@ -305,7 +305,7 @@ func TestLLMService_TestConnection_Success(t *testing.T) {
 	}).AddRow(1, now, now, nil, "test-key", server.URL, "gpt-4o-mini", "gpt-4o-mini",
 		false, "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(rows)
 
@@ -345,7 +345,7 @@ func TestLLMService_TestConnection_DifferentModels_Success(t *testing.T) {
 	}).AddRow(1, now, now, nil, "test-key", server.URL, "search-model", "analysis-model",
 		false, "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(rows)
 
@@ -380,7 +380,7 @@ func TestLLMService_ListModels_Success(t *testing.T) {
 	}).AddRow(1, now, now, nil, "test-key", server.URL, "gpt-4o-mini", "gpt-4o-mini",
 		false, "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(rows)
 
@@ -403,7 +403,7 @@ func TestLLMService_ListModels_NoAPIKey(t *testing.T) {
 	}).AddRow(1, now, now, nil, "", "https://api.openai.com/v1", "gpt-4o-mini", "gpt-4o-mini",
 		false, "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(rows)
 
@@ -431,7 +431,7 @@ func TestLLMService_ListModels_ServerError(t *testing.T) {
 	}).AddRow(1, now, now, nil, "test-key", server.URL, "gpt-4o-mini", "gpt-4o-mini",
 		false, "", "", "")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" WHERE "llm_settings"."deleted_at" IS NULL ORDER BY "llm_settings"."id" LIMIT $1`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "llm_settings" ORDER BY "llm_settings"."id" LIMIT $1`)).
 		WithArgs(1).
 		WillReturnRows(rows)
 

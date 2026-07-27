@@ -22,7 +22,7 @@ func TestUserRepository_GetByUsername(t *testing.T) {
 		"id", "created_at", "updated_at", "deleted_at", "username", "password_hash", "email", "is_active",
 	}).AddRow(1, now, now, nil, "admin", "hashed_password", "admin@test.com", true)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 ORDER BY "users"."id" LIMIT $2`)).
 		WithArgs("admin", 1).
 		WillReturnRows(rows)
 
@@ -41,7 +41,7 @@ func TestUserRepository_GetByUsername_NotFound(t *testing.T) {
 
 	repo := NewUserRepository(gormDB)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE username = $1 ORDER BY "users"."id" LIMIT $2`)).
 		WithArgs("nonexistent", 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -62,7 +62,7 @@ func TestUserRepository_GetByID(t *testing.T) {
 		"id", "created_at", "updated_at", "deleted_at", "username", "password_hash", "email", "is_active",
 	}).AddRow(1, now, now, nil, "admin", "hashed_password", "admin@test.com", true)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE "users"."id" = $1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE "users"."id" = $1 ORDER BY "users"."id" LIMIT $2`)).
 		WithArgs(1, 1).
 		WillReturnRows(rows)
 
@@ -80,7 +80,7 @@ func TestUserRepository_GetByID_NotFound(t *testing.T) {
 
 	repo := NewUserRepository(gormDB)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE "users"."id" = $1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $2`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE "users"."id" = $1 ORDER BY "users"."id" LIMIT $2`)).
 		WithArgs(999, 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
