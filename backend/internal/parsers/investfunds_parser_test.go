@@ -1,6 +1,7 @@
 package parsers
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -388,4 +389,73 @@ func TestInvestfundsParser_GetFundData_JSONAPIFails_FallbackToHTML(t *testing.T)
 	assert.Len(t, data.NAVHistory, 1)
 	assert.Equal(t, 1050.50, data.NAVHistory[0].UnitPrice)
 	assert.Equal(t, 1050.50, data.NAVHistory[0].NAV)
+}
+
+func TestInvestfundsParser_GetFundData_FiltersFutureDates(t *testing.T) {
+	futureDate := time.Now().AddDate(0, 1, 0)
+	futureTimestamp := futureDate.UnixMilli()
+	pastTimestamp := time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC).UnixMilli()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("action") == "chartData" {
+			dataKey := r.URL.Query().Get("data_key")
+			if dataKey == "pay" {
+				jsonResp := fmt.Sprintf(`[{"data":[[%d,1000],[%d,1100]],"name":"test","tooltip":{"valueDecimals":2,"xDateFormat":""}}]`, pastTimestamp, futureTimestamp)
+				w.Write([]byte(jsonResp))
+			} else if dataKey == "sca" {
+				jsonResp := fmt.Sprintf(`[{"data":[[%d,5000000],[%d,6000000]],"name":"test","tooltip":{"valueDecimals":0,"xDateFormat":""}}]`, pastTimestamp, futureTimestamp)
+				w.Write([]byte(jsonResp))
+			}
+			return
+		}
+		w.Write([]byte(`<html><body></body></html>`))
+	}))
+	defer server.Close()
+
+	parser := &InvestfundsParser{
+		client:  server.Client(),
+		baseURL: server.URL,
+	}
+
+	data, err := parser.GetFundData(server.URL + "/funds/123/")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, data)
+	assert.Len(t, data.NAVHistory, 1, "должна быть только одна запись (прошлая дата)")
+	assert.Equal(t, 1000.0, data.NAVHistory[0].NAV)
+}
+
+func TestInvestfundsParser_GetFundData_FiltersFuturePayouts(t *testing.T) {
+	futureDate := time.Now().AddDate(0, 1, 0)
+	futureDateStr := futureDate.Format("02.01.2006")
+	pastDateStr := "15.01.2024"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("action") == "chartData" {
+			w.Write([]byte(`[]`))
+			return
+		}
+		html := fmt.Sprintf(`<html><body>
+			<table class="dividends_table">
+				<tbody>
+					<tr><td>1</td><td>%s</td><td>выплата</td><td>50.00</td><td>5.0</td></tr>
+					<tr><td>2</td><td>%s</td><td>выплата</td><td>60.00</td><td>6.0</td></tr>
+				</tbody>
+			</table>
+		</body></html>`, pastDateStr, futureDateStr)
+		w.Write([]byte(html))
+	}))
+	defer server.Close()
+
+	parser := &InvestfundsParser{
+		client:  server.Client(),
+		baseURL: server.URL,
+	}
+
+	data, err := parser.GetFundData(server.URL + "/funds/123/")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, data)
+	assert.Len(t, data.PayoutHistory, 1, "должна быть только одна выплата (прошлая дата)")
+	assert.Equal(t, 50.0, data.PayoutHistory[0].Amount)
 }

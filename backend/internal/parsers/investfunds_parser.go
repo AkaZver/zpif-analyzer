@@ -196,6 +196,9 @@ func (p *InvestfundsParser) GetFundData(fundURL string) (*InvestfundsData, error
 				}
 			}
 
+		today := time.Now().In(mskLocation)
+		today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, mskLocation)
+
 		for _, point := range payData {
 			if len(point) >= 2 {
 				tsMs := int64(point[0])
@@ -203,15 +206,19 @@ func (p *InvestfundsParser) GetFundData(fundURL string) (*InvestfundsData, error
 				date := time.Unix(tsMs/1000, 0).In(mskLocation)
 				date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, mskLocation)
 
-					navData := NAVData{
-						Date:      date,
-						UnitPrice: nav,
-						NAV:       nav,
-						SCA:       scaByTimestamp[tsMs],
-					}
-					data.NAVHistory = append(data.NAVHistory, navData)
+				if date.After(today) {
+					continue
 				}
+
+				navData := NAVData{
+					Date:      date,
+					UnitPrice: nav,
+					NAV:       nav,
+					SCA:       scaByTimestamp[tsMs],
+				}
+				data.NAVHistory = append(data.NAVHistory, navData)
 			}
+		}
 
 			sort.Slice(data.NAVHistory, func(i, j int) bool {
 				return data.NAVHistory[i].Date.After(data.NAVHistory[j].Date)
@@ -259,6 +266,9 @@ func (p *InvestfundsParser) GetFundData(fundURL string) (*InvestfundsData, error
 	}
 
 	if len(data.NAVHistory) == 0 {
+		today := time.Now().In(mskLocation)
+		today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, mskLocation)
+
 		doc.Find("table.table_part tbody tr").Each(func(i int, s *goquery.Selection) {
 			cells := s.Find("td")
 			if cells.Length() >= 3 {
@@ -270,7 +280,7 @@ func (p *InvestfundsParser) GetFundData(fundURL string) (*InvestfundsData, error
 				nav := parseRussianNumber(navText)
 				sca := parseRussianNumber(scaText)
 
-				if !date.IsZero() && nav > 0 {
+				if !date.IsZero() && nav > 0 && !date.After(today) {
 					navData := NAVData{
 						Date:      date,
 						UnitPrice: nav,
@@ -289,6 +299,9 @@ func (p *InvestfundsParser) GetFundData(fundURL string) (*InvestfundsData, error
 		})
 	}
 
+	today := time.Now().In(mskLocation)
+	today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, mskLocation)
+
 	doc.Find("table.dividends_table tbody tr").Each(func(i int, s *goquery.Selection) {
 		cells := s.Find("td")
 		if cells.Length() >= 4 {
@@ -303,7 +316,7 @@ func (p *InvestfundsParser) GetFundData(fundURL string) (*InvestfundsData, error
 			amount := parseRussianNumber(amountText)
 			yieldPercent := parseRussianNumber(yieldText)
 
-			if !paymentDate.IsZero() && amount > 0 {
+			if !paymentDate.IsZero() && amount > 0 && !paymentDate.After(today) {
 				payout := Payout{
 					Date:         paymentDate,
 					Amount:       amount,

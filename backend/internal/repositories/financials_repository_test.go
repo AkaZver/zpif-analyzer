@@ -33,8 +33,8 @@ func TestFinancialsRepository_GetByFundID(t *testing.T) {
 		1.5, 5.0,
 		3, "Ozon")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_financials" WHERE fund_id = $1 AND "fund_financials"."deleted_at" IS NULL ORDER BY snapshot_date DESC`)).
-		WithArgs(1).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC`).
+		WithArgs(uint(1), sqlmock.AnyArg()).
 		WillReturnRows(rows)
 
 	financials, err := repo.GetByFundID(1)
@@ -69,8 +69,8 @@ func TestFinancialsRepository_GetLatestByFundID(t *testing.T) {
 		1.5, 5.0,
 		3, "Ozon")
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "fund_financials" WHERE fund_id = $1 AND "fund_financials"."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"."id" LIMIT $2`)).
-		WithArgs(1, 1).
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
+		WithArgs(uint(1), sqlmock.AnyArg(), 1).
 		WillReturnRows(rows)
 
 	financial, err := repo.GetLatestByFundID(1)
@@ -184,4 +184,72 @@ func TestFinancialsRepository_GetByFundIDAndDateRange(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, financials, 1)
 	assert.Equal(t, 1000.0, financials[0].UnitPriceRub)
+}
+
+func TestFinancialsRepository_GetByFundID_FiltersFutureDates(t *testing.T) {
+	gormDB, mock := setupMockDB(t)
+	defer func() { db, _ := gormDB.DB(); db.Close() }()
+
+	repo := NewFinancialsRepository(gormDB)
+	now := time.Now()
+	pastDate := time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC)
+
+	rows := sqlmock.NewRows([]string{
+		"id", "created_at", "updated_at", "deleted_at", "fund_id", "snapshot_date",
+		"unit_price_rub", "nav_per_unit_rub", "nav_total_mln_rub", "discount_to_nav_pct",
+		"cap_rate_pct", "p_nav", "p_affo", "noi_yield_pct",
+		"annual_payout_rub", "payout_yield_pct", "payout_yield_after_tax_pct",
+		"payout_frequency", "payout_stability", "rent_indexation_pct",
+		"management_fee_pct", "trading_volume_mln_rub",
+		"number_of_properties", "main_tenants",
+	}).AddRow(1, now, now, nil, 1, pastDate, 1000.0, 1050.0, 5000.0, -4.76,
+		8.5, 0.95, 12.0, 7.2,
+		80.0, 8.0, 6.96,
+		"monthly", "high", 3.0,
+		1.5, 5.0,
+		3, "Ozon")
+
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC`).
+		WithArgs(uint(1), sqlmock.AnyArg()).
+		WillReturnRows(rows)
+
+	financials, err := repo.GetByFundID(1)
+
+	assert.NoError(t, err)
+	assert.Len(t, financials, 1)
+	assert.True(t, financials[0].SnapshotDate.Before(time.Now().Add(24*time.Hour)), "snapshot_date должна быть <= today")
+}
+
+func TestFinancialsRepository_GetLatestByFundID_FiltersFutureDates(t *testing.T) {
+	gormDB, mock := setupMockDB(t)
+	defer func() { db, _ := gormDB.DB(); db.Close() }()
+
+	repo := NewFinancialsRepository(gormDB)
+	now := time.Now()
+	pastDate := time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC)
+
+	rows := sqlmock.NewRows([]string{
+		"id", "created_at", "updated_at", "deleted_at", "fund_id", "snapshot_date",
+		"unit_price_rub", "nav_per_unit_rub", "nav_total_mln_rub", "discount_to_nav_pct",
+		"cap_rate_pct", "p_nav", "p_affo", "noi_yield_pct",
+		"annual_payout_rub", "payout_yield_pct", "payout_yield_after_tax_pct",
+		"payout_frequency", "payout_stability", "rent_indexation_pct",
+		"management_fee_pct", "trading_volume_mln_rub",
+		"number_of_properties", "main_tenants",
+	}).AddRow(1, now, now, nil, 1, pastDate, 1000.0, 1050.0, 5000.0, -4.76,
+		8.5, 0.95, 12.0, 7.2,
+		80.0, 8.0, 6.96,
+		"monthly", "high", 3.0,
+		1.5, 5.0,
+		3, "Ozon")
+
+	mock.ExpectQuery(`SELECT \* FROM "fund_financials" WHERE \(fund_id = .+ AND snapshot_date <= .+\) AND "fund_financials"\."deleted_at" IS NULL ORDER BY snapshot_date DESC,"fund_financials"\."id" LIMIT`).
+		WithArgs(uint(1), sqlmock.AnyArg(), 1).
+		WillReturnRows(rows)
+
+	financial, err := repo.GetLatestByFundID(1)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, financial)
+	assert.True(t, financial.SnapshotDate.Before(time.Now().Add(24*time.Hour)), "snapshot_date должна быть <= today")
 }

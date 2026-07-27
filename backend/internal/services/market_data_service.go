@@ -224,8 +224,14 @@ func (s *MarketDataService) FetchMarketDataForFund(ctx context.Context, fundID u
 		return nil, fmt.Errorf("no data available from any source")
 	}
 
+	today := time.Now()
+	today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, today.Location())
+
 	// Process MOEX price history (создаёт записи с ценой)
 	for _, moexData := range moexHistory {
+		if moexData.Date.After(today) {
+			continue
+		}
 		financials := &models.FundFinancials{
 			FundID:       fundID,
 			SnapshotDate: moexData.Date,
@@ -252,6 +258,9 @@ func (s *MarketDataService) FetchMarketDataForFund(ctx context.Context, fundID u
 	// Process investfunds NAV history (ВСЕГДА, объединяя с MOEX данными)
 	if investfundsData != nil && len(investfundsData.NAVHistory) > 0 {
 		for _, navData := range investfundsData.NAVHistory {
+			if navData.Date.After(today) {
+				continue
+			}
 			existing, _ := s.financialsRepo.GetByFundIDAndDate(fundID, navData.Date)
 			if existing != nil {
 				// Обновляем существующую запись (добавляем NAV и СЧА)
@@ -293,6 +302,9 @@ func (s *MarketDataService) FetchMarketDataForFund(ctx context.Context, fundID u
 	// Process payout history
 	if investfundsData != nil && len(investfundsData.PayoutHistory) > 0 {
 		for _, payout := range investfundsData.PayoutHistory {
+			if payout.Date.After(today) {
+				continue
+			}
 			existing, _ := s.financialsRepo.GetByFundIDAndDate(fundID, payout.Date)
 			if existing != nil {
 				existing.PayoutYieldPct = payout.YieldPercent

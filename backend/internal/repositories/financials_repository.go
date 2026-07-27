@@ -19,7 +19,9 @@ const orderSnapshotDateDesc = "snapshot_date DESC"
 
 func (r *FinancialsRepository) GetByFundID(fundID uint) ([]models.FundFinancials, error) {
 	var financials []models.FundFinancials
-	err := r.db.Where("fund_id = ?", fundID).Order(orderSnapshotDateDesc).Find(&financials).Error
+	today := time.Now()
+	today = time.Date(today.Year(), today.Month(), today.Day(), 23, 59, 59, 0, today.Location())
+	err := r.db.Where("fund_id = ? AND snapshot_date <= ?", fundID, today).Order(orderSnapshotDateDesc).Find(&financials).Error
 	return financials, err
 }
 
@@ -32,7 +34,9 @@ func (r *FinancialsRepository) GetByFundIDAndDateRange(fundID uint, from, to tim
 
 func (r *FinancialsRepository) GetLatestByFundID(fundID uint) (*models.FundFinancials, error) {
 	var financial models.FundFinancials
-	err := r.db.Where("fund_id = ?", fundID).Order(orderSnapshotDateDesc).First(&financial).Error
+	today := time.Now()
+	today = time.Date(today.Year(), today.Month(), today.Day(), 23, 59, 59, 0, today.Location())
+	err := r.db.Where("fund_id = ? AND snapshot_date <= ?", fundID, today).Order(orderSnapshotDateDesc).First(&financial).Error
 	if err != nil {
 		return nil, err
 	}
