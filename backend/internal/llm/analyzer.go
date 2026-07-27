@@ -251,6 +251,7 @@ func (a *Analyzer) extractMetrics(ctx context.Context, llmClient *Client, docTex
 		return nil, err
 	}
 	cleaned := ExtractJSON(resp)
+	cleaned = SanitizeJSON(cleaned)
 	if cleaned == "" {
 		log.Printf("Extract metrics: no JSON found in response")
 		return &MetricsExtraction{}, nil
@@ -272,6 +273,7 @@ func (a *Analyzer) generateAnalysis(ctx context.Context, llmClient *Client, docT
 		return nil, err
 	}
 	cleaned := ExtractJSON(resp)
+	cleaned = SanitizeJSON(cleaned)
 	if cleaned == "" {
 		log.Printf("Generate analysis: no JSON found in response, using raw text")
 		return &AnalysisResult{

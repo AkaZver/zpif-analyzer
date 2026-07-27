@@ -244,8 +244,8 @@ func ExtractJSON(s string) string {
 	}
 
 	replacer := strings.NewReplacer(
-		"\u201c", "'",
-		"\u201d", "'",
+		"\u201c", "\"",
+		"\u201d", "\"",
 		"\u2018", "'",
 		"\u2019", "'",
 	)
@@ -295,6 +295,50 @@ func ExtractJSON(s string) string {
 }
 
 func SanitizeJSON(s string) string {
+	s = sanitizeSingleQuoteDelimiters(s)
+	return sanitizeUnescapedDoubleQuotes(s)
+}
+
+func sanitizeSingleQuoteDelimiters(s string) string {
+	var result strings.Builder
+	result.Grow(len(s))
+
+	inDoubleQuote := false
+	escaped := false
+
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+
+		if escaped {
+			result.WriteByte(ch)
+			escaped = false
+			continue
+		}
+
+		if ch == '\\' && inDoubleQuote {
+			result.WriteByte(ch)
+			escaped = true
+			continue
+		}
+
+		if ch == '"' {
+			inDoubleQuote = !inDoubleQuote
+			result.WriteByte(ch)
+			continue
+		}
+
+		if ch == '\'' && !inDoubleQuote {
+			result.WriteByte('"')
+			continue
+		}
+
+		result.WriteByte(ch)
+	}
+
+	return result.String()
+}
+
+func sanitizeUnescapedDoubleQuotes(s string) string {
 	var result strings.Builder
 	result.Grow(len(s))
 

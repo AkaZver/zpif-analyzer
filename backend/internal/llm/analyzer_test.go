@@ -77,7 +77,7 @@ func TestExtractJSON_SmartQuotes(t *testing.T) {
 	result := ExtractJSON(input)
 
 	assert.Contains(t, result, "«ПАРУС»")
-	assert.Contains(t, result, "'test'")
+	assert.Contains(t, result, "\"test\"")
 	assert.NotContains(t, result, "\u201c")
 	assert.NotContains(t, result, "\u201d")
 }
@@ -101,6 +101,27 @@ func TestExtractJSON_EscapedQuotes(t *testing.T) {
 	result := ExtractJSON(input)
 
 	assert.Equal(t, input, result)
+}
+
+func TestExtractJSON_SmartDoubleQuotesAsDelimiters(t *testing.T) {
+	input := "{\"name\": \"ЗПИФ\", \"isin\": \"RU000A1022Z1\"}"
+	result := ExtractJSON(input)
+
+	assert.Equal(t, `{"name": "ЗПИФ", "isin": "RU000A1022Z1"}`, result)
+}
+
+func TestExtractJSON_SmartDoubleQuotesInsideString(t *testing.T) {
+	input := `{"name":"ЗПИФ «ПАРУС»"}`
+	result := ExtractJSON(input)
+
+	assert.Contains(t, result, "«ПАРУС»")
+}
+
+func TestExtractJSON_SmartSingleQuotesInsideString(t *testing.T) {
+	input := "{\"name\":\"it\u2019s a test\"}"
+	result := ExtractJSON(input)
+
+	assert.Contains(t, result, "it's a test")
 }
 
 func TestSanitizeJSON_UnescapedQuotes(t *testing.T) {
@@ -129,6 +150,65 @@ func TestSanitizeJSON_MultipleUnescapedQuotes(t *testing.T) {
 	result := SanitizeJSON(input)
 
 	assert.Equal(t, `{"name":"Фонд 'Альфа' и 'Бета'"}`, result)
+}
+
+func TestSanitizeJSON_SingleQuotesAsDelimiters(t *testing.T) {
+	input := `{'name': 'ЗПИФ', 'isin': 'RU000A1022Z1'}`
+	result := SanitizeJSON(input)
+
+	assert.Equal(t, `{"name": "ЗПИФ", "isin": "RU000A1022Z1"}`, result)
+}
+
+func TestSanitizeJSON_SingleQuotesInsideDoubleQuotedString(t *testing.T) {
+	input := `{"name": "it's a test"}`
+	result := SanitizeJSON(input)
+
+	assert.Equal(t, `{"name": "it's a test"}`, result)
+}
+
+func TestSanitizeJSON_MixedQuotes(t *testing.T) {
+	input := `{'name': "ЗПИФ"}`
+	result := SanitizeJSON(input)
+
+	assert.Equal(t, `{"name": "ЗПИФ"}`, result)
+}
+
+func TestSanitizeJSON_EmptyValues(t *testing.T) {
+	input := `{"name": "", "value": ""}`
+	result := SanitizeJSON(input)
+
+	assert.Equal(t, `{"name": "", "value": ""}`, result)
+}
+
+func TestSanitizeJSON_Arrays(t *testing.T) {
+	input := `{"items": ["a", "b", "c"]}`
+	result := SanitizeJSON(input)
+
+	assert.Equal(t, `{"items": ["a", "b", "c"]}`, result)
+}
+
+func TestExtractAndSanitize_SmartQuoteDelimiters(t *testing.T) {
+	input := "Вот результат:\n```json\n{\"name\": \"ЗПИФ\", \"isin\": \"RU000A1022Z1\"}\n```\nГотово!"
+	extracted := ExtractJSON(input)
+	result := SanitizeJSON(extracted)
+
+	assert.JSONEq(t, `{"name": "ЗПИФ", "isin": "RU000A1022Z1"}`, result)
+}
+
+func TestExtractAndSanitize_SmartQuotesInside(t *testing.T) {
+	input := "{\"name\":\"ЗПИФ «ПАРУС»\",\"value\":\"\u201ctest\u201d\"}"
+	extracted := ExtractJSON(input)
+	result := SanitizeJSON(extracted)
+
+	assert.JSONEq(t, "{\"name\":\"ЗПИФ «ПАРУС»\",\"value\":\"'test'\"}", result)
+}
+
+func TestExtractAndSanitize_SingleQuoteJSON(t *testing.T) {
+	input := `{'name': 'ЗПИФ', 'isin': 'RU000A1022Z1'}`
+	extracted := ExtractJSON(input)
+	result := SanitizeJSON(extracted)
+
+	assert.JSONEq(t, `{"name": "ЗПИФ", "isin": "RU000A1022Z1"}`, result)
 }
 
 func TestIsPDF_ValidPDF(t *testing.T) {
