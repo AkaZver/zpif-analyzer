@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router';
 import {
   Typography, Card, Row, Col, Statistic, Tag, Button, Space, Table,
   message, Spin, Upload, Descriptions, List, Modal, Form, Input, Select,

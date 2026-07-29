@@ -7,7 +7,7 @@ import {
   SunOutlined,
   MoonOutlined,
 } from '@ant-design/icons';
-import { useNavigate, Outlet } from 'react-router-dom';
+import { useNavigate, Outlet } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import buildingIcon from '../assets/building-icon.svg';

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Space, Tag, message, Spin, Select, Checkbox, Typography, Card, Tooltip, Modal, Input } from 'antd';
 import { DownloadOutlined, PlusOutlined, CloudDownloadOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { apiClient } from '../../api/client';
 import type { Fund, FundFinancials } from '../../types';
 import type { ColumnsType } from 'antd/es/table';
