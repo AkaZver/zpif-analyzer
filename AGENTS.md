@@ -190,6 +190,10 @@ cp .env.example .env
    - Запускается после build-and-test
    - Проверяет Quality Gate
    - Анализирует coverage
+   - Кэш scanner CLI: `~/.sonar/cache`
+   - Пропускается для PR из форков и dependabot PR (`github.actor == 'dependabot[bot]'`)
+   - GitHub не передает секреты в такие runs, `SONAR_TOKEN` пустой и scan падает
+   - Для таких изменений анализ выполняется при мерже в master
 
 3. **build-and-push** — сборка и публикация Docker образов
    - Только для push в master
@@ -203,7 +207,7 @@ cp .env.example .env
 ### Триггеры
 
 - `push` to `master` — полный pipeline с деплоем
-- `pull_request` to `master` — только build, test и sonarcloud
+- `pull_request` to `master` — только build, test и sonarcloud (sonarcloud пропускается для форк/dependabot PR)
 
 ### Локальная проверка перед коммитом
 
